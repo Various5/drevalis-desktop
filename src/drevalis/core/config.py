@@ -61,7 +61,12 @@ class Settings(BaseSettings):
     log_file: str | None = Field(default_factory=lambda: str(paths.log_file_path()))
 
     # ── Encryption (Fernet) ───────────────────────────────────────────────
-    encryption_key: str  # Required — no default
+    # Resolved from the OS keychain first, with env / .env as fallback.
+    # The fallback path also persists the env value to the keychain so
+    # subsequent starts no longer need it on disk. See
+    # ``_resolve_encryption_key_from_keychain`` and
+    # :mod:`drevalis.core.keychain`.
+    encryption_key: str = ""
 
     # Versioned-key map populated from ``ENCRYPTION_KEY_V<N>`` env vars
     # (see ``_load_versioned_encryption_keys``). Read via
@@ -192,6 +197,38 @@ class Settings(BaseSettings):
         config change. New installs / production should set both.
         """
         return self.session_secret or self.encryption_key
+
+    @model_validator(mode="after")
+    def _resolve_encryption_key_from_keychain(self) -> Settings:
+        """Pull ENCRYPTION_KEY from the OS keychain when env didn't set it.
+
+        Resolution order:
+
+        1. If ``encryption_key`` is already non-empty (env or .env supplied
+           it), persist it to the keychain on first encounter so future
+           starts can drop the env var, then keep the supplied value.
+        2. Otherwise, read the value from the keychain.
+        3. If neither source has a key, leave ``encryption_key`` empty —
+           the next validator (``validate_encryption_key``) will produce
+           the canonical "set ENCRYPTION_KEY" error.
+
+        Tests can opt out of touching the OS keychain by setting
+        ``DREVALIS_SKIP_KEYCHAIN=1`` (e.g. in CI) — the env value (or
+        empty default) is then used verbatim.
+        """
+        if os.environ.get("DREVALIS_SKIP_KEYCHAIN"):
+            return self
+
+        from drevalis.core import keychain
+
+        try:
+            resolved = keychain.get_or_set_encryption_key(self.encryption_key or None)
+        except RuntimeError:
+            # No env value AND no keychain entry — fall through, the
+            # next validator emits the user-facing error.
+            return self
+        self.encryption_key = resolved
+        return self
 
     @model_validator(mode="after")
     def validate_encryption_key(self) -> Settings:

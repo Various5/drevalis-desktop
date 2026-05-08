@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
+# Skip the OS-keychain side trip during tests. ``Settings`` resolves
+# ``encryption_key`` from the keychain by default (desktop port behavior);
+# tests set the key explicitly via the fixture and must not pollute or
+# read the user's real keychain. Set BEFORE importing Settings.
+os.environ.setdefault("DREVALIS_SKIP_KEYCHAIN", "1")
+
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from unittest.mock import AsyncMock
