@@ -1,0 +1,83 @@
+# ─── Owner-only — NEVER commit to this repo ────────────────────────────
+# These live in a separate private repo (license-server + minting CLI).
+license-server/
+scripts/mint_license.py
+license_keys/
+
+# ─── Secrets ───────────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+!**/public_dummy*.pem
+
+# ─── Screenshots / scratch ─────────────────────────────────────────────
+screenshots/
+.claude-plan.md
+.claude/
+*.zip
+test.db
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+venv/
+.eggs/
+
+# ── Environment / Secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Storage (generated assets — too large for git) ───────────────────────────
+storage/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# ── Testing / CI ─────────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node (frontend, if any) ─────────────────────────────────────────────────
+node_modules/
+# package-lock.json IS committed — we want reproducible Docker builds via
+# ``npm ci``. Keep this comment to remind future maintainers not to add it
+# back to .gitignore.
+*.tsbuildinfo
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+*.log
+# Local-dev-only docker-compose override. Production deployments do not
+# load this file (compose only auto-loads override.yml when present in
+# the working directory of the operator running the command).
+docker-compose.override.yml
+
+# ── Scratch artefacts from verification / recovery passes ─────────────────────
+.tmp_*
+
+# Avoid stray '-' files from typo'd shell redirects
+/-
+
+# hatch-vcs auto-generates this at build time from the latest git tag.
+# Checked-in copies would conflict with every new release tag.
+src/drevalis/_version.py

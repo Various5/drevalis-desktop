@@ -1,0 +1,52 @@
+Drevalis Creator Studio
+Copyright © 2026 Drevalis. All rights reserved.
+
+PROPRIETARY SOFTWARE LICENSE
+
+The source code in this repository is the confidential and proprietary
+information of Drevalis ("the Company"). Distribution of compiled binaries,
+container images, and installation scripts is permitted only through the
+Company's official channels (github.com/DrevalisCS, drevalis.com).
+
+No part of this software — source code, object code, container images,
+documentation, or installation scripts — may be:
+
+  1. Reproduced, distributed, transmitted, displayed, or published
+     in any form, in whole or in part, without the prior written
+     consent of the Company;
+
+  2. Modified, adapted, translated, or created as a derivative work of;
+
+  3. Reverse-engineered, decompiled, or disassembled;
+
+  4. Used to develop a competing product or service.
+
+USE RESTRICTIONS
+
+Use of this software requires a valid, active license purchased from
+Drevalis. Licensing terms, scope, seat counts, and renewal are governed
+by the subscription the end user purchases via drevalis.com and the
+separate End User License Agreement ("EULA") delivered with the license.
+
+The in-application license verification is NOT a technical protection
+measure that users are authorized to disable, bypass, or circumvent under
+any circumstances. Doing so violates this license and the EULA.
+
+CONTRIBUTIONS
+
+External contributions (pull requests, patches) are welcome but, upon
+acceptance, are assigned to the Company. By submitting a contribution,
+the contributor agrees to transfer copyright to Drevalis.
+
+NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY.
+
+CONTACT
+
+support@drevalis.com
+drevalis.com

@@ -1,0 +1,10 @@
+{
+  "_drevalis_template": "ipadapter-faceid-sdxl",
+  "_note": "Placeholder — replace the node IDs with your actual ComfyUI graph. Drevalis reads the mapped node IDs and writes values into the matching fields. Nodes not referenced by the template stay untouched.",
+  "5": {"inputs": {"width": 1080, "height": 1920, "batch_size": 1}, "class_type": "EmptyLatentImage"},
+  "6": {"inputs": {"text": "", "clip": ["4", 1]}, "class_type": "CLIPTextEncode"},
+  "7": {"inputs": {"text": "", "clip": ["4", 1]}, "class_type": "CLIPTextEncode"},
+  "10": {"inputs": {"seed": 0, "steps": 30, "cfg": 7.0, "sampler_name": "dpmpp_2m", "scheduler": "karras", "denoise": 1.0, "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}, "class_type": "KSampler"},
+  "42": {"inputs": {"image": "placeholder.png"}, "class_type": "LoadImage"},
+  "44": {"inputs": {"lora_name": "", "strength_model": 0.75, "strength_clip": 0.75, "model": ["4", 0], "clip": ["4", 1]}, "class_type": "LoraLoader"}
+}

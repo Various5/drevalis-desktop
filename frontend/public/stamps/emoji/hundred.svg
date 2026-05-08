@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
+  <text x="50%" y="62%" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="120" font-weight="900" fill="#e80000" stroke="#7a0000" stroke-width="4">100</text>
+  <line x1="20" y1="135" x2="220" y2="135" stroke="#e80000" stroke-width="6" stroke-linecap="round"/>
+  <line x1="40" y1="148" x2="200" y2="148" stroke="#e80000" stroke-width="4" stroke-linecap="round"/>
+</svg>

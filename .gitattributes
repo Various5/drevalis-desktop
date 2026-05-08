@@ -1,0 +1,62 @@
+# Enforce LF line endings for files that MUST stay LF regardless of the
+# checkout host's git ``core.autocrlf`` setting.
+#
+# On Windows checkouts with ``core.autocrlf=true`` (the Git for Windows
+# default), every text file is converted to CRLF on checkout — including
+# shell scripts. A CRLF shell script breaks bash on Linux:
+#
+#     bash: line N: $'\r': command not found
+#     : invalid option nameipefail
+#
+# This file pins line endings on the formats where CRLF is fatal.
+
+# ── Auto detection ───────────────────────────────────────────────────────
+# ``eol=lf`` on the catch-all forces every text file to LF in BOTH the
+# index AND the working copy regardless of the host's ``core.autocrlf`` /
+# ``core.eol`` settings. The PowerShell / CMD overrides below still win
+# because per-pattern attributes override the catch-all.
+* text=auto eol=lf
+
+# ── Force LF on Linux/cross-platform formats ─────────────────────────────
+*.sh         text eol=lf
+*.py         text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.toml       text eol=lf
+*.ini        text eol=lf
+*.cfg        text eol=lf
+*.json       text eol=lf
+*.html       text eol=lf
+*.css        text eol=lf
+*.js         text eol=lf
+*.ts         text eol=lf
+*.tsx        text eol=lf
+*.md         text eol=lf
+Dockerfile   text eol=lf
+Dockerfile.* text eol=lf
+.env.example text eol=lf
+*.conf       text eol=lf
+
+# ── Force CRLF on Windows-only formats ───────────────────────────────────
+*.ps1        text eol=crlf
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+
+# ── Binary ────────────────────────────────────────────────────────────────
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.webp       binary
+*.ico        binary
+*.svg        binary
+*.mp4        binary
+*.webm       binary
+*.mp3        binary
+*.wav        binary
+*.onnx       binary
+*.pdf        binary
+*.zip        binary
+*.tgz        binary
+*.tar.gz     binary
+*.whl        binary

@@ -1,0 +1,211 @@
+[project]
+name = "drevalis"
+# Version is auto-derived from the latest git tag by ``hatch-vcs`` at
+# build time. The wheel ships a static ``src/drevalis/_version.py``
+# written by the build hook so ``importlib.metadata.version("drevalis")``
+# (used by ``services.updates._resolve_current_version``) returns the
+# right value at runtime even when the install isn't a git checkout.
+# Docker builds pass ``APP_VERSION`` as an env var which still wins —
+# see the chain in ``services/updates.py``.
+dynamic = ["version"]
+description = "AI-powered YouTube Shorts creation studio"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "redis>=5.2.0",
+    "arq>=0.26.1",
+    "structlog>=24.4.0",
+    "openai>=1.58.0",
+    "anthropic>=0.87.0",
+    "httpx>=0.28.0",
+    "cryptography>=46.0.7",
+    "faster-whisper>=1.1.0",
+    "aiofiles>=24.1.0",
+    "alembic>=1.14.0",
+    "edge-tts>=6.1.0",
+    # 0.0.27 patches CVE-2026-42561 (DoS via crafted multipart payload).
+    "python-multipart>=0.0.27",
+    "google-api-python-client>=2.100.0",
+    "google-auth-oauthlib>=1.2.0",
+    "google-auth>=2.25.0",
+    # CVE-2024-53861 audience-bypass fix only lands in 2.10.1+.
+    "pyjwt[crypto]>=2.10.1",
+    # Image magic-byte verification on cover uploads.
+    "Pillow>=10.0.0",
+    # ID3 metadata + chapter markers for audiobook MP3 output.
+    "mutagen>=1.47.0",
+]
+
+[project.optional-dependencies]
+kokoro = [
+    "kokoro>=0.9.0; python_version >= '3.11'",
+    "soundfile>=0.13.0",
+]
+music = [
+    "audiocraft>=1.0.0; python_version >= '3.11'",
+]
+music_video = [
+    # Beat / onset detection for cutting scenes to the beat. Optional —
+    # when not installed, the music_video pipeline degrades to evenly-
+    # spaced scene cuts within each song section.
+    "librosa>=0.10.0; python_version >= '3.11'",
+    "soundfile>=0.13.0",
+]
+dev = [
+    # 9.0.3 patches CVE-2025-71176 (test fixture parsing).
+    "pytest>=9.0.3",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "mypy>=1.14.0",
+    "ruff>=0.8.0",
+    "factory-boy>=3.3.0",
+    "httpx>=0.28.0",
+    "bandit>=1.7.0",
+    "pip-audit>=2.7.0",
+    # Type stubs for third-party libs mypy analyzes
+    "types-aiofiles>=24.1.0",
+]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+# Read the version from the latest reachable git tag (e.g. ``v0.30.6``
+# strips to ``0.30.6``). Builds outside a git checkout (e.g. an
+# unpacked sdist) can't tag-derive — they fall through to the static
+# ``_version.py`` written by the build hook below.
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+# Bake the resolved version into a static module shipped with the
+# wheel. ``importlib.metadata.version`` reads PKG-INFO directly, so
+# this file is mostly belt-and-braces — but it lets dev imports
+# (`from drevalis._version import __version__`) work without going
+# through metadata.
+version-file = "src/drevalis/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drevalis"]
+
+# ── Ruff ──────────────────────────────────────────────────────────────────────
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    # FastAPI / SQLAlchemy idioms that ruff flags but are canonical:
+    "B008",    # `Depends()` in default arg — FastAPI's intended pattern
+    "E501",    # line-too-long — formatter handles this; residual lines are URLs/strings
+    "SIM105",  # try/except/pass is clearer than contextlib.suppress in many places
+    "SIM102",  # nested if — often intentional for clarity
+    "SIM108",  # ternary — not always more readable
+    "SIM117",  # multiple with — fine when context vars belong together
+    "B007",    # unused loop variable — often intentional when iterating for side effects
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are allowed to have more relaxed style (long asserts, fixtures, etc.)
+"tests/**/*.py" = ["B017"]
+# conftest.py patches SQLAlchemy's UUID type before importing app modules;
+# the reordered imports are intentional and correct.
+"tests/conftest.py" = ["E402"]
+# Alembic auto-generated migrations have their own conventions
+"migrations/**/*.py" = ["E402", "F401", "F841"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["drevalis"]
+
+# ── mypy ──────────────────────────────────────────────────────────────────────
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = [
+    "pydantic.mypy",
+    "sqlalchemy.ext.mypy.plugin",
+]
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "arq.*",
+    "faster_whisper.*",
+    "kokoro.*",
+    "soundfile.*",
+    "audiocraft.*",
+    "numpy.*",
+    "edge_tts.*",
+    "google.*",
+    "googleapiclient.*",
+    "mutagen.*",
+]
+ignore_missing_imports = true
+
+# google-auth ships partial inline type info; its `Credentials` constructor
+# is seen as untyped by some mypy versions / stub availability combinations
+# (CI hits no-untyped-call; local installs may see it as typed and flag the
+# ignore as unused). Suppress the diagnostic for the google.oauth2 path
+# specifically so the code is portable without per-call ignore comments.
+[[tool.mypy.overrides]]
+module = ["drevalis.services.youtube"]
+disable_error_code = ["no-untyped-call"]
+
+# mutagen's ID3 frame constructors (APIC, CHAP, CTOC, etc.) are callable
+# but untyped in the installed package. Same rationale as the google
+# override - silence only no-untyped-call (plus attr-defined for the
+# frame-class re-exports it ships without __all__) in the one module
+# that uses them instead of littering ``# type: ignore`` comments.
+[[tool.mypy.overrides]]
+module = ["drevalis.services.audiobook.id3"]
+disable_error_code = ["no-untyped-call", "attr-defined"]
+
+# ── pytest ────────────────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra -q --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests requiring external services",
+]
+
+# ── bandit ────────────────────────────────────────────────────────────────────
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101"]  # skip assert warnings in test code
+
+# ── coverage ──────────────────────────────────────────────────────────────────
+
+[tool.coverage.run]
+source = ["src/drevalis"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__",
+]

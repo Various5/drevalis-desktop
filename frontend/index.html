@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0A0A0B" />
+    <meta
+      name="description"
+      content="Drevalis Creator Studio — turn a topic into a finished video or audiobook on your own machine. AI script, AI voice, AI visuals, captions, FFmpeg assembly, one-click upload to YouTube and social."
+    />
+    <!-- Open Graph / Twitter share preview. The image referenced below
+         is provided by the marketing site at the same path; if a
+         self-hosted install doesn't ship it, the link is harmless
+         (search engines and chat apps just skip the missing file).
+         TODO(design): provide og-image.png 1200×630 in /public/. -->
+    <meta property="og:title" content="Drevalis Creator Studio" />
+    <meta
+      property="og:description"
+      content="AI video + audiobook studio you run on your own machine. No per-video fees."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- Favicon: SVG mark (theme-aware via fill="currentColor" gradient).
+         TODO(design): provide /apple-touch-icon.png (180×180) for iOS
+         home-screen pinning. The link tag below is harmless if the file
+         is missing — iOS just falls back to a screenshot. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Drevalis Creator Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preload the two faces that render above-the-fold content (DM Sans
+         body 400, Outfit display 600). Without these the first paint waits
+         on the CSS file -> font-file chain, then re-lays-out when the
+         webfonts swap in — visible CLS on Dashboard headings and body copy. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="https://fonts.gstatic.com/s/outfit/v11/QGYyz_MVcBeNP4NJuktqkY.woff2"
+      crossorigin
+    />
+    <!-- Font loadout: Inter is the default body face; the display
+         font swaps per theme preset (see src/lib/theme.tsx). All
+         fonts are loaded up-front so switching themes is instant
+         and doesn't trigger FOUT. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
