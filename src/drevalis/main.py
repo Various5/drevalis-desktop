@@ -27,6 +27,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = Settings()
 
     # ── Startup ───────────────────────────────────────────────────────────
+    # Create the OS-aware user directories before anything that writes to
+    # them (logs, SQLite DB, storage). Idempotent.
+    from drevalis.core.paths import ensure_user_dirs
+
+    ensure_user_dirs()
+
     setup_logging(debug=settings.debug, log_file=settings.log_file)
     log.info("starting_up", app=settings.app_name, debug=settings.debug)
 

@@ -37,11 +37,16 @@ async def startup(ctx: dict[str, Any]) -> None:
     )
 
     settings = Settings()
+
+    # Same OS-aware directories the FastAPI lifespan creates — idempotent
+    # so it's safe to run from both processes.
+    from drevalis.core.paths import ensure_user_dirs
+
+    ensure_user_dirs()
+
     # Pipe worker structlog into the same shared file the FastAPI process
-    # writes to (via the ``LOG_FILE`` env var, set per-container in
-    # docker-compose). The Event Log endpoint glob-merges every JSON
-    # file in the directory so worker errors show up alongside app
-    # errors without giving the backend Docker-socket access.
+    # writes to. The Event Log endpoint glob-merges every JSON file in
+    # the directory so worker errors show up alongside app errors.
     setup_logging(debug=settings.debug, log_file=settings.log_file)
     logger.info(
         "worker_startup",

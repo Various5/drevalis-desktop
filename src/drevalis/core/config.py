@@ -6,8 +6,10 @@ import os
 import re
 from pathlib import Path
 
-from pydantic import PrivateAttr, model_validator
+from pydantic import Field, PrivateAttr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from drevalis.core import paths
 
 _ENCRYPTION_KEY_VERSION_PATTERN = re.compile(r"^ENCRYPTION_KEY_V(\d+)$", re.IGNORECASE)
 
@@ -26,7 +28,10 @@ class Settings(BaseSettings):
     app_timezone: str = "UTC"  # IANA timezone (e.g. "Europe/Amsterdam")
 
     # ── Database ──────────────────────────────────────────────────────────
-    database_url: str = "postgresql+asyncpg://drevalis:drevalis@localhost:5432/drevalis"
+    # Defaults to a SQLite file under the OS user-data dir so a desktop
+    # install boots without configuration. Override via DATABASE_URL for
+    # tests, dev (point at ./drevalis-dev.db via .env), or future Postgres.
+    database_url: str = Field(default_factory=paths.default_database_url)
     db_pool_size: int = 10
     db_max_overflow: int = 20
     # Worker is sequential per-job (max_jobs=8); a smaller pool is
@@ -44,16 +49,16 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # ── Storage ───────────────────────────────────────────────────────────
-    storage_base_path: Path = Path("./storage")
+    # Generated-asset root. Desktop default is ``<user_data>/storage``;
+    # override with STORAGE_BASE_PATH for tests / containerised runs.
+    storage_base_path: Path = Field(default_factory=paths.storage_dir)
 
     # ── Logging ───────────────────────────────────────────────────────────
-    # Optional path to a JSON-lines structlog file.  When set, the
-    # ``GET /api/v1/events`` endpoint reads recent warning/error/critical
-    # events from this file and surfaces them in the Logs page.
-    # Leave unset (or empty) to disable file-based event log access.
-    # The worker writes to the same log file when LOG_FILE is set via the
-    # shared .env / environment.
-    log_file: str | None = None
+    # Path to the JSON-lines structlog file. The Logs page (and
+    # ``GET /api/v1/events``) reads recent warning/error/critical events
+    # from here. Desktop default is ``<user_log_dir>/drevalis.log``; set
+    # ``LOG_FILE=`` (empty) to disable file-based logging entirely.
+    log_file: str | None = Field(default_factory=lambda: str(paths.log_file_path()))
 
     # ── Encryption (Fernet) ───────────────────────────────────────────────
     encryption_key: str  # Required — no default
@@ -75,10 +80,10 @@ class Settings(BaseSettings):
     comfyui_default_url: str = "http://localhost:8188"
 
     # ── Piper TTS ─────────────────────────────────────────────────────────
-    piper_models_path: Path = Path("./storage/models/piper")
+    piper_models_path: Path = Field(default_factory=paths.piper_models_dir)
 
     # ── Kokoro TTS ────────────────────────────────────────────────────────
-    kokoro_models_path: Path = Path("./storage/models/kokoro")
+    kokoro_models_path: Path = Field(default_factory=paths.kokoro_models_dir)
 
     # ── FFmpeg ────────────────────────────────────────────────────────────
     ffmpeg_path: str = "ffmpeg"
@@ -131,9 +136,10 @@ class Settings(BaseSettings):
     license_public_key_override: str | None = None
 
     # ── Backups ───────────────────────────────────────────────────────────
-    # Directory inside the container where backup tarballs are written.
-    # Mount an SMB/NFS path here to send backups off-box automatically.
-    backup_directory: Path = Path("./storage/backups")
+    # Directory where backup tarballs are written. Desktop installs default
+    # to ``<user_data>/backups``; the SCOPE.md "use OS-native backup
+    # tooling" note means this is mostly historical infrastructure now.
+    backup_directory: Path = Field(default_factory=paths.backup_dir)
     # How many recent backups to keep. Older ones are deleted after each run.
     backup_retention: int = 7
     # Cron job on/off. When True, runs daily at 03:00 UTC.
