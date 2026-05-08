@@ -27,8 +27,10 @@ __pycache__/
 *$py.class
 *.egg-info/
 *.egg
-dist/
-build/
+# Anchor these to the repo root so scripts/build/ (per-OS build wrappers)
+# isn't accidentally hidden.
+/dist/
+/build/
 .venv/
 venv/
 .eggs/
