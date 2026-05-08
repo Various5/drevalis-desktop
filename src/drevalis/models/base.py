@@ -1,14 +1,16 @@
 """
 Base ORM model with UUID primary key and timestamp mixin.
 
-All domain models inherit from Base, which provides a shared MetaData
-with consistent constraint naming conventions.  The two mixins add:
+All domain models inherit from Base, which provides shared MetaData with
+consistent constraint naming. The two mixins add:
 
-- UUIDPrimaryKeyMixin  -- UUID PK via gen_random_uuid()
-- TimestampMixin       -- created_at / updated_at TIMESTAMPTZ (UTC)
-
-updated_at is auto-maintained by a PostgreSQL trigger created in the
-initial Alembic migration (001).
+- UUIDPrimaryKeyMixin  -- Python-side ``uuid.uuid4`` default (no DB-side
+                          ``gen_random_uuid()`` — that's Postgres-only).
+- TimestampMixin       -- created_at / updated_at TIMESTAMPTZ (UTC),
+                          maintained at the SQLAlchemy layer (server-side
+                          triggers were Postgres-specific; SQLite has no
+                          equivalent and the desktop port doesn't need
+                          one given the worker is the only writer).
 """
 
 from __future__ import annotations
@@ -16,9 +18,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import TIMESTAMP, MetaData, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import TIMESTAMP, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from drevalis.models._types import UUID
 
 # ── Naming convention for constraints (Alembic autogenerate-friendly) ──────
 convention = {
@@ -37,38 +40,32 @@ class Base(DeclarativeBase):
 
 
 class UUIDPrimaryKeyMixin:
-    """Mixin: UUID primary key with server-side ``gen_random_uuid()`` AND
-    Python-side ``uuid.uuid4`` defaults.
-
-    The Python default is a belt-and-braces fallback for installs where
-    the DB column was created without the server_default (early
-    migrations that ran before the convention was applied). Without it,
-    an INSERT that relies on the server default will 500 with
-    ``NotNullViolationError`` on the ``id`` column.
-    """
+    """Mixin: UUID primary key with Python-side ``uuid.uuid4`` default."""
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-        server_default=text("gen_random_uuid()"),
     )
 
 
 class TimestampMixin:
-    """Mixin: created_at and updated_at TIMESTAMPTZ columns (UTC).
+    """Mixin: created_at / updated_at TIMESTAMPTZ columns (UTC).
 
-    Both default to now() on the server side.
-    updated_at is additionally maintained by a PostgreSQL trigger.
+    Both default to ``CURRENT_TIMESTAMP`` server-side; ``updated_at``
+    is additionally bumped by SQLAlchemy on update. Cross-dialect:
+    ``func.current_timestamp()`` compiles to ``CURRENT_TIMESTAMP`` on
+    SQLite and ``now()`` on Postgres.
     """
 
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()"),
+        server_default=func.current_timestamp(),
     )
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()"),
+        server_default=func.current_timestamp(),
+        onupdate=func.current_timestamp(),
     )

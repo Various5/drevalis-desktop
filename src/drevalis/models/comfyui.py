@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import BOOLEAN, INTEGER, TEXT, TIMESTAMP, String
-from sqlalchemy.dialects.postgresql import JSONB
+from drevalis.models._types import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin

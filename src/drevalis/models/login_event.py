@@ -18,8 +18,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BOOLEAN, TEXT, TIMESTAMP, ForeignKey, Index, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import BOOLEAN, TEXT, TIMESTAMP, ForeignKey, Index, func, text
+from drevalis.models._types import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -40,7 +40,6 @@ class LoginEvent(Base):
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-        server_default=text("gen_random_uuid()"),
     )
 
     # Nullable: unknown-email failures have no user_id.
@@ -57,7 +56,7 @@ class LoginEvent(Base):
     timestamp: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()"),
+        server_default=func.current_timestamp(),
     )
 
     ip: Mapped[str] = mapped_column(TEXT, nullable=False)

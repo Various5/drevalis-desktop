@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import BIGINT, BOOLEAN, NUMERIC, TEXT, CheckConstraint, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from drevalis.models._types import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin

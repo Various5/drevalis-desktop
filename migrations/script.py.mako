@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import drevalis.models._types  # custom TypeDecorators (JSONB / ARRAY / UUID)
 ${imports if imports else ""}
 
 # revision identifiers, used by Alembic.

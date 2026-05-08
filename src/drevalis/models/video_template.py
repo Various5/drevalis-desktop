@@ -12,7 +12,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import BOOLEAN, FLOAT, INTEGER, TEXT, ForeignKey, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from drevalis.models._types import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin

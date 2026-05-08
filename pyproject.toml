@@ -29,6 +29,11 @@ dependencies = [
     "httpx>=0.28.0",
     "cryptography>=46.0.7",
     "faster-whisper>=1.1.0",
+    # PyAV 11.0.0 ships only an sdist (no wheels). Force >=12 so Windows
+    # installs pull a pre-built wheel rather than requiring MSVC at install
+    # time. faster-whisper itself doesn't pin av; the old transitive lock
+    # was the constraint.
+    "av>=12.0.0",
     "aiofiles>=24.1.0",
     "alembic>=1.14.0",
     "edge-tts>=6.1.0",
@@ -51,7 +56,12 @@ kokoro = [
     "soundfile>=0.13.0",
 ]
 music = [
-    "audiocraft>=1.0.0; python_version >= '3.11'",
+    # audiocraft (MusicGen) pulls a transitive `av==11.0.0` that has no
+    # Windows wheel for Python 3.11/3.12 and needs MSVC to compile from
+    # source. Restrict to non-Windows so Windows desktop installs can
+    # still resolve the rest of the lockfile cleanly. Library-mode music
+    # remains the fallback per SCOPE.md.
+    "audiocraft>=1.0.0; python_version >= '3.11' and sys_platform != 'win32'",
 ]
 music_video = [
     # Beat / onset detection for cutting scenes to the beat. Optional —

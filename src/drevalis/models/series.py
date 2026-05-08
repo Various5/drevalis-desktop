@@ -18,7 +18,7 @@ from sqlalchemy import (  # noqa: F401
     String,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from drevalis.models._types import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -183,7 +183,6 @@ class Series(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     tone_profile: Mapped[dict[str, Any] | None] = mapped_column(
         JSONB,
         nullable=True,
-        server_default=text("'{}'::jsonb"),
     )
 
     # ── Relationships ──────────────────────────────────────────────────

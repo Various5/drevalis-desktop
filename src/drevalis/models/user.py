@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import BOOLEAN, INTEGER, TEXT, TIMESTAMP, CheckConstraint, Index, text
-from sqlalchemy.dialects.postgresql import JSONB
+from drevalis.models._types import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -75,5 +75,5 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # need and tolerate missing keys. Server default ``'{}'::jsonb`` so
     # legacy rows behave as "no preferences set".
     preferences: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, nullable=False, server_default=text("'{}'::jsonb"), default=dict
+        JSONB, nullable=False, default=dict
     )

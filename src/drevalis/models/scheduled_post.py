@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import TEXT, TIMESTAMP, CheckConstraint, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID
+from drevalis.models._types import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin

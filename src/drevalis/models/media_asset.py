@@ -16,9 +16,10 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     Index,
+    func,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from drevalis.models._types import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, UUIDPrimaryKeyMixin
@@ -71,7 +72,7 @@ class MediaAsset(UUIDPrimaryKeyMixin, Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()"),
+        server_default=func.current_timestamp(),
     )
 
     # ── Relationships ──────────────────────────────────────────────────

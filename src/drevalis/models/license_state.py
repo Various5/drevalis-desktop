@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import TIMESTAMP, Integer, String, Text, text
+from sqlalchemy import TIMESTAMP, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from drevalis.models.base import Base
@@ -41,5 +41,5 @@ class LicenseStateRow(Base):
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()"),
+        server_default=func.current_timestamp(),
     )

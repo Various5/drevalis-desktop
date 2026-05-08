@@ -15,8 +15,8 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import BIGINT, FLOAT, INT, JSON, TEXT, CheckConstraint, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from drevalis.models._types import ARRAY
+from drevalis.models._types import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -54,7 +54,7 @@ class Asset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     width: Mapped[int | None] = mapped_column(INT, nullable=True)
     height: Mapped[int | None] = mapped_column(INT, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(FLOAT, nullable=True)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+    tags: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, default=list)
     description: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     user_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),

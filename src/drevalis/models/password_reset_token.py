@@ -22,8 +22,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import TEXT, TIMESTAMP, ForeignKey, Index, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import TEXT, TIMESTAMP, ForeignKey, Index, func, text
+from drevalis.models._types import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -42,7 +42,6 @@ class PasswordResetToken(Base):
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-        server_default=text("gen_random_uuid()"),
     )
 
     # CASCADE: deleting a user removes their pending reset tokens too.
@@ -58,7 +57,7 @@ class PasswordResetToken(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()"),
+        server_default=func.current_timestamp(),
     )
 
     # Absolute expiry — service layer sets this to now() + 60 minutes.
