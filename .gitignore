@@ -16,6 +16,10 @@ screenshots/
 .claude/
 *.zip
 test.db
+drevalis-dev.db
+drevalis-dev.db-journal
+drevalis-dev.db-shm
+drevalis-dev.db-wal
 
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/

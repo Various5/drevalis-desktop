@@ -19,6 +19,10 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "redis>=5.2.0",
     "arq>=0.26.1",
+    # Desktop port: SQLite async driver (replaces asyncpg in single-user mode).
+    "aiosqlite>=0.20.0",
+    # Desktop port: OS keychain access for the Fernet master key.
+    "keyring>=25.0.0",
     "structlog>=24.4.0",
     "openai>=1.58.0",
     "anthropic>=0.87.0",
