@@ -111,13 +111,22 @@ def setup_logging(*, debug: bool = False, log_file: str | None = None) -> None:
     root_logger.handlers.clear()
     root_logger.addHandler(console_handler)
 
-    # ── Optional JSON file handler ────────────────────────────────────────
+    # ── Optional JSON file handler (rotating) ─────────────────────────────
     if log_file:
+        from logging.handlers import RotatingFileHandler
         from pathlib import Path as _Path
 
         log_path = _Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(str(log_path), encoding="utf-8")
+        # 10 MB per file × 5 backups = ~50 MB cap. Desktop installs would
+        # otherwise grow drevalis.log indefinitely; the events endpoint
+        # also tails this file, and a multi-GB file makes that slow.
+        file_handler = RotatingFileHandler(
+            str(log_path),
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        )
         file_handler.setFormatter(json_formatter)
         # File always writes at INFO+ — debug flag only affects verbosity
         # of the console stream, not what ends up in the parseable file.
