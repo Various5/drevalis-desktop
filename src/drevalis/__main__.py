@@ -1,24 +1,20 @@
-"""Drevalis launcher — boots API + worker as sibling subprocesses.
+"""Drevalis launcher / CLI.
 
-Usage::
+Subcommands:
 
-    python -m drevalis
+  ``drevalis run`` (default) — boots uvicorn + arq worker as sibling
+  subprocesses against the same Python interpreter / venv. Babysits
+  both; if either dies, the other is terminated and the launcher exits
+  with the dying child's return code. Tauri (Phase 3) will eventually
+  own this orchestration.
 
-Spawns ``uvicorn drevalis.main:app`` and the arq worker pointing at
-``drevalis.workers.settings.WorkerSettings`` against the same Python
-interpreter / venv this module is running under, then babysits both:
+  ``drevalis healthcheck`` — probes the external services the pipeline
+  needs (DB, Redis, ComfyUI, LLM, FFmpeg, Piper voices) and prints a
+  pass/fail summary. Exit non-zero if any required check fails.
 
-- streams their stdout/stderr to the parent console
-- if either child exits, the other is terminated and the launcher
-  exits with the dying child's return code
-- SIGINT (Ctrl-C) propagates to both children via the shared console
-  group on Windows and via os.killpg-equivalent on POSIX
-- SIGTERM on the parent triggers a graceful shutdown of both children
-
-Tauri (Phase 3) will eventually replace this launcher with a Rust shell
-that owns subprocess lifecycle. Until then, ``python -m drevalis`` is
-the canonical "run the desktop app outside Docker" entry point and is
-also useful for development.
+  ``drevalis smoke`` — runs a tiny Edge TTS → FFmpeg WAV round-trip
+  with no ComfyUI / no LLM / no GPU. Catches "I just installed and
+  something's broken" regressions in under 10 seconds.
 
 Configuration (env / .env):
 
@@ -29,6 +25,7 @@ Configuration (env / .env):
 
 from __future__ import annotations
 
+import argparse
 import os
 import signal
 import subprocess
@@ -83,7 +80,47 @@ def _terminate_then_kill(processes: list[subprocess.Popen[bytes]], grace_seconds
                 pass
 
 
+def _force_utf8_stdio() -> None:
+    """Reconfigure stdout/stderr to UTF-8 so Windows cp1252 doesn't mangle output.
+
+    Idempotent. The PYTHONIOENCODING env var is also set so child
+    processes inherit the same convention.
+    """
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure") and getattr(stream, "encoding", "").lower() != "utf-8":
+            try:
+                stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+            except (OSError, ValueError):
+                pass
+
+
 def main() -> NoReturn:
+    _force_utf8_stdio()
+    parser = argparse.ArgumentParser(prog="drevalis", description=__doc__.split("\n", 1)[0])
+    sub = parser.add_subparsers(dest="cmd")
+    sub.add_parser("run", help="Launch uvicorn API + arq worker (default)")
+    sub.add_parser("healthcheck", help="Probe external services")
+    sub.add_parser("smoke", help="TTS + FFmpeg plumbing smoke test")
+    args = parser.parse_args()
+
+    cmd = args.cmd or "run"
+
+    if cmd == "healthcheck":
+        from drevalis.cli.healthcheck import main as healthcheck_main
+
+        raise SystemExit(healthcheck_main())
+
+    if cmd == "smoke":
+        from drevalis.cli.smoke import main as smoke_main
+
+        raise SystemExit(smoke_main())
+
+    # ── default: launcher ────────────────────────────────────────────────
+    _run_launcher()
+
+
+def _run_launcher() -> NoReturn:
     processes: list[subprocess.Popen[bytes]] = []
     shutting_down = False
 
