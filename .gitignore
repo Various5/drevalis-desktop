@@ -41,6 +41,17 @@ venv/
 # ── Storage (generated assets — too large for git) ───────────────────────────
 storage/
 
+# ── Sidecar binaries (downloaded by scripts/fetch_sidecars.py) ───────────────
+# Keep the resources/bin/<platform>/ tree itself (via .gitkeep), but
+# never commit the multi-MB binaries — they're provisioned at install /
+# CI time. See ``scripts/fetch_sidecars.py``.
+resources/bin/**/*.exe
+resources/bin/**/*.dll
+resources/bin/**/ffmpeg
+resources/bin/**/ffprobe
+resources/bin/**/redis-server
+resources/bin/**/redis-cli
+
 # ── IDE ───────────────────────────────────────────────────────────────────────
 .idea/
 .vscode/

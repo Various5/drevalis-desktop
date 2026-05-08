@@ -40,9 +40,11 @@ async def startup(ctx: dict[str, Any]) -> None:
 
     # Same OS-aware directories the FastAPI lifespan creates — idempotent
     # so it's safe to run from both processes.
+    from drevalis.core.binaries import prepend_bundled_bin_to_path
     from drevalis.core.paths import ensure_user_dirs
 
     ensure_user_dirs()
+    prepend_bundled_bin_to_path()
 
     # Pipe worker structlog into the same shared file the FastAPI process
     # writes to. The Event Log endpoint glob-merges every JSON file in

@@ -29,9 +29,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ── Startup ───────────────────────────────────────────────────────────
     # Create the OS-aware user directories before anything that writes to
     # them (logs, SQLite DB, storage). Idempotent.
+    from drevalis.core.binaries import prepend_bundled_bin_to_path
     from drevalis.core.paths import ensure_user_dirs
 
     ensure_user_dirs()
+
+    # Prepend resources/bin/<platform>/ to $PATH so subprocess sites that
+    # hardcode ``"ffmpeg"`` find the bundled binary even when uvicorn is
+    # started directly (without going through ``python -m drevalis``).
+    prepend_bundled_bin_to_path()
 
     setup_logging(debug=settings.debug, log_file=settings.log_file)
     log.info("starting_up", app=settings.app_name, debug=settings.debug)

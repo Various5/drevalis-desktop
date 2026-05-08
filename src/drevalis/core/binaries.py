@@ -18,11 +18,17 @@ during the Settings model_validator without circulars.
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 from pathlib import Path
 
-__all__ = ["find_ffmpeg", "find_redis_server", "resources_root"]
+__all__ = [
+    "find_ffmpeg",
+    "find_redis_server",
+    "prepend_bundled_bin_to_path",
+    "resources_root",
+]
 
 
 def _platform_dir() -> str:
@@ -85,6 +91,30 @@ def find_ffmpeg() -> str:
     if on_path is not None:
         return on_path
     return "ffmpeg"
+
+
+def prepend_bundled_bin_to_path() -> None:
+    """Prepend ``resources/bin/<platform>/`` to ``$PATH`` for this process.
+
+    Idempotent. The desktop port has many subprocess call sites that
+    hardcode ``"ffmpeg"`` (rather than ``settings.ffmpeg_path``); rather
+    than refactor every site, we prepend the bundle directory to PATH
+    at process startup so the bundled binaries win over anything the
+    user's shell happened to have. Child processes inherit this PATH
+    via the default subprocess env.
+
+    Safe no-op when the bundle directory doesn't exist (developer
+    install with no sidecars, CI before fetch_sidecars.py, etc.).
+    """
+    bin_dir = resources_root() / "resources" / "bin" / _platform_dir()
+    if not bin_dir.is_dir():
+        return
+    bin_str = str(bin_dir)
+    current = os.environ.get("PATH", "")
+    parts = current.split(os.pathsep) if current else []
+    if bin_str in parts:
+        return
+    os.environ["PATH"] = bin_str + (os.pathsep + current if current else "")
 
 
 def find_redis_server() -> str | None:

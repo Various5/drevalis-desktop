@@ -71,7 +71,8 @@ async def _run_async() -> int:
             print(f"[FAIL] WAV is too small ({size} bytes)", file=sys.stderr)
             return 1
 
-        print(f"      WAV: {size:,} bytes, {len(result.word_timestamps)} word timestamps")
+        words = len(result.word_timestamps) if result.word_timestamps else 0
+        print(f"      WAV: {size:,} bytes, {words} word timestamps")
 
         # 2) ffprobe the output to confirm it's a real audio stream.
         print("[2/2] Verifying WAV via ffprobe …")

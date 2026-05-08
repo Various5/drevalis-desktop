@@ -97,6 +97,14 @@ def _force_utf8_stdio() -> None:
 
 def main() -> NoReturn:
     _force_utf8_stdio()
+
+    # Prepend resources/bin/<platform>/ to $PATH so subprocess sites that
+    # hardcode ``"ffmpeg"`` find the bundled binary. Child processes
+    # (uvicorn, arq) inherit this via the default subprocess env.
+    from drevalis.core.binaries import prepend_bundled_bin_to_path
+
+    prepend_bundled_bin_to_path()
+
     parser = argparse.ArgumentParser(prog="drevalis", description=__doc__.split("\n", 1)[0])
     sub = parser.add_subparsers(dest="cmd")
     sub.add_parser("run", help="Launch uvicorn API + arq worker (default)")
