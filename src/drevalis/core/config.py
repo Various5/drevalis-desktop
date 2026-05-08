@@ -9,7 +9,7 @@ from pathlib import Path
 from pydantic import Field, PrivateAttr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from drevalis.core import paths
+from drevalis.core import binaries, paths
 
 _ENCRYPTION_KEY_VERSION_PATTERN = re.compile(r"^ENCRYPTION_KEY_V(\d+)$", re.IGNORECASE)
 
@@ -91,7 +91,19 @@ class Settings(BaseSettings):
     kokoro_models_path: Path = Field(default_factory=paths.kokoro_models_dir)
 
     # ── FFmpeg ────────────────────────────────────────────────────────────
-    ffmpeg_path: str = "ffmpeg"
+    # Resolved by ``core.binaries.find_ffmpeg``: bundled
+    # ``resources/bin/<platform>/ffmpeg`` first, then ``$PATH``, then the
+    # literal ``"ffmpeg"`` so subprocess callers still get a sensible
+    # error message. Override with ``FFMPEG_PATH`` for custom builds.
+    ffmpeg_path: str = Field(default_factory=binaries.find_ffmpeg)
+
+    # ── Redis sidecar (Phase 2 bundling) ─────────────────────────────────
+    # Absolute path to a redis-server binary. ``None`` means no sidecar
+    # is reachable — the desktop launcher (Phase 3 Tauri shell, until
+    # then ``python -m drevalis``) will not attempt to spawn Redis and
+    # the user must provide one (system service, Docker, etc.). Wiring
+    # the launcher to actually spawn from this path is a follow-up.
+    redis_binary_path: str | None = Field(default_factory=binaries.find_redis_server)
 
     # ── Video defaults ────────────────────────────────────────────────────
     video_width: int = 1080

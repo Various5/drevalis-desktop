@@ -85,6 +85,10 @@ dev = [
     "pip-audit>=2.7.0",
     # Type stubs for third-party libs mypy analyzes
     "types-aiofiles>=24.1.0",
+    # Desktop port: bundle the Python runtime + deps + assets into a
+    # standalone folder for end-user installers (Phase 2). Used by
+    # drevalis-backend.spec and scripts/build/<os>.{ps1,sh}.
+    "pyinstaller>=6.10.0",
 ]
 
 [project.scripts]
