@@ -166,6 +166,22 @@ def create_app() -> FastAPI:
         name="audiobook_storage",
     )
 
+    # ── Frontend SPA ─────────────────────────────────────────────────────
+    # Mount last so it acts as a catch-all for non-API, non-storage paths.
+    # Resolved from the bundle root in PyInstaller-frozen runs and the
+    # repo root in source runs (see core/binaries.resources_root).
+    # Skipped when no dist is present — keeps `uvicorn drevalis.main:app`
+    # usable for backend-only dev work where the frontend runs via Vite.
+    from drevalis.core.binaries import resources_root
+
+    frontend_dist = resources_root() / "frontend" / "dist"
+    if frontend_dist.is_dir():
+        application.mount(
+            "/",
+            StaticFiles(directory=str(frontend_dist), html=True, follow_symlink=False),
+            name="frontend",
+        )
+
     return application
 
 

@@ -68,6 +68,28 @@ if (-not (Test-Path (Join-Path $SidecarSrc "ffmpeg.exe"))) {
     throw "FFmpeg sidecar missing at $SidecarSrc -- run scripts\fetch_sidecars.py"
 }
 
+# ── 2b) Frontend build (optional) ────────────────────────────────────────
+# Only runs when npm is on PATH. The spec + FastAPI lifespan both
+# skip the SPA mount when frontend/dist is missing, so a dev install
+# without Node still produces a working backend-only bundle.
+$FrontendDir = Join-Path $RepoRoot "frontend"
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+    Write-Step "Building frontend (npm run build)"
+    Push-Location $FrontendDir
+    try {
+        if (-not (Test-Path (Join-Path $FrontendDir "node_modules"))) {
+            & npm ci
+            if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+        }
+        & npm run build
+        if ($LASTEXITCODE -ne 0) { throw "npm run build failed" }
+    } finally {
+        Pop-Location
+    }
+} else {
+    Write-Step "Skipping frontend build (npm not found) -- bundle will be backend-only"
+}
+
 # ── 3) PyInstaller build ─────────────────────────────────────────────────
 Write-Step "Running PyInstaller"
 $Spec = Join-Path $RepoRoot "drevalis-backend.spec"

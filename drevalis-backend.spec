@@ -61,6 +61,13 @@ datas = [
     ),
 ]
 
+# Frontend SPA dist (Vite output). Optional: included when `npm run build`
+# has been run before pyinstaller, otherwise the build still succeeds and
+# main.py skips mounting the SPA. Per-OS build scripts run npm build first.
+_frontend_dist = ROOT / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    datas.append((str(_frontend_dist), "frontend/dist"))
+
 
 # ── Hidden imports ─────────────────────────────────────────────────────────
 # Modules PyInstaller's static analysis misses because they're loaded
