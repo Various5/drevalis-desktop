@@ -43,7 +43,15 @@
       "../../dist/drevalis/drevalis.exe": "backend/drevalis.exe",
       "../../dist/drevalis/_internal/**/*": "backend/_internal/"
     },
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "languages": ["English"],
+        "installMode": "currentUser",
+        "compression": "lzma"
+      }
+    }
   },
   "plugins": {
     "updater": {
