@@ -1,0 +1,36 @@
+[package]
+name = "drevalis-shell"
+version = "0.1.0"
+description = "Tauri shell for Drevalis Creator Studio."
+authors = ["Drevalis"]
+edition = "2021"
+rust-version = "1.77"
+
+# This default-binary stanza is what tauri-cli looks for; the binary
+# name matches Cargo's [[bin]] convention.
+[[bin]]
+name = "drevalis-shell"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+# This feature is used to enable Tauri's custom protocol on Windows
+# (improves performance versus the legacy http:// scheme).
+custom-protocol = ["tauri/custom-protocol"]
+
+# Smaller release binaries — release builds with strip + LTO.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

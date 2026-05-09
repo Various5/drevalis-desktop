@@ -1,0 +1,15 @@
+{
+  "name": "drevalis-tauri",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Tauri shell for Drevalis Creator Studio (Phase 3 desktop port).",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0"
+  }
+}

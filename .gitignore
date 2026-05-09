@@ -72,6 +72,15 @@ htmlcov/
 
 # ── Node (frontend, if any) ─────────────────────────────────────────────────
 node_modules/
+
+# ── Tauri build artifacts ────────────────────────────────────────────────────
+tauri/src-tauri/target/
+tauri/src-tauri/gen/
+
+# ── Frontend build output ────────────────────────────────────────────────────
+# Vite produces this on `npm run build`; it's bundled into the PyInstaller
+# bundle / Tauri bundle at build time. Not source.
+frontend/dist/
 # package-lock.json IS committed — we want reproducible Docker builds via
 # ``npm ci``. Keep this comment to remind future maintainers not to add it
 # back to .gitignore.
