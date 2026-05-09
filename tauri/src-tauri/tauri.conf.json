@@ -5,15 +5,15 @@
   "identifier": "com.drevalis.studio",
   "build": {
     "frontendDist": "../../frontend/dist",
-    "beforeDevCommand": "",
-    "beforeBuildCommand": ""
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev:frontend",
+    "beforeBuildCommand": "npm run build:frontend"
   },
   "app": {
     "windows": [
       {
         "label": "main",
         "title": "Drevalis Creator Studio",
-        "url": "http://127.0.0.1:8000",
         "width": 1280,
         "height": 800,
         "minWidth": 960,

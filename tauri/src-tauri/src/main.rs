@@ -136,18 +136,23 @@ fn main() {
                 );
             }
 
-            // Force-navigate the main window to the API. The
-            // ``windows[0].url`` field in tauri.conf.json sometimes gets
-            // interpreted as a relative path against frontendDist and
-            // gives 404; navigating programmatically guarantees the
-            // webview lands on http://127.0.0.1:8000 regardless.
-            if let Some(win) = app.get_webview_window("main") {
-                let target = "http://127.0.0.1:8000/".parse().unwrap();
-                if let Err(err) = win.navigate(target) {
-                    eprintln!("[drevalis-shell] navigate failed: {err}");
+            // Production: navigate the webview to the FastAPI server so
+            // the SPA's relative XHRs (``/api/v1/...``) hit the same
+            // origin. Tauri's default in release loads frontendDist via
+            // ``tauri://`` -- a separate origin from the API, which
+            // breaks fetches. In debug builds we leave Tauri's devUrl
+            // (Vite dev server on :3000) in place; Vite proxies API
+            // calls to :8000 and gives us HMR for free.
+            #[cfg(not(debug_assertions))]
+            {
+                if let Some(win) = app.get_webview_window("main") {
+                    let target = "http://127.0.0.1:8000/".parse().unwrap();
+                    if let Err(err) = win.navigate(target) {
+                        eprintln!("[drevalis-shell] navigate failed: {err}");
+                    }
+                } else {
+                    eprintln!("[drevalis-shell] main window not found");
                 }
-            } else {
-                eprintln!("[drevalis-shell] main window not found");
             }
 
             // ── Tray icon ────────────────────────────────────────────
