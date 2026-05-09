@@ -93,13 +93,14 @@ export function installTauriBridges(): void {
   );
 
   const originalOpen = window.open.bind(window);
-  window.open = function patchedOpen(url, ...rest) {
+  window.open = function patchedOpen(...args: Parameters<typeof window.open>) {
+    const [url] = args;
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
       openExternal(url).catch((err) => {
         console.error('[tauri] window.open redirect failed', err);
       });
       return null;
     }
-    return originalOpen(url, ...(rest as Parameters<typeof window.open>));
+    return originalOpen(...args);
   } as typeof window.open;
 }
