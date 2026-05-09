@@ -36,7 +36,21 @@ from typing import NoReturn
 from urllib.parse import urlparse
 
 
+def _is_frozen() -> bool:
+    """True when running inside a PyInstaller bundle."""
+    return bool(getattr(sys, "frozen", False))
+
+
 def _api_command() -> list[str]:
+    """Spawn-args for the API child process.
+
+    In a PyInstaller bundle ``sys.executable`` is ``drevalis.exe``, which
+    doesn't accept ``-m uvicorn …``. The bundle exposes an internal
+    ``api`` subcommand instead that imports uvicorn programmatically.
+    Source-mode runs keep the classic ``python -m uvicorn`` invocation.
+    """
+    if _is_frozen():
+        return [sys.executable, "api"]
     host = os.environ.get("DREVALIS_API_HOST", "127.0.0.1")
     port = os.environ.get("DREVALIS_API_PORT", "8000")
     return [
@@ -53,6 +67,9 @@ def _api_command() -> list[str]:
 
 
 def _worker_command() -> list[str]:
+    """Spawn-args for the arq worker child process. See ``_api_command``."""
+    if _is_frozen():
+        return [sys.executable, "worker"]
     return [
         sys.executable,
         "-m",
@@ -186,6 +203,10 @@ def main() -> NoReturn:
     sub.add_parser("run", help="Launch uvicorn API + arq worker (default)")
     sub.add_parser("healthcheck", help="Probe external services")
     sub.add_parser("smoke", help="TTS + FFmpeg plumbing smoke test")
+    # Internal subcommands used by the launcher inside a PyInstaller bundle.
+    # Source-mode invocations don't need them (`-m uvicorn` / `-m arq` work).
+    sub.add_parser("api", help=argparse.SUPPRESS)
+    sub.add_parser("worker", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     cmd = args.cmd or "run"
@@ -200,8 +221,39 @@ def main() -> NoReturn:
 
         raise SystemExit(smoke_main())
 
+    if cmd == "api":
+        raise SystemExit(_run_api_inproc())
+
+    if cmd == "worker":
+        raise SystemExit(_run_worker_inproc())
+
     # ── default: launcher ────────────────────────────────────────────────
     _run_launcher()
+
+
+def _run_api_inproc() -> int:
+    """In-process replacement for ``python -m uvicorn drevalis.main:app …``.
+
+    Used inside a PyInstaller bundle where ``sys.executable`` is the
+    bundle binary itself (no ``-m`` support). Reads host/port from the
+    same env vars the source-mode CLI used.
+    """
+    import uvicorn
+
+    host = os.environ.get("DREVALIS_API_HOST", "127.0.0.1")
+    port = int(os.environ.get("DREVALIS_API_PORT", "8000"))
+    uvicorn.run("drevalis.main:app", host=host, port=port, server_header=False)
+    return 0
+
+
+def _run_worker_inproc() -> int:
+    """In-process replacement for ``python -m arq drevalis.workers.settings.WorkerSettings``."""
+    from arq.worker import run_worker
+
+    from drevalis.workers.settings import WorkerSettings
+
+    run_worker(WorkerSettings)  # type: ignore[arg-type]
+    return 0
 
 
 def _run_launcher() -> NoReturn:
@@ -245,8 +297,13 @@ def _run_launcher() -> NoReturn:
             for p in processes:
                 rc = p.poll()
                 if rc is not None:
+                    label = (
+                        p.args[-1]
+                        if isinstance(p.args, list) and p.args
+                        else "child"
+                    )
                     print(
-                        f"[drevalis] child {p.args[2]!r} exited rc={rc}; shutting down siblings",
+                        f"[drevalis] child {label!r} exited rc={rc}; shutting down siblings",
                         flush=True,
                     )
                     exit_code = rc
