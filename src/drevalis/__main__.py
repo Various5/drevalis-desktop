@@ -237,12 +237,19 @@ def _run_api_inproc() -> int:
     Used inside a PyInstaller bundle where ``sys.executable`` is the
     bundle binary itself (no ``-m`` support). Reads host/port from the
     same env vars the source-mode CLI used.
+
+    Passes the imported FastAPI app instance (not a string) because
+    uvicorn's string-import goes through ``importlib.import_module``
+    which doesn't resolve cleanly against PyInstaller's bundled module
+    layout.
     """
     import uvicorn
 
+    from drevalis.main import app
+
     host = os.environ.get("DREVALIS_API_HOST", "127.0.0.1")
     port = int(os.environ.get("DREVALIS_API_PORT", "8000"))
-    uvicorn.run("drevalis.main:app", host=host, port=port, server_header=False)
+    uvicorn.run(app, host=host, port=port, server_header=False)
     return 0
 
 
