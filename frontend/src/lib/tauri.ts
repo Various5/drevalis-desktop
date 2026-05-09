@@ -42,6 +42,80 @@ export async function openExternal(url: string): Promise<void> {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+/** Update info returned from the Tauri updater's ``check()`` call. */
+export interface TauriUpdateInfo {
+  available: boolean;
+  /** New version (only when ``available``). */
+  version?: string;
+  /** Currently-installed version. */
+  currentVersion?: string;
+  /** Release notes / changelog body, if the manifest carries one. */
+  body?: string;
+  /** Release date string from the manifest. */
+  date?: string;
+}
+
+/**
+ * Ask the Tauri updater plugin whether a newer signed release is on the
+ * configured GitHub Releases endpoint. Returns ``{available: false}`` in
+ * browser mode -- callers should keep their legacy code path for that.
+ */
+export async function checkTauriUpdate(): Promise<TauriUpdateInfo> {
+  if (!isTauri()) return { available: false };
+  const { check } = await import('@tauri-apps/plugin-updater');
+  const update = await check();
+  if (!update) return { available: false };
+  return {
+    available: true,
+    version: update.version,
+    currentVersion: update.currentVersion,
+    body: update.body ?? undefined,
+    date: update.date ?? undefined,
+  };
+}
+
+/** Progress callback shape mirrors what the plugin emits. */
+export interface TauriUpdateProgress {
+  /** "Started" | "Progress" | "Finished". */
+  phase: 'started' | 'progress' | 'finished';
+  /** Bytes downloaded so far (in 'progress' events). */
+  downloaded?: number;
+  /** Total expected bytes (when known). */
+  total?: number;
+}
+
+/**
+ * Download the available update, install it in place, and restart the
+ * app. Caller should make sure ``checkTauriUpdate()`` returned
+ * ``{available: true}`` first.
+ */
+export async function installTauriUpdate(
+  onProgress?: (p: TauriUpdateProgress) => void,
+): Promise<void> {
+  if (!isTauri()) {
+    throw new Error('installTauriUpdate is only available inside the Tauri app.');
+  }
+  const { check } = await import('@tauri-apps/plugin-updater');
+  const update = await check();
+  if (!update) {
+    throw new Error('No update is available.');
+  }
+  let downloaded = 0;
+  await update.downloadAndInstall((event) => {
+    if (event.event === 'Started') {
+      onProgress?.({ phase: 'started', total: event.data.contentLength });
+    } else if (event.event === 'Progress') {
+      downloaded += event.data.chunkLength;
+      onProgress?.({ phase: 'progress', downloaded });
+    } else if (event.event === 'Finished') {
+      onProgress?.({ phase: 'finished' });
+    }
+  });
+  // On Windows NSIS, the plugin shells out to the new installer which
+  // exits the running app and relaunches the new one. The user may
+  // briefly see the installer window before the app comes back up.
+}
+
 /**
  * Reveal a file or folder in the OS file manager (Explorer, Finder,
  * Nautilus). Path must be absolute. No-op in browser mode.

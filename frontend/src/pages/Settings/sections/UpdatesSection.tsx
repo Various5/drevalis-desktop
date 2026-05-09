@@ -17,6 +17,8 @@ import {
   type ChangelogEntry,
   formatError,
 } from '@/lib/api';
+import { isTauri } from '@/lib/tauri';
+import { TauriUpdatesSection } from './TauriUpdatesSection';
 
 /** Human-readable "2 minutes ago" from a Date. */
 function timeAgo(d: Date): string {
@@ -32,6 +34,20 @@ function timeAgo(d: Date): string {
 }
 
 export function UpdatesSection() {
+  // Inside the Tauri desktop shell, route through the auto-updater
+  // plugin (signed manifest at the configured GitHub Releases URL,
+  // in-place install, app re-launches itself). The Docker-flag-file
+  // flow below stays for the (deprecated) server install where this
+  // SPA might still be served by a Docker stack with a sidecar
+  // listening for /tmp/update.flag.
+  if (isTauri()) {
+    return <TauriUpdatesSection />;
+  }
+
+  return <LegacyDockerUpdatesSection />;
+}
+
+function LegacyDockerUpdatesSection() {
   const { toast } = useToast();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [loading, setLoading] = useState(true);
