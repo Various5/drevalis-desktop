@@ -41,7 +41,7 @@
     "copyright": "Copyright (c) 2026 Drevalis",
     "resources": {
       "../../dist/drevalis/drevalis.exe": "backend/drevalis.exe",
-      "../../dist/drevalis/_internal/**/*": "backend/_internal/"
+      "../../dist/drevalis/_internal/": "backend/_internal/"
     },
     "createUpdaterArtifacts": true,
     "windows": {
