@@ -38,6 +38,10 @@
     "shortDescription": "AI-powered YouTube Shorts and audiobook studio",
     "longDescription": "Local-first AI video and audiobook creation studio. LLM-driven scripts, multi-provider TTS, ComfyUI scene generation, and one-click YouTube upload.",
     "publisher": "Drevalis",
-    "copyright": "Copyright (c) 2026 Drevalis"
+    "copyright": "Copyright (c) 2026 Drevalis",
+    "resources": {
+      "../../dist/drevalis/drevalis.exe": "backend/drevalis.exe",
+      "../../dist/drevalis/_internal/**/*": "backend/_internal/"
+    }
   }
 }

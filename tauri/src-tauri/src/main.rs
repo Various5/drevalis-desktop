@@ -21,7 +21,7 @@ const BACKEND_READY_TIMEOUT: Duration = Duration::from_secs(20);
 /// Holds a running backend `Child` so the OnExit hook can kill it cleanly.
 struct BackendProcess(Mutex<Option<Child>>);
 
-fn locate_backend_executable() -> Option<PathBuf> {
+fn locate_backend_executable(app: &tauri::AppHandle) -> Option<PathBuf> {
     // 1) Env override — explicit path wins over auto-discovery.
     if let Ok(p) = std::env::var("DREVALIS_BACKEND_PATH") {
         let path = PathBuf::from(p);
@@ -30,7 +30,19 @@ fn locate_backend_executable() -> Option<PathBuf> {
         }
     }
 
-    // 2) Sibling to the Tauri exe (production install layout).
+    // 2) Tauri resource_dir — production install layout. ``bundle.resources``
+    // in tauri.conf.json maps dist/drevalis/* into ``backend/`` under
+    // resource_dir(). On NSIS this resolves to <install_dir>/resources/
+    // backend/drevalis.exe alongside _internal/.
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let candidate = resource_dir.join("backend").join("drevalis.exe");
+        if candidate.exists() {
+            return Some(candidate);
+        }
+    }
+
+    // 3) Sibling to the Tauri exe (alternate production layout, kept for
+    // when the bundle isn't using bundle.resources).
     if let Ok(tauri_exe) = std::env::current_exe() {
         if let Some(dir) = tauri_exe.parent() {
             for candidate in [dir.join("drevalis.exe"), dir.join("backend").join("drevalis.exe")] {
@@ -41,7 +53,7 @@ fn locate_backend_executable() -> Option<PathBuf> {
         }
     }
 
-    // 3) Development layout — `tauri dev` runs from tauri/src-tauri/, so
+    // 4) Development layout — `tauri dev` runs from tauri/src-tauri/, so
     // `../../dist/drevalis/drevalis.exe` is the bundle produced by
     // scripts/build/win.ps1.
     if let Ok(cwd) = std::env::current_dir() {
@@ -75,8 +87,8 @@ fn wait_for_port(host: &str, port: u16, timeout: Duration) -> bool {
     false
 }
 
-fn spawn_backend() -> io::Result<Option<Child>> {
-    let Some(exe) = locate_backend_executable() else {
+fn spawn_backend(app: &tauri::AppHandle) -> io::Result<Option<Child>> {
+    let Some(exe) = locate_backend_executable(app) else {
         eprintln!(
             "[drevalis-shell] backend not found. Set DREVALIS_BACKEND_PATH or run \
              scripts\\build\\win.ps1 to produce dist/drevalis/drevalis.exe."
@@ -113,7 +125,7 @@ fn main() {
             // first request hits a live server. We don't fail the whole
             // app if the spawn errors — the user can still see the
             // helpful "backend not reachable" message inside the SPA.
-            match spawn_backend() {
+            match spawn_backend(&app.handle().clone()) {
                 Ok(Some(child)) => {
                     let state = app.state::<BackendProcess>();
                     *state.0.lock().unwrap() = Some(child);
