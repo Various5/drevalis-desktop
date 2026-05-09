@@ -86,6 +86,12 @@ frontend/dist/
 # Private keys MUST NEVER be committed. The .pub file IS committed (it's
 # what tauri.conf.json references for verifying signed update manifests).
 .tauri-keys/*.key
+
+# ── Scratch / diagnostic files ───────────────────────────────────────────────
+# Stack traces / log captures the user opens for debugging. Not source.
+checkthis.txt
+*.diag.txt
+*.diag.log
 # package-lock.json IS committed — we want reproducible Docker builds via
 # ``npm ci``. Keep this comment to remind future maintainers not to add it
 # back to .gitignore.
