@@ -12,9 +12,6 @@ use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
 
-/// Default API URL the webview loads when no SPA is bundled.
-const DEFAULT_API_URL: &str = "http://localhost:8000";
-
 /// How long we wait for the backend's TCP port to come up before showing
 /// the window. The launcher needs to start uvicorn + arq + maybe Redis.
 const BACKEND_READY_TIMEOUT: Duration = Duration::from_secs(20);
