@@ -28,16 +28,18 @@ def _versioned_username(version: int) -> str:
 
 
 def get_or_set_encryption_key(env_value: str | None) -> str:
-    """Resolve the current Fernet master key.
+    """Resolve the current Fernet master key, generating one on first run.
 
     Returns the key string. Order of precedence:
 
     1. Existing keychain entry under ``Drevalis/encryption_key``.
-    2. ``env_value`` (whatever the env / .env yielded). If present, this is
-       persisted to the keychain so subsequent starts no longer need it.
-
-    Raises ``RuntimeError`` if neither source supplies a key — the caller
-    should treat that as a first-run failure and surface a setup prompt.
+    2. ``env_value`` (whatever the env / .env yielded). If present, this
+       is persisted to the keychain so subsequent starts no longer need
+       it on disk.
+    3. **First-run on a fresh install** — generate a new Fernet key, write
+       it to the keychain, return it. This is the desktop UX: the user
+       never has to paste a Fernet key. The same key persists across
+       app upgrades because the keychain entry survives uninstall.
     """
     stored = keyring.get_password(SERVICE, CURRENT_USERNAME)
     if stored:
@@ -45,10 +47,13 @@ def get_or_set_encryption_key(env_value: str | None) -> str:
     if env_value:
         keyring.set_password(SERVICE, CURRENT_USERNAME, env_value)
         return env_value
-    raise RuntimeError(
-        "No ENCRYPTION_KEY found in OS keychain or environment. "
-        "Run the first-run setup or set ENCRYPTION_KEY in .env."
-    )
+
+    # First-run path. Generate a fresh Fernet key and persist it.
+    from cryptography.fernet import Fernet
+
+    generated = Fernet.generate_key().decode()
+    keyring.set_password(SERVICE, CURRENT_USERNAME, generated)
+    return generated
 
 
 def get_versioned_key(version: int) -> str | None:
