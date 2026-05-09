@@ -6,6 +6,8 @@
   "permissions": [
     "core:default",
     "shell:allow-open",
-    "opener:default"
+    "opener:default",
+    "opener:allow-open-url",
+    "opener:allow-reveal-item-in-dir"
   ]
 }
