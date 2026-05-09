@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { isTauri } from '@/lib/tauri';
 import {
   Server,
   Mic2,
@@ -119,12 +120,41 @@ const SECTION_GROUPS: SectionGroupDef[] = [
 
 const SECTIONS: SectionDef[] = SECTION_GROUPS.flatMap((g) => g.sections);
 
+// Section IDs that aren't relevant inside the desktop shell (single-user
+// install, no licensing per SCOPE.md, OS-native backup tooling).
+const DESKTOP_HIDDEN_SECTION_IDS: ReadonlySet<string> = new Set([
+  'license',
+  'team',
+  'two-factor',
+  'login-history',
+  'backup',
+]);
+
+function buildVisibleGroups(isDesktop: boolean): SectionGroupDef[] {
+  if (!isDesktop) return SECTION_GROUPS;
+  return SECTION_GROUPS.flatMap((group) => {
+    const sections = group.sections.filter(
+      (s) => !DESKTOP_HIDDEN_SECTION_IDS.has(s.id),
+    );
+    return sections.length === 0 ? [] : [{ ...group, sections }];
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Settings Page
 // ---------------------------------------------------------------------------
 
 function Settings() {
-  const [activeSection, setActiveSection] = useState<SectionId>('license');
+  const visibleGroups = useMemo(() => buildVisibleGroups(isTauri()), []);
+  const visibleSections = useMemo(
+    () => visibleGroups.flatMap((g) => g.sections),
+    [visibleGroups],
+  );
+  const defaultSection: SectionId =
+    (visibleSections.find((s) => s.id === 'health')?.id as SectionId | undefined) ??
+    (visibleSections[0]?.id as SectionId | undefined) ??
+    'health';
+  const [activeSection, setActiveSection] = useState<SectionId>(defaultSection);
 
   return (
     <div>
@@ -140,7 +170,7 @@ function Settings() {
         <div className="md:col-span-3">
           {/* Mobile: flat horizontal scroll list */}
           <nav className="flex md:hidden gap-0.5 overflow-x-auto -mx-4 px-4 snap-x">
-            {SECTIONS.map((section) => {
+            {visibleSections.map((section) => {
               const isActive = activeSection === section.id;
               return (
                 <button
@@ -161,7 +191,7 @@ function Settings() {
           </nav>
           {/* Desktop: grouped vertical nav */}
           <nav className="hidden md:flex md:flex-col gap-3">
-            {SECTION_GROUPS.map((group) => (
+            {visibleGroups.map((group) => (
               <div key={group.id} className="space-y-0.5">
                 <div className="px-3 pb-1 text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
                   {group.label}
