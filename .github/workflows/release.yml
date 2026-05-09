@@ -1,0 +1,110 @@
+name: Release
+
+# Triggers when a v*.*.* tag is pushed. Produces:
+#   - dist/drevalis/                              (PyInstaller backend bundle)
+#   - tauri/src-tauri/target/release/bundle/      (NSIS installer + .sig)
+#   - GitHub Release (draft) with the installer attached
+#   - latest.json updater manifest at the release's "latest" download URL
+#
+# Secrets required:
+#   TAURI_SIGNING_PRIVATE_KEY           (contents of .tauri-keys/drevalis-updater.key)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (the password used when generating the keypair)
+#
+# When the release is promoted from "Draft" to "Latest", users with the
+# Tauri shell installed see the auto-update prompt on next launch.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0). Leave blank to use the current ref.'
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up uv (Python ${{ env.PYTHON_VERSION }})
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Set up Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('tauri/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      # ── Backend bundle (PyInstaller) ────────────────────────────────
+      - name: Install Python deps
+        run: uv sync --extra dev
+
+      - name: Fetch FFmpeg + Redis sidecars
+        run: uv run python scripts/fetch_sidecars.py
+
+      - name: Build backend (PyInstaller)
+        shell: pwsh
+        run: |
+          uv run pyinstaller drevalis-backend.spec --noconfirm --clean
+          New-Item -ItemType Directory -Force -Path dist/drevalis/_internal/resources/bin/win | Out-Null
+          Copy-Item -Force resources/bin/win/*.exe dist/drevalis/_internal/resources/bin/win/
+
+      - name: Smoke-test backend bundle
+        shell: pwsh
+        run: dist/drevalis/drevalis.exe healthcheck
+        continue-on-error: true # report-only -- ComfyUI/Piper not present in CI
+
+      # ── Frontend ────────────────────────────────────────────────────
+      - name: Frontend npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: Tauri shell npm ci
+        working-directory: tauri
+        run: npm ci
+
+      # ── Tauri build + signed updater + GitHub Release upload ────────
+      - name: Tauri build & release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: tauri
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: 'Drevalis Creator Studio ${{ github.event.inputs.tag || github.ref_name }}'
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          # Generate latest.json with the right structure -- tauri-action
+          # reads it from tauri.conf.json's plugins.updater config.
