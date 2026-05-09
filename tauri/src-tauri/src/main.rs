@@ -119,6 +119,7 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
             // Spawn the backend before the window loads so the webview's

@@ -8,6 +8,7 @@
     "shell:allow-open",
     "opener:default",
     "opener:allow-open-url",
-    "opener:allow-reveal-item-in-dir"
+    "opener:allow-reveal-item-in-dir",
+    "updater:default"
   ]
 }

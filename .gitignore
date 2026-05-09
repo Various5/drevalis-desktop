@@ -81,6 +81,11 @@ tauri/src-tauri/gen/
 # Vite produces this on `npm run build`; it's bundled into the PyInstaller
 # bundle / Tauri bundle at build time. Not source.
 frontend/dist/
+
+# ── Tauri updater signing keys ───────────────────────────────────────────────
+# Private keys MUST NEVER be committed. The .pub file IS committed (it's
+# what tauri.conf.json references for verifying signed update manifests).
+.tauri-keys/*.key
 # package-lock.json IS committed — we want reproducible Docker builds via
 # ``npm ci``. Keep this comment to remind future maintainers not to add it
 # back to .gitignore.
