@@ -134,6 +134,20 @@ fn main() {
                 );
             }
 
+            // Force-navigate the main window to the API. The
+            // ``windows[0].url`` field in tauri.conf.json sometimes gets
+            // interpreted as a relative path against frontendDist and
+            // gives 404; navigating programmatically guarantees the
+            // webview lands on http://127.0.0.1:8000 regardless.
+            if let Some(win) = app.get_webview_window("main") {
+                let target = "http://127.0.0.1:8000/".parse().unwrap();
+                if let Err(err) = win.navigate(target) {
+                    eprintln!("[drevalis-shell] navigate failed: {err}");
+                }
+            } else {
+                eprintln!("[drevalis-shell] main window not found");
+            }
+
             Ok(())
         })
         .build(context)
