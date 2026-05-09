@@ -13,7 +13,7 @@
       {
         "label": "main",
         "title": "Drevalis Creator Studio",
-        "url": "http://localhost:8000",
+        "url": "http://127.0.0.1:8000",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
