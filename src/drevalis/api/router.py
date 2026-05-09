@@ -68,7 +68,14 @@ router.include_router(llm_router)
 router.include_router(prompt_templates_router)
 router.include_router(jobs_router)
 router.include_router(license_router)
-router.include_router(updates_router)
+# /api/v1/updates/* is the legacy Docker-flag-file update flow; the
+# desktop shell uses the Tauri auto-updater plugin against GitHub
+# Releases (see frontend/src/pages/Settings/sections/TauriUpdatesSection.tsx).
+# Skip the router on desktop so the dead endpoints don't ship.
+import os as _os_updates
+
+if _os_updates.environ.get("DREVALIS_DESKTOP_MODE", "1") == "0":
+    router.include_router(updates_router)
 router.include_router(metrics_router)
 router.include_router(settings_router)
 router.include_router(api_keys_router)
@@ -77,7 +84,14 @@ router.include_router(social_router)
 router.include_router(youtube_router)
 router.include_router(schedule_router)
 router.include_router(video_templates_router)
-router.include_router(backup_router)
+# Backup routes assume the Docker bind-mount layout (``/app/storage``)
+# and are deliberately not surfaced on desktop installs -- per SCOPE.md
+# the desktop port defers to OS-native backup tooling. Set
+# DREVALIS_DESKTOP_MODE=0 to re-enable the legacy server-tier routes.
+import os as _os
+
+if _os.environ.get("DREVALIS_DESKTOP_MODE", "1") == "0":
+    router.include_router(backup_router)
 router.include_router(onboarding_router)
 router.include_router(music_router)
 router.include_router(ab_tests_router)

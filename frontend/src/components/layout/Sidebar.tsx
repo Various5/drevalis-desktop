@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useConnectedPlatforms } from '@/lib/useConnectedPlatforms';
 import { useJobsStatus } from '@/lib/queries';
 import { useActiveJobsProgress } from '@/lib/websocket';
+import { isTauri } from '@/lib/tauri';
 import {
   LayoutDashboard,
   Layers,
@@ -69,14 +70,22 @@ const NAV_PUBLISH_STATIC = [
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
 ] as const;
 
-// System — Jobs promoted (users need it when things break)
-const NAV_SYSTEM = [
+// System — Jobs promoted (users need it when things break). Cloud GPU
+// is hidden on the desktop install per SCOPE.md ("desktop user already
+// has a GPU; de-emphasize cloud-GPU in nav") -- the page itself is
+// still reachable directly via /cloud-gpu for the rare user who wants
+// a RunPod pod from a laptop.
+const NAV_SYSTEM_FULL = [
   { to: '/settings', icon: Settings, label: 'Settings' },
   { to: '/cloud-gpu', icon: Cpu, label: 'Cloud GPU' },
   { to: '/jobs', icon: ListChecks, label: 'Jobs' },
   { to: '/usage', icon: Activity, label: 'Usage' },
   { to: '/logs', icon: Terminal, label: 'Event Log' },
 ] as const;
+
+const NAV_SYSTEM = isTauri()
+  ? NAV_SYSTEM_FULL.filter((item) => item.to !== '/cloud-gpu')
+  : NAV_SYSTEM_FULL;
 
 const NAV_BOTTOM = [
   { to: '/help', icon: HelpCircle, label: 'Help' },
