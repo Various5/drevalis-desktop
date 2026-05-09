@@ -12,10 +12,18 @@ access to the same concept.
 from __future__ import annotations
 
 import enum
+import os
 import threading
 from dataclasses import dataclass
 
 from drevalis.core.license.claims import LicenseClaims
+
+# Desktop port: SCOPE.md says single-user desktop has no licensing in v1.0.
+# Rather than touch every gate site (middleware, on_job_start hook, lifespan
+# bootstrap, generate_episode inline check), bypass at the read sites here.
+# Set ``DREVALIS_DESKTOP_MODE=0`` to re-enable the gates (e.g. for SaaS
+# revival or to exercise the license flow in tests).
+_DESKTOP_BYPASS = os.environ.get("DREVALIS_DESKTOP_MODE", "1") != "0"
 
 
 class LicenseStatus(enum.StrEnum):
@@ -53,6 +61,8 @@ class LicenseState:
 
 _lock = threading.Lock()
 _state: LicenseState = LicenseState(status=LicenseStatus.UNACTIVATED)
+# Synthetic always-on state returned when the desktop bypass is active.
+_DESKTOP_STATE: LicenseState = LicenseState(status=LicenseStatus.ACTIVE)
 # Local snapshot of the Redis ``license:state_version`` counter. When the
 # Redis counter is ahead of the local snapshot, this worker's state is
 # stale (another process activated/deactivated) and must be rebootstrapped.
@@ -65,6 +75,8 @@ _bootstrapped: bool = False
 
 
 def get_state() -> LicenseState:
+    if _DESKTOP_BYPASS:
+        return _DESKTOP_STATE
     with _lock:
         return _state
 
@@ -83,6 +95,8 @@ def is_bootstrapped() -> bool:
     the startup window where state is still at its default UNACTIVATED
     value but bootstrap simply hasn't executed yet.
     """
+    if _DESKTOP_BYPASS:
+        return True
     with _lock:
         return _bootstrapped
 

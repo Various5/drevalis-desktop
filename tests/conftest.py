@@ -10,6 +10,13 @@ import os
 # read the user's real keychain. Set BEFORE importing Settings.
 os.environ.setdefault("DREVALIS_SKIP_KEYCHAIN", "1")
 
+# Disable the desktop license bypass during tests so the license gate
+# code paths still get exercised. The bypass defaults ON in production
+# (single-user desktop = no licensing per SCOPE.md), but tests need the
+# real machinery to validate behavior. Set BEFORE importing Settings or
+# anything under drevalis.core.license.
+os.environ.setdefault("DREVALIS_DESKTOP_MODE", "0")
+
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from unittest.mock import AsyncMock
