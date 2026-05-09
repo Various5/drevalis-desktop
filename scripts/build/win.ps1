@@ -105,8 +105,14 @@ if (-not (Test-Path (Join-Path $BundleDir "drevalis.exe"))) {
 # ── 4) Copy sidecars into the bundle ─────────────────────────────────────
 Write-Step "Copying sidecars into bundle"
 New-Item -ItemType Directory -Force -Path $SidecarDst | Out-Null
-Copy-Item -Force (Join-Path $SidecarSrc "ffmpeg.exe") $SidecarDst
-Copy-Item -Force (Join-Path $SidecarSrc "ffprobe.exe") $SidecarDst
+foreach ($name in @("ffmpeg.exe", "ffprobe.exe", "redis-server.exe", "redis-cli.exe")) {
+    $src = Join-Path $SidecarSrc $name
+    if (Test-Path $src) {
+        Copy-Item -Force $src $SidecarDst
+    } else {
+        Write-Host "  skip: $name not in $SidecarSrc"
+    }
+}
 
 # ── 5) Report ────────────────────────────────────────────────────────────
 $bundleSize = (Get-ChildItem -Recurse $BundleDir | Measure-Object -Property Length -Sum).Sum
