@@ -207,6 +207,7 @@ def main() -> NoReturn:
     # Source-mode invocations don't need them (`-m uvicorn` / `-m arq` work).
     sub.add_parser("api", help=argparse.SUPPRESS)
     sub.add_parser("worker", help=argparse.SUPPRESS)
+    sub.add_parser("migrate", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     cmd = args.cmd or "run"
@@ -226,6 +227,9 @@ def main() -> NoReturn:
 
     if cmd == "worker":
         raise SystemExit(_run_worker_inproc())
+
+    if cmd == "migrate":
+        raise SystemExit(_run_migrations_inproc())
 
     # ── default: launcher ────────────────────────────────────────────────
     _run_launcher()
@@ -263,6 +267,47 @@ def _run_worker_inproc() -> int:
     return 0
 
 
+def _run_migrations_inproc() -> int:
+    """In-process equivalent of ``alembic upgrade head``.
+
+    Idempotent. Applies the bundled migrations against the configured
+    DATABASE_URL. The launcher invokes this once before spawning api +
+    worker so neither child queries an unmigrated schema.
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    from drevalis.core.binaries import resources_root
+    from drevalis.core.config import Settings
+
+    settings = Settings()
+    migrations_dir = resources_root() / "migrations"
+    if not migrations_dir.is_dir():
+        print(
+            f"[drevalis migrate] migrations dir missing at {migrations_dir}",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(
+        f"[drevalis migrate] applying {migrations_dir} -> {settings.database_url}",
+        flush=True,
+    )
+    config = Config()
+    config.set_main_option("script_location", str(migrations_dir))
+    config.set_main_option("sqlalchemy.url", settings.database_url)
+    command.upgrade(config, "head")
+    print("[drevalis migrate] done", flush=True)
+    return 0
+
+
+def _migrate_command() -> list[str]:
+    """Spawn-args for the migrate child process."""
+    if _is_frozen():
+        return [sys.executable, "migrate"]
+    return [sys.executable, "-m", "drevalis", "migrate"]
+
+
 def _run_launcher() -> NoReturn:
     processes: list[subprocess.Popen[bytes]] = []
     shutting_down = False
@@ -279,7 +324,22 @@ def _run_launcher() -> NoReturn:
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, _shutdown)
 
-    # Redis first so the worker has something to connect to. Reads
+    # Apply migrations BEFORE any child starts so the worker's
+    # orphan-reset and the API's first request both see a populated
+    # schema. Run as a subprocess so alembic's asyncio.run doesn't
+    # collide with anything we might do in this process later, and so
+    # any errors are surfaced as a non-zero exit rather than crashing
+    # the launcher.
+    print("[drevalis] applying database migrations", flush=True)
+    migrate_rc = subprocess.call(_migrate_command())
+    if migrate_rc != 0:
+        print(
+            f"[drevalis] migration step exited rc={migrate_rc}; continuing anyway "
+            "(API may 500 if the schema is incomplete)",
+            flush=True,
+        )
+
+    # Redis next so the worker has something to connect to. Reads
     # redis_url from Settings (env / .env / default). When the URL's
     # port is already accepting connections, _maybe_launch_redis keeps
     # the user's existing instance and returns None.
