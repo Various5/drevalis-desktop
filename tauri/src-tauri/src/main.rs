@@ -10,6 +10,8 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
 
 /// How long we wait for the backend's TCP port to come up before showing
@@ -148,6 +150,63 @@ fn main() {
                 eprintln!("[drevalis-shell] main window not found");
             }
 
+            // ── Tray icon ────────────────────────────────────────────
+            // Window close hides to tray (BRIEF GOTCHAS: don't kill the
+            // worker mid-generation). Tray "Quit" is the only way to
+            // actually exit -- which then triggers RunEvent::Exit and
+            // the backend cleanup.
+            let open_item = MenuItem::with_id(
+                app,
+                "tray_open",
+                "Open Drevalis",
+                true,
+                None::<&str>,
+            )?;
+            let quit_item = MenuItem::with_id(
+                app,
+                "tray_quit",
+                "Quit",
+                true,
+                None::<&str>,
+            )?;
+            let menu = Menu::with_items(app, &[&open_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::with_id("main")
+                .tooltip("Drevalis Creator Studio")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "tray_open" => {
+                        if let Some(win) = app.get_webview_window("main") {
+                            let _ = win.show();
+                            let _ = win.unminimize();
+                            let _ = win.set_focus();
+                        }
+                    }
+                    "tray_quit" => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    // Left-click on the tray icon also re-opens the window;
+                    // matches the Windows convention.
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        if let Some(win) = tray.app_handle().get_webview_window("main") {
+                            let _ = win.show();
+                            let _ = win.unminimize();
+                            let _ = win.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .build(context)
@@ -155,17 +214,23 @@ fn main() {
 
     app.run(|app_handle: &AppHandle, event: RunEvent| {
         match event {
-            // When the main window is closed, terminate the backend
-            // before exiting. Without this the API + worker + Redis
-            // continue running orphaned in the background.
+            // The main window's close button hides to tray instead of
+            // exiting -- preserves any active generation per BRIEF
+            // GOTCHAS ("must not kill the worker on a UI close-window
+            // event"). The user re-opens via tray-icon click or "Open
+            // Drevalis" menu, or quits explicitly via tray "Quit".
             RunEvent::WindowEvent {
-                event: WindowEvent::CloseRequested { .. },
+                label,
+                event: WindowEvent::CloseRequested { api, .. },
                 ..
-            } => {
-                kill_backend(&app_handle.state::<BackendProcess>());
+            } if label == "main" => {
+                if let Some(win) = app_handle.get_webview_window(&label) {
+                    let _ = win.hide();
+                }
+                api.prevent_close();
             }
-            // Belt-and-braces: also kill on full app exit (covers
-            // tray-quit and shutdown signals).
+            // Real exit (tray "Quit", system shutdown) takes the backend
+            // tree down with it.
             RunEvent::Exit => {
                 kill_backend(&app_handle.state::<BackendProcess>());
             }

@@ -16,7 +16,10 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# tray-icon enables system-tray support; the BRIEF's GOTCHAS section
+# requires window-close to hide-to-tray rather than terminate the
+# worker mid-generation, so the tray menu is the only way back in.
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
