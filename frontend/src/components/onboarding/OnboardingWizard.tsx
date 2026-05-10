@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { isTauri } from '@/lib/tauri';
 import {
   comfyuiServers,
   llmConfigs,
@@ -20,6 +21,12 @@ import {
   formatError,
   type OnboardingStatus,
 } from '@/lib/api';
+
+// In the desktop shell there is no Docker; ComfyUI / LM Studio /
+// Ollama all run on the host directly. The Docker hostname
+// ``host.docker.internal`` does not resolve from the bundled
+// backend, so we default to ``localhost`` URLs in Tauri builds.
+const LOCAL_HOST = isTauri() ? 'localhost' : 'host.docker.internal';
 
 /**
  * First-run onboarding wizard.
@@ -221,7 +228,7 @@ function ComfyUIStep({
 }) {
   const { toast } = useToast();
   const [name, setName] = useState('Local');
-  const [url, setUrl] = useState('http://host.docker.internal:8188');
+  const [url, setUrl] = useState(`http://${LOCAL_HOST}:8188`);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -256,8 +263,10 @@ function ComfyUIStep({
       <div>
         <h3 className="font-semibold text-base mb-1">Connect your ComfyUI server</h3>
         <p className="text-sm text-txt-secondary">
-          ComfyUI runs outside Drevalis and handles scene image + video generation. Default URL
-          works if you're running ComfyUI on the same host as Docker Desktop.
+          ComfyUI runs outside Drevalis and handles scene image + video generation.
+          {isTauri()
+            ? ' Default URL assumes ComfyUI is running on this same machine.'
+            : ' Default URL works if you’re running ComfyUI on the same host as Docker Desktop.'}
         </p>
       </div>
 
@@ -270,12 +279,14 @@ function ComfyUIStep({
         <Input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="http://host.docker.internal:8188"
+          placeholder={`http://${LOCAL_HOST}:8188`}
           className="font-mono text-sm"
         />
-        <p className="text-[11px] text-txt-muted mt-1">
-          Linux / local-dev alternative: <code className="font-mono">http://localhost:8188</code>
-        </p>
+        {!isTauri() && (
+          <p className="text-[11px] text-txt-muted mt-1">
+            Linux / local-dev alternative: <code className="font-mono">http://localhost:8188</code>
+          </p>
+        )}
       </div>
 
       <StepActions
@@ -301,13 +312,13 @@ const LLM_PRESETS: Record<
 > = {
   lm_studio: {
     name: 'LM Studio',
-    baseUrl: 'http://host.docker.internal:1234/v1',
+    baseUrl: `http://${LOCAL_HOST}:1234/v1`,
     model: 'local-model',
     needsKey: false,
   },
   ollama: {
     name: 'Ollama',
-    baseUrl: 'http://host.docker.internal:11434/v1',
+    baseUrl: `http://${LOCAL_HOST}:11434/v1`,
     model: 'llama3',
     needsKey: false,
   },
