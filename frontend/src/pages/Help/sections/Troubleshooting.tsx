@@ -1,7 +1,9 @@
 import { AlertTriangle } from 'lucide-react';
+import { isTauri } from '@/lib/tauri';
 import { SectionHeading, SubHeading, Tip, InfoBox, CodeBlock } from './_shared';
 
 export function Troubleshooting() {
+  const desktop = isTauri();
   return (
     <section id="troubleshooting" className="mb-16 scroll-mt-4">
       <SectionHeading id="troubleshooting-heading" icon={AlertTriangle} title="Troubleshooting" />
@@ -44,7 +46,9 @@ export function Troubleshooting() {
         <ol className="list-decimal list-inside space-y-1.5 text-sm text-txt-secondary ml-2">
           <li>Verify ComfyUI is running — open the ComfyUI URL directly in your browser.</li>
           <li>Check the URL format — it should include the protocol: <code className="font-mono text-xs text-accent">http://localhost:8188</code> (not just <code className="font-mono text-xs text-accent">localhost:8188</code>).</li>
-          <li>If running ComfyUI in Docker, ensure the port is exposed and the URL uses the correct host (e.g. <code className="font-mono text-xs text-accent">http://host.docker.internal:8188</code> when the backend is also in Docker).</li>
+          {!desktop && (
+            <li>If running ComfyUI in Docker, ensure the port is exposed and the URL uses the correct host (e.g. <code className="font-mono text-xs text-accent">http://host.docker.internal:8188</code> when the backend is also in Docker).</li>
+          )}
           <li>If ComfyUI requires an API key, ensure it's entered in the server settings.</li>
           <li>Check firewall rules — the backend must be able to reach the ComfyUI port.</li>
         </ol>
@@ -85,34 +89,55 @@ export function Troubleshooting() {
         <li><strong className="text-txt-primary">Retry mid-upload</strong> - uploads retry 3 times automatically with fresh tokens each time. If all 3 fail, the Jobs tab shows the last error.</li>
       </ol>
 
-      <SubHeading id="ts-license" title="License Gate / 402 Errors" />
-      <ol className="space-y-2 text-sm text-txt-secondary ml-4 mb-4 list-decimal list-inside">
-        <li><strong className="text-txt-primary">On every request right after install</strong> - wait 5 seconds; the license-state bootstrap runs in lifespan and the first request might race it. Fixed as of v0.2.0.</li>
-        <li><strong className="text-txt-primary">After a renewal</strong> - the 24h heartbeat may not have fired yet. Settings -&gt; License -&gt; click <strong className="text-txt-primary">Refresh</strong> to force a heartbeat.</li>
-        <li><strong className="text-txt-primary">License server 5xx</strong> - transient server outages are tolerated; your install keeps working with the stored JWT for 7 days offline.</li>
-        <li><strong className="text-txt-primary">Still locked after renewal</strong> - email <a href="mailto:support@drevalis.com" className="text-accent underline">support@drevalis.com</a> with your license key (last 8 characters is enough).</li>
-      </ol>
+      {!desktop && (
+        <>
+          <SubHeading id="ts-license" title="License Gate / 402 Errors" />
+          <ol className="space-y-2 text-sm text-txt-secondary ml-4 mb-4 list-decimal list-inside">
+            <li><strong className="text-txt-primary">On every request right after install</strong> - wait 5 seconds; the license-state bootstrap runs in lifespan and the first request might race it. Fixed as of v0.2.0.</li>
+            <li><strong className="text-txt-primary">After a renewal</strong> - the 24h heartbeat may not have fired yet. Settings -&gt; License -&gt; click <strong className="text-txt-primary">Refresh</strong> to force a heartbeat.</li>
+            <li><strong className="text-txt-primary">License server 5xx</strong> - transient server outages are tolerated; your install keeps working with the stored JWT for 7 days offline.</li>
+            <li><strong className="text-txt-primary">Still locked after renewal</strong> - email <a href="mailto:support@drevalis.com" className="text-accent underline">support@drevalis.com</a> with your license key (last 8 characters is enough).</li>
+          </ol>
+        </>
+      )}
 
       <SubHeading id="ts-worker" title="Worker Stuck / Unhealthy" />
       <ol className="space-y-2 text-sm text-txt-secondary ml-4 mb-4 list-decimal list-inside">
         <li>Activity Monitor -&gt; Worker health should show a green dot.</li>
         <li>If red: click <strong className="text-txt-primary">Restart worker</strong>. Orphaned "generating" episodes are reset to "failed" so you can re-queue them.</li>
-        <li>If the button doesn't help: <code className="font-mono text-xs">docker compose restart worker</code>.</li>
-        <li>Worker OOM on long-form - check <code className="font-mono text-xs">docker compose logs worker</code> for the killed signal. Reduce <code className="font-mono text-xs">MAX_CONCURRENT_GENERATIONS</code> or add RAM.</li>
+        {desktop ? (
+          <>
+            <li>If the button doesn't help: quit the app from the system tray and relaunch it. The launcher restarts the worker process from scratch.</li>
+            <li>Worker OOM on long-form - check Settings -&gt; Diagnostics for the killed signal. Reduce <code className="font-mono text-xs">MAX_CONCURRENT_GENERATIONS</code> or add RAM.</li>
+          </>
+        ) : (
+          <>
+            <li>If the button doesn't help: <code className="font-mono text-xs">docker compose restart worker</code>.</li>
+            <li>Worker OOM on long-form - check <code className="font-mono text-xs">docker compose logs worker</code> for the killed signal. Reduce <code className="font-mono text-xs">MAX_CONCURRENT_GENERATIONS</code> or add RAM.</li>
+          </>
+        )}
       </ol>
 
       <SubHeading id="ts-logs" title="Reading Logs" />
       <p className="text-sm text-txt-secondary mb-3">
         Logs are structured JSON. Useful fields: <code className="font-mono text-xs">event</code> (what), <code className="font-mono text-xs">episode_id</code>, <code className="font-mono text-xs">error</code>, <code className="font-mono text-xs">level</code>.
       </p>
-      <CodeBlock>{`# Tail live logs\ndocker compose logs -f app worker\n\n# Last 100 errors from the worker\ndocker compose logs worker 2>&1 | grep '"level": "error"' | tail -100\n\n# Follow one specific episode across both services\ndocker compose logs -f app worker 2>&1 | grep "<episode-uuid>"`}</CodeBlock>
-      <InfoBox>
-        Tip: the in-app Logs page streams the same JSON into a searchable table. Use it instead of command-line grep when you can - filters by level, episode, and time range make pattern-spotting much faster.
-      </InfoBox>
+      {desktop ? (
+        <InfoBox>
+          The in-app Logs page (sidebar) and Settings -&gt; Diagnostics both stream live structured logs. Diagnostics also bundles them into a zip you can attach to a support email. The desktop install writes raw log files to <code className="font-mono text-xs">%LOCALAPPDATA%\Drevalis\logs\</code> on Windows and <code className="font-mono text-xs">~/Library/Application Support/Drevalis/logs/</code> on macOS.
+        </InfoBox>
+      ) : (
+        <>
+          <CodeBlock>{`# Tail live logs\ndocker compose logs -f app worker\n\n# Last 100 errors from the worker\ndocker compose logs worker 2>&1 | grep '"level": "error"' | tail -100\n\n# Follow one specific episode across both services\ndocker compose logs -f app worker 2>&1 | grep "<episode-uuid>"`}</CodeBlock>
+          <InfoBox>
+            Tip: the in-app Logs page streams the same JSON into a searchable table. Use it instead of command-line grep when you can - filters by level, episode, and time range make pattern-spotting much faster.
+          </InfoBox>
 
-      <InfoBox>
-        Check the backend logs for detailed error messages. When running via Docker, use <code className="font-mono text-xs">docker compose logs -f app</code> and <code className="font-mono text-xs">docker compose logs -f worker</code> to follow real-time output from the API and the arq job worker respectively.
-      </InfoBox>
+          <InfoBox>
+            Check the backend logs for detailed error messages. When running via Docker, use <code className="font-mono text-xs">docker compose logs -f app</code> and <code className="font-mono text-xs">docker compose logs -f worker</code> to follow real-time output from the API and the arq job worker respectively.
+          </InfoBox>
+        </>
+      )}
 
     </section>
   );
