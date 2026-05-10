@@ -93,13 +93,27 @@ async def _wait_for_redis(
                 attempts=attempt,
                 last_error=last_err,
             )
+            desktop = os.environ.get("DREVALIS_DESKTOP_MODE", "1") != "0"
+            if desktop:
+                hint = (
+                    "Check that the bundled redis-server sidecar started:\n"
+                    "  - the launcher spawns it from "
+                    "``_internal/resources/bin/<platform>/redis-server``;\n"
+                    "  - look for ``[drevalis-launcher] spawned redis`` in the\n"
+                    "    log file or in the console window.\n"
+                    "If port 6379 is occupied by another process (eg. Docker, "
+                    "WSL, a system Redis service), stop it and relaunch.\n"
+                )
+            else:
+                hint = (
+                    "Check that the redis container is running:\n"
+                    "  docker compose ps redis\n"
+                    "  docker compose logs redis\n"
+                )
             sys.stderr.write(
                 f"FATAL: redis ({host}:{port}) not reachable after "
                 f"{total_seconds:.0f}s and {attempt} attempts.\n"
-                f"Last error: {last_err}\n"
-                "Check that the redis container is running:\n"
-                "  docker compose ps redis\n"
-                "  docker compose logs redis\n"
+                f"Last error: {last_err}\n" + hint
             )
             sys.exit(1)
 

@@ -91,16 +91,25 @@ async def get_editor_session(
         logger.exception("editor_session_lookup_failed", episode_id=str(episode_id))
         msg = str(exc)
         if "video_edit_sessions" in msg and "does not exist" in msg:
+            import os as _os_editor
+
+            _desktop = _os_editor.environ.get("DREVALIS_DESKTOP_MODE", "1") != "0"
+            _hint = (
+                "Migration 026_video_edit_sessions hasn't been applied. "
+                "Quit and relaunch the app — the launcher runs migrations on "
+                "startup. If the error persists, run ``drevalis migrate`` "
+                "from a terminal in the install directory."
+                if _desktop
+                else "Migration 026_video_edit_sessions hasn't been applied. "
+                "Run ``docker compose exec app alembic upgrade head`` "
+                "(or restart the app container — it runs migrations on startup)."
+            )
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
                 {
                     "error": "migration_missing",
                     "missing_table": "video_edit_sessions",
-                    "hint": (
-                        "Migration 026_video_edit_sessions hasn't been applied. "
-                        "Run ``docker compose exec app alembic upgrade head`` "
-                        "(or restart the app container — it runs migrations on startup)."
-                    ),
+                    "hint": _hint,
                 },
             ) from exc
         raise HTTPException(
