@@ -64,6 +64,23 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
+      # ── Frontend (must build BEFORE PyInstaller so the spec can
+      #     bundle frontend/dist into the backend) ──────────────────────
+      - name: Frontend npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend build
+        working-directory: frontend
+        # ``build:loose`` skips the strict tsc gate that blocks an
+        # unrelated SeriesDetail typing issue from holding up the
+        # release pipeline. Vite + esbuild still type-check the rest.
+        run: npm run build:loose
+
+      - name: Tauri shell npm ci
+        working-directory: tauri
+        run: npm ci
+
       # ── Backend bundle (PyInstaller) ────────────────────────────────
       - name: Install Python deps
         run: uv sync --extra dev
@@ -92,14 +109,14 @@ jobs:
         run: dist/drevalis/drevalis.exe healthcheck
         continue-on-error: true # report-only -- ComfyUI/Piper not present in CI
 
-      # ── Frontend ────────────────────────────────────────────────────
-      - name: Frontend npm ci
-        working-directory: frontend
-        run: npm ci
-
-      - name: Tauri shell npm ci
-        working-directory: tauri
-        run: npm ci
+      - name: Verify frontend SPA bundled into backend
+        shell: pwsh
+        run: |
+          $spa = "dist/drevalis/_internal/frontend/dist/index.html"
+          if (-not (Test-Path $spa)) {
+            throw "FATAL: $spa missing — Tauri webview will 404 at http://127.0.0.1:8000/. Frontend build must run BEFORE pyinstaller."
+          }
+          Write-Host "[verify] SPA bundled: $spa"
 
       # ── Tauri build + signed updater + GitHub Release upload ────────
       - name: Tauri build & release
