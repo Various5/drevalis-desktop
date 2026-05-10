@@ -124,6 +124,10 @@ excludes = [
     "test",
     "tests",
     "unittest",
+    # Dev-only -- shipped because they're in --extra dev. Drevalis never
+    # imports them at runtime.
+    "mypy",
+    "ast_serialize",
 ]
 
 
