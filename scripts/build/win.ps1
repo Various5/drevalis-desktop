@@ -114,6 +114,25 @@ foreach ($name in @("ffmpeg.exe", "ffprobe.exe", "redis-server.exe", "redis-cli.
     }
 }
 
+# ── 4b) Prune googleapiclient discovery cache ────────────────────────────
+# google-api-python-client ships ~580 cached API discovery JSON docs
+# (~96 MB). Drevalis only calls youtube.v3 and youtubeAnalytics.v2; keep
+# those, drop the rest. discovery.build() falls back to a network fetch
+# for anything missing, so the prune is safe even if a future caller
+# wants a different service.
+$DiscoveryDocs = Join-Path $BundleDir "_internal\googleapiclient\discovery_cache\documents"
+if (Test-Path $DiscoveryDocs) {
+    Write-Step "Pruning googleapiclient discovery cache"
+    $before = (Get-ChildItem -File $DiscoveryDocs | Measure-Object Length -Sum).Sum
+    Get-ChildItem -File $DiscoveryDocs |
+        Where-Object { $_.Name -notlike "youtube*" } |
+        Remove-Item -Force
+    $after = (Get-ChildItem -File $DiscoveryDocs | Measure-Object Length -Sum).Sum
+    $savedMB = [math]::Round(($before - $after) / 1MB, 1)
+    $keptCount = (Get-ChildItem -File $DiscoveryDocs).Count
+    Write-Host "  Kept $keptCount youtube* docs, saved $savedMB MB"
+}
+
 # ── 5) Report ────────────────────────────────────────────────────────────
 $bundleSize = (Get-ChildItem -Recurse $BundleDir | Measure-Object -Property Length -Sum).Sum
 $bundleMB = [math]::Round($bundleSize / 1MB, 1)

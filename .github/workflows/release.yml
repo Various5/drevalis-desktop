@@ -77,6 +77,15 @@ jobs:
           uv run pyinstaller drevalis-backend.spec --noconfirm --clean
           New-Item -ItemType Directory -Force -Path dist/drevalis/_internal/resources/bin/win | Out-Null
           Copy-Item -Force resources/bin/win/*.exe dist/drevalis/_internal/resources/bin/win/
+          # Prune googleapiclient discovery cache (~96 MB → ~1 MB) -- only
+          # youtube.v3 + youtubeAnalytics.v2 are actually called. Keep
+          # local prune step in scripts/build/win.ps1 in sync with this.
+          $docs = "dist/drevalis/_internal/googleapiclient/discovery_cache/documents"
+          if (Test-Path $docs) {
+            Get-ChildItem -File $docs |
+              Where-Object { $_.Name -notlike "youtube*" } |
+              Remove-Item -Force
+          }
 
       - name: Smoke-test backend bundle
         shell: pwsh
