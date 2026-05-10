@@ -503,9 +503,13 @@ class TestCheckFfmpeg:
 
 
 class TestCheckPiperTTS:
-    async def test_unreachable_when_dir_missing(self, tmp_path: Path) -> None:
+    async def test_ok_with_message_when_dir_missing(self, tmp_path: Path) -> None:
+        # Piper is the optional offline-TTS provider — a missing voice
+        # directory shouldn't paint the system health card red. The
+        # check reports ok with an informational message instead.
         out = await _check_piper_tts(tmp_path / "no-such-dir")
-        assert out.status == "unreachable"
+        assert out.status == "ok"
+        assert "Offline TTS off" in out.message
 
     async def test_degraded_when_path_is_file(self, tmp_path: Path) -> None:
         f = tmp_path / "models"
@@ -513,17 +517,17 @@ class TestCheckPiperTTS:
         out = await _check_piper_tts(f)
         assert out.status == "degraded"
 
-    async def test_degraded_when_no_onnx_files(self, tmp_path: Path) -> None:
+    async def test_ok_with_message_when_no_onnx_files(self, tmp_path: Path) -> None:
         out = await _check_piper_tts(tmp_path)
-        assert out.status == "degraded"
-        assert ".onnx" in out.message
+        assert out.status == "ok"
+        assert "Offline TTS off" in out.message
 
     async def test_ok_when_models_present(self, tmp_path: Path) -> None:
         (tmp_path / "voice.onnx").write_bytes(b"x")
         (tmp_path / "voice2.onnx").write_bytes(b"y")
         out = await _check_piper_tts(tmp_path)
         assert out.status == "ok"
-        assert "2 model" in out.message
+        assert "2 voice" in out.message
 
     async def test_unreachable_on_exception(self) -> None:
         # Force `models_path.exists()` to raise — must surface as

@@ -118,12 +118,13 @@ const SECTION_GROUPS: SectionGroupDef[] = [
   },
 ];
 
-const SECTIONS: SectionDef[] = SECTION_GROUPS.flatMap((g) => g.sections);
-
 // Section IDs that aren't relevant inside the desktop shell (single-user
 // install, no licensing per SCOPE.md, OS-native backup tooling).
+//
+// ``license`` is intentionally kept on desktop — it shows a friendly
+// "no license required" panel rather than the activation flow, which
+// is helpful for users who were expecting to see licensing info.
 const DESKTOP_HIDDEN_SECTION_IDS: ReadonlySet<string> = new Set([
-  'license',
   'team',
   'two-factor',
   'login-history',

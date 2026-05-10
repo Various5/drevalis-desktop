@@ -18,6 +18,47 @@ import { useToast } from '@/components/ui/Toast';
 import { license, formatError, type ActivationsResponse } from '@/lib/api';
 import { useLicense } from '@/lib/useLicense';
 
+// Desktop-mode short-circuit: the backend reports
+// ``license_type === "desktop"`` for installs that bypass licensing
+// entirely (SCOPE.md). Rendering the full subscription panel for that
+// state surfaces nonsense fields (year-3000 expiry, sentinel tier);
+// the section returns a small informational card instead.
+function DesktopLicenseCard() {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-txt-primary flex items-center gap-2">
+          <KeyRound size={18} /> License
+        </h3>
+        <p className="text-xs text-txt-secondary mt-1">
+          This is a desktop install — no license is required.
+        </p>
+      </div>
+
+      <Card className="p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-success shrink-0" />
+          <div className="text-sm text-txt-primary font-semibold">
+            All features unlocked
+          </div>
+        </div>
+        <p className="text-xs text-txt-secondary leading-relaxed">
+          Drevalis Creator Studio runs locally on this machine. There is
+          no subscription to renew, no seat limit, and no license server
+          to reach. Updates are delivered through the desktop
+          auto-updater (Settings → Updates) and signed against an
+          embedded public key.
+        </p>
+        <p className="text-[11px] text-txt-muted">
+          To enable the legacy server-tier license flow (e.g. for SaaS
+          development), set <code className="font-mono">DREVALIS_DESKTOP_MODE=0</code> in
+          the backend environment.
+        </p>
+      </Card>
+    </div>
+  );
+}
+
 function StateBadge({ state }: { state: string }) {
   switch (state) {
     case 'active':
@@ -262,6 +303,11 @@ export function LicenseSection() {
 
   if (loading && !status) {
     return <Card className="p-6">Loading license…</Card>;
+  }
+
+  // Desktop-mode short-circuit (see DesktopLicenseCard above).
+  if (status?.license_type === 'desktop') {
+    return <DesktopLicenseCard />;
   }
 
   const periodEnd = status?.period_end ? new Date(status.period_end) : null;

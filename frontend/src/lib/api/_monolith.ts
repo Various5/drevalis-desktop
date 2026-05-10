@@ -1260,7 +1260,7 @@ export interface LicenseStatus {
   // New for Lifetime (Pro) support. Older backends that haven't been
   // updated yet won't send these fields, which is fine — every consumer
   // treats them as optional.
-  license_type?: 'subscription' | 'lifetime_pro' | null;
+  license_type?: 'subscription' | 'lifetime_pro' | 'desktop' | null;
   update_window_expires_at?: string | null;
 }
 

@@ -165,15 +165,32 @@ def _probe_ffmpeg(path: str) -> CheckResult:
 
 
 def _probe_piper(piper_models_path: str) -> CheckResult:
-    """Check Piper voices are present (binary itself is a runtime concern)."""
+    """Check Piper voices are present.
+
+    Piper itself is optional — installs that use ElevenLabs / OpenAI
+    TTS / etc. for voice never need a local Piper voice file. Missing
+    voices report as SKIP (non-required) so the overall healthcheck
+    still passes; the message points at the docs for installing
+    voices when the user wants offline TTS.
+    """
     from pathlib import Path
 
     p = Path(piper_models_path)
     if not p.exists():
-        return CheckResult("Piper", Status.FAIL, f"{p} — directory missing")
+        return CheckResult(
+            "Piper",
+            Status.SKIP,
+            f"{p} — directory missing (offline TTS off)",
+            required=False,
+        )
     voices = list(p.rglob("*.onnx"))
     if not voices:
-        return CheckResult("Piper", Status.FAIL, f"{p} — no .onnx voices")
+        return CheckResult(
+            "Piper",
+            Status.SKIP,
+            f"{p} — no .onnx voices yet (drop one in to enable offline TTS)",
+            required=False,
+        )
     return CheckResult("Piper", Status.OK, f"{len(voices)} voice(s) in {p}")
 
 

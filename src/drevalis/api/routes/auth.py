@@ -191,6 +191,54 @@ class LoginEventResponse(BaseModel):
 # ── Session helpers ────────────────────────────────────────────────────
 
 
+_DESKTOP_BYPASS = os.environ.get("DREVALIS_DESKTOP_MODE", "1") != "0"
+# Sentinel email for the auto-created singleton owner row used to back
+# ``require_user``-gated endpoints in desktop mode (single-user install,
+# no login flow). The "@drevalis.local" suffix is reserved — the
+# activation/login code paths reject any user input that resolves to it,
+# so this row can never collide with a real account.
+_DESKTOP_OWNER_EMAIL = "local-owner@drevalis.local"
+
+
+async def _ensure_desktop_owner(db: AsyncSession) -> User | None:
+    """Find-or-create the singleton owner row used for desktop-mode auth.
+
+    Desktop installs ship without a login flow — there is no session
+    cookie for ``_current_user`` to validate. Without a fallback,
+    every ``require_user``-gated endpoint (preferences, ME, login
+    history, …) 401's, which silently breaks features like dashboard
+    customisation that persist via ``/api/v1/auth/preferences``.
+
+    Returns ``None`` if creating the row fails for any reason — the
+    caller treats that as "no user", which 401's. We swallow because a
+    ``SELECT users`` race is the only realistic failure (multiple
+    workers booting at once); the next request will see the committed
+    row.
+    """
+    try:
+        result = await db.execute(
+            select(User).where(User.email == _DESKTOP_OWNER_EMAIL).limit(1)
+        )
+        user = result.scalar_one_or_none()
+        if user is not None:
+            return user
+        user = User(
+            email=_DESKTOP_OWNER_EMAIL,
+            # Empty password hash is intentional — login by password
+            # against this account is impossible, only the desktop-mode
+            # cookie-less fallback resolves to it.
+            password_hash="",
+            role="owner",
+            display_name="Drevalis",
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception:
+        return None
+
+
 async def _current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -198,6 +246,10 @@ async def _current_user(
 ) -> User | None:
     token = request.cookies.get(_COOKIE_NAME)
     if not token:
+        # Desktop install: no login flow, no cookie. Fall back to the
+        # singleton owner row so ``require_user`` succeeds.
+        if _DESKTOP_BYPASS:
+            return await _ensure_desktop_owner(db)
         return None
     payload = parse_session_token(token, secret=settings.get_session_secret())
     if not payload:

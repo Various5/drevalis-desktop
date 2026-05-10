@@ -61,8 +61,60 @@ class LicenseState:
 
 _lock = threading.Lock()
 _state: LicenseState = LicenseState(status=LicenseStatus.UNACTIVATED)
-# Synthetic always-on state returned when the desktop bypass is active.
-_DESKTOP_STATE: LicenseState = LicenseState(status=LicenseStatus.ACTIVE)
+
+
+def _build_desktop_claims() -> LicenseClaims:
+    """Synthetic claims for desktop installs.
+
+    The desktop port has no licensing (SCOPE.md), but the feature-gating
+    helpers (``require_feature``, ``has_feature``) still consult
+    ``state.claims`` to decide whether a route is allowed. Without
+    claims, every Pro/Studio gate (character packs, audiobooks, etc.)
+    returned 402 even though ``is_usable`` was true.
+
+    Synthesising a Studio-tier claims object grants every documented
+    feature so feature-gated routes work end-to-end on desktop. Sentinel
+    values (``"desktop"``, far-future ``exp``) make this state easy to
+    spot in logs and never collide with a real license.
+    """
+    # 100 years out — large enough for ``is_in_grace`` to never flip,
+    # mirroring the lifetime sentinel used in the JWT spec.
+    far_future = 32_503_680_000  # 3000-01-01 UTC
+
+    # Late import to break the circular: ``features.py`` imports
+    # ``state.get_state`` at module load.
+    from drevalis.core.license.features import _STUDIO_FEATURES
+
+    return LicenseClaims(
+        iss="drevalis-desktop",
+        sub="desktop",
+        jti="desktop",
+        tier="studio",
+        features=sorted(_STUDIO_FEATURES),
+        machines=1,
+        iat=0,
+        nbf=0,
+        exp=far_future,
+        period_end=far_future,
+        license_type="desktop",
+    )
+
+
+# Synthetic always-on state for desktop. Cached on first read of
+# ``get_state`` so the import order between ``state`` and ``features``
+# doesn't matter — both modules can finish loading before either set of
+# constants is materialised.
+_DESKTOP_STATE: LicenseState | None = None
+
+
+def _desktop_state() -> LicenseState:
+    global _DESKTOP_STATE
+    if _DESKTOP_STATE is None:
+        _DESKTOP_STATE = LicenseState(
+            status=LicenseStatus.ACTIVE,
+            claims=_build_desktop_claims(),
+        )
+    return _DESKTOP_STATE
 # Local snapshot of the Redis ``license:state_version`` counter. When the
 # Redis counter is ahead of the local snapshot, this worker's state is
 # stale (another process activated/deactivated) and must be rebootstrapped.
@@ -76,7 +128,7 @@ _bootstrapped: bool = False
 
 def get_state() -> LicenseState:
     if _DESKTOP_BYPASS:
-        return _DESKTOP_STATE
+        return _desktop_state()
     with _lock:
         return _state
 

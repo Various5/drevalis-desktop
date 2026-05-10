@@ -10,17 +10,17 @@ Endpoints:
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, status
 from redis.asyncio import Redis
-from sqlalchemy import Integer, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from drevalis.core.deps import get_db, get_redis
 from drevalis.core.metrics import metrics
-from drevalis.models.episode import Episode
 from drevalis.models.generation_job import GenerationJob
 
 router = APIRouter(prefix="/api/v1/metrics", tags=["metrics"])
@@ -176,85 +176,81 @@ async def usage_summary(
     now = datetime.now(UTC)
     start = (now - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Aggregate per-day on the database side — keeps the response
-    # constant-size regardless of how many episodes are on this install.
-    day_expr = func.date_trunc("day", GenerationJob.started_at)
-    duration_expr = func.extract("epoch", GenerationJob.completed_at - GenerationJob.started_at)
-    rows = (
+    # Aggregate in Python rather than SQL: ``date_trunc`` and
+    # ``extract(epoch from interval)`` are PostgreSQL-specific and the
+    # desktop install is on SQLite. The window is bounded by ``days``
+    # (≤ 365) so the row count is small even on heavy daily use.
+    job_rows = (
         await db.execute(
             select(
-                day_expr.label("day"),
-                func.count().label("runs"),
-                func.coalesce(func.sum(duration_expr), 0.0).label("seconds"),
-                func.sum(func.cast(GenerationJob.status == "failed", type_=Integer)).label(
-                    "failures"
-                ),
-                func.count(func.distinct(GenerationJob.episode_id)).label("episodes"),
+                GenerationJob.started_at,
+                GenerationJob.completed_at,
+                GenerationJob.step,
+                GenerationJob.status,
+                GenerationJob.episode_id,
+                GenerationJob.tokens_prompt,
+                GenerationJob.tokens_completion,
             )
             .where(GenerationJob.started_at >= start)
             .where(GenerationJob.started_at.is_not(None))
             .where(GenerationJob.completed_at.is_not(None))
-            .group_by(day_expr)
-            .order_by(day_expr)
         )
     ).all()
 
+    daily_buckets: dict[str, dict[str, float]] = defaultdict(
+        lambda: {"runs": 0, "seconds": 0.0, "failures": 0, "episodes": set()}  # type: ignore[dict-item]
+    )
+    per_step_seconds: dict[str, float] = defaultdict(float)
+    distinct_episode_ids: set[Any] = set()
+    tokens_prompt = 0
+    tokens_completion = 0
+
+    for row in job_rows:
+        started: datetime = row.started_at
+        completed: datetime = row.completed_at
+        # SQLite returns naive datetimes — normalise to UTC for the
+        # date() call so the bucketing is timezone-stable.
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=UTC)
+        if completed.tzinfo is None:
+            completed = completed.replace(tzinfo=UTC)
+        seconds = (completed - started).total_seconds()
+        day_key = started.date().isoformat()
+
+        bucket = daily_buckets[day_key]
+        bucket["runs"] += 1
+        bucket["seconds"] += seconds
+        if row.status == "failed":
+            bucket["failures"] += 1
+        bucket["episodes"].add(row.episode_id)  # type: ignore[union-attr]
+
+        if row.step:
+            per_step_seconds[str(row.step)] += seconds
+        distinct_episode_ids.add(row.episode_id)
+        tokens_prompt += int(row.tokens_prompt or 0)
+        tokens_completion += int(row.tokens_completion or 0)
+
     daily: list[dict[str, Any]] = []
-    for row in rows:
-        day_value: datetime | None = row.day
+    for day_key in sorted(daily_buckets.keys()):
+        bucket = daily_buckets[day_key]
         daily.append(
             {
-                "day": day_value.date().isoformat() if day_value else None,
-                "episodes": int(row.episodes or 0),
-                "pipeline_runs": int(row.runs or 0),
-                "pipeline_seconds": round(float(row.seconds or 0), 1),
-                "failures": int(row.failures or 0),
+                "day": day_key,
+                "episodes": len(bucket["episodes"]),  # type: ignore[arg-type]
+                "pipeline_runs": int(bucket["runs"]),
+                "pipeline_seconds": round(float(bucket["seconds"]), 1),
+                "failures": int(bucket["failures"]),
             }
         )
 
-    # Per-step totals — how much time each step of the pipeline consumed.
-    step_rows = (
-        await db.execute(
-            select(
-                GenerationJob.step,
-                func.coalesce(func.sum(duration_expr), 0.0).label("seconds"),
-            )
-            .where(GenerationJob.started_at >= start)
-            .where(GenerationJob.started_at.is_not(None))
-            .where(GenerationJob.completed_at.is_not(None))
-            .group_by(GenerationJob.step)
-        )
-    ).all()
-
-    # LLM token totals over the window.
-    token_row = (
-        await db.execute(
-            select(
-                func.coalesce(func.sum(GenerationJob.tokens_prompt), 0).label("prompt"),
-                func.coalesce(func.sum(GenerationJob.tokens_completion), 0).label("completion"),
-            ).where(GenerationJob.started_at >= start)
-        )
-    ).one()
-    tokens_prompt = int(token_row.prompt or 0)
-    tokens_completion = int(token_row.completion or 0)
-    per_step_seconds = {str(r.step): round(float(r.seconds or 0), 1) for r in step_rows}
+    per_step_seconds_rounded = {k: round(v, 1) for k, v in per_step_seconds.items()}
 
     # Totals.
     total_runs = sum(d["pipeline_runs"] for d in daily)
     total_seconds = round(sum(d["pipeline_seconds"] for d in daily), 1)
     total_failures = sum(d["failures"] for d in daily)
     failure_rate = (total_failures / total_runs) if total_runs else 0.0
-
-    # Episodes-generated counter (distinct episodes touched in the window).
-    # The GROUP BY day lets the same episode count once per day it was
-    # worked on — fine for the chart, but for totals we want distinct:
-    distinct_eps = await db.execute(
-        select(func.count(func.distinct(Episode.id)))
-        .select_from(Episode)
-        .join(GenerationJob, GenerationJob.episode_id == Episode.id)
-        .where(GenerationJob.started_at >= start)
-    )
-    total_episodes_distinct = int(distinct_eps.scalar_one() or 0)
+    total_episodes_distinct = len(distinct_episode_ids)
 
     return {
         "window_days": days,
@@ -266,7 +262,7 @@ async def usage_summary(
             "pipeline_seconds": total_seconds,
             "failures": total_failures,
             "failure_rate": round(failure_rate, 4),
-            "per_step_seconds": per_step_seconds,
+            "per_step_seconds": per_step_seconds_rounded,
             "tokens_prompt": tokens_prompt,
             "tokens_completion": tokens_completion,
             "tokens_total": tokens_prompt + tokens_completion,

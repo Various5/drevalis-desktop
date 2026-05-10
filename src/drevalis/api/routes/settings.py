@@ -381,13 +381,23 @@ async def _check_ffmpeg(ffmpeg_path: str) -> ServiceHealth:
 
 
 async def _check_piper_tts(models_path: Path) -> ServiceHealth:
-    """Check that the Piper TTS models directory exists and contains models."""
+    """Check that the Piper TTS models directory contains models.
+
+    Piper is the optional offline-TTS provider — installs that use
+    ElevenLabs, OpenAI TTS, or any cloud voice never need a local
+    .onnx file. Reporting "no models" as ``degraded`` made the system
+    health card always look red on a fresh desktop install. Treat
+    "no models" as ``ok`` with an informational message instead.
+    """
     try:
         if not models_path.exists():
             return ServiceHealth(
                 name="piper_tts",
-                status="unreachable",
-                message=f"Models directory not found: {models_path}",
+                status="ok",
+                message=(
+                    f"Offline TTS off — drop a Piper .onnx voice into "
+                    f"{models_path} to enable."
+                ),
             )
 
         if not models_path.is_dir():
@@ -402,14 +412,17 @@ async def _check_piper_tts(models_path: Path) -> ServiceHealth:
         if not model_files:
             return ServiceHealth(
                 name="piper_tts",
-                status="degraded",
-                message=f"Models directory exists but contains no .onnx files: {models_path}",
+                status="ok",
+                message=(
+                    f"Offline TTS off — drop a Piper .onnx voice into "
+                    f"{models_path} to enable."
+                ),
             )
 
         return ServiceHealth(
             name="piper_tts",
             status="ok",
-            message=f"{len(model_files)} model(s) found in {models_path}",
+            message=f"{len(model_files)} voice(s) ready in {models_path}",
         )
     except Exception as exc:
         return ServiceHealth(
