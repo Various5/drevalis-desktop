@@ -50,7 +50,7 @@ Steps (same for each Product):
 ### A3. Webhook endpoint
 
 1. Dashboard → **Developers** → **Webhooks** → **+ Add endpoint**.
-2. **Endpoint URL:** `https://license.drevalis.com/stripe/webhook`.
+2. **Endpoint URL:** `https://license.drevalis.com/webhook/stripe`.
 3. **Events to send:** select
    - `checkout.session.completed`
    - `customer.subscription.updated`
@@ -100,6 +100,14 @@ test card `4242 4242 4242 4242`, any future expiry, any CVC.
 ---
 
 ## B. PayPal — CHF subscriptions
+
+> **⚠ Not yet implemented.** The license-server's `app/routes/` directory
+> does not contain a `paypal.py` — there is no `/paypal/checkout` or
+> `/paypal/webhook` route. The PayPal product is on the roadmap; this
+> section documents what the configuration *should* look like once the
+> server-side routes land. Don't follow B4–B7 verbatim until the
+> server routes exist; the webhook will return 404 and the marketing
+> button will silently fail.
 
 ### B1. Register a PayPal Business app
 
@@ -200,38 +208,55 @@ Open it in a sandbox browser and approve with a PayPal test account.
 
 ## C. Tier feature locks
 
-The license JWT carries a `features` claim that the app checks via
-`core/license/feature_gate.py`. Map per tier:
+The license JWT carries a `features` claim. Canonical map lives in
+**two places that must stay in sync**:
 
-| Tier     | `features` claim |
-|----------|-------------------|
-| Creator  | `["base","editor","assets","local_tts","scheduled_publish","seo_preflight"]` |
-| Pro      | Creator + `["unlimited_episodes","cloud_gpu","elevenlabs","voice_cloning","character_locks","audiobooks","tiktok","inpaint","continuity","bulk_publish"]` |
-| Studio   | Pro + `["instagram","x_twitter","team_mode","api_access","priority_support","unlimited_channels"]` |
+- Client: `src/drevalis/core/license/features.py` (`TIER_FEATURES`)
+- Server: `license-server/app/crypto.py` (`TIER_FEATURES`)
 
-Update the feature list in `license-server/app/tiers.py` to match.
-Re-mint any existing licenses (the license-server supports a re-mint
-flow on the Accounts dashboard) so active customers pick up the new
-claims.
+Current map (canonical names — these are the literal strings the
+server embeds in the JWT and the client checks against):
+
+| Tier | Features |
+|---|---|
+| Creator | `basic_generation`, `scheduled_publish`, `seo_preflight` |
+| Pro | Creator + `runpod`, `audiobooks`, `elevenlabs`, `character_packs`, `continuity_check`, `social_tiktok`, `multichannel`, `cross_platform_bulk` |
+| Studio | Pro + `social_extended`, `social_platforms` *(legacy alias)*, `team_mode`, `api_access` |
+
+The client `_current_feature_set()` **unions** the JWT claim with its
+own per-tier defaults, so a JWT minted from a stale server map still
+unlocks everything at runtime — but the JWT is supposed to be
+self-describing. When you change features:
+
+1. Update `src/drevalis/core/license/features.py` (client).
+2. Update `license-server/app/crypto.py` (server) — same names, same
+   per-tier composition.
+3. Update the marketing pricing matrix in
+   `marketing/public/pricing.html` and the shared
+   `marketing/public/assets/pricing-block.html`.
+4. Deploy the license-server (`cd /srv/drevalis-license && docker
+   compose up -d --build`). Existing JWTs aren't re-minted — the
+   client union keeps them working. New activations and heartbeats
+   carry the updated claim.
 
 ---
 
-## D. Smoke checklist before going live
+## D. Smoke checklist before going live (Stripe-only — PayPal pending)
 
 - [ ] `curl -X POST https://license.drevalis.com/checkout` returns a
       real Stripe URL.
-- [ ] `curl -X POST https://license.drevalis.com/paypal/checkout`
-      returns a real PayPal approve URL.
 - [ ] Webhook test: **Stripe dashboard → Webhooks → your endpoint →
       Send test webhook → `checkout.session.completed`** → response
       should be `200 OK`.
-- [ ] Webhook test: **PayPal developer → Webhooks → Simulate →
-      `BILLING.SUBSCRIPTION.ACTIVATED`** → response `200 OK`.
 - [ ] Buy one Creator monthly as yourself in live mode with a real
       card. Confirm a license JWT lands in the admin dashboard with
       `tier=creator`.
+- [ ] Activate that license in the desktop app on a fresh Windows VM
+      → status flips to `active` and the Pro/Studio gates respect the
+      JWT's `features` claim.
 - [ ] Cancel it from the Stripe portal. Confirm the JWT flips to
-      `state=grace` within 5 minutes.
-- [ ] If PayPal: same dry-run with a real card via PayPal.
+      `state=grace` within 5 minutes (then `expired` after the 7-day
+      grace window).
 
-You're live when all of the above pass.
+You're live for Stripe when all of the above pass. PayPal goes live
+once the routes in section B exist on the server.
