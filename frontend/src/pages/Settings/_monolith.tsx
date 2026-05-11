@@ -119,16 +119,14 @@ const SECTION_GROUPS: SectionGroupDef[] = [
 ];
 
 // Section IDs that aren't relevant inside the desktop shell (single-user
-// install, no licensing per SCOPE.md, OS-native backup tooling).
-//
-// ``license`` is intentionally kept on desktop — it shows a friendly
-// "no license required" panel rather than the activation flow, which
-// is helpful for users who were expecting to see licensing info.
+// install). ``license`` is kept because licensing is now real on
+// desktop too. ``backup`` is kept because the backup/restore service
+// works against the desktop's storage + DB paths just like it does
+// against Docker volumes.
 const DESKTOP_HIDDEN_SECTION_IDS: ReadonlySet<string> = new Set([
   'team',
   'two-factor',
   'login-history',
-  'backup',
 ]);
 
 function buildVisibleGroups(isDesktop: boolean): SectionGroupDef[] {

@@ -1,8 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for the main Drevalis window.",
+  "description": "Default capabilities for the main Drevalis window. Tauri 2 capabilities scope per-origin: ``local: true`` covers the bundled ``tauri://`` SPA, ``remote.urls`` covers the FastAPI server the launcher navigates to. Both are required because the SPA loads from ``http://127.0.0.1:8000/`` in production (so the frontend's relative XHRs to ``/api/v1/...`` reach the same origin) — without the ``remote`` entry, every plugin IPC call (updater check, opener, ...) is rejected with ``not allowed for ACL``.",
   "windows": ["main"],
+  "local": true,
+  "remote": {
+    "urls": [
+      "http://127.0.0.1:8000",
+      "http://127.0.0.1:8000/*",
+      "http://localhost:8000",
+      "http://localhost:8000/*"
+    ]
+  },
   "permissions": [
     "core:default",
     "shell:allow-open",

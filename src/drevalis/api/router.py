@@ -84,14 +84,13 @@ router.include_router(social_router)
 router.include_router(youtube_router)
 router.include_router(schedule_router)
 router.include_router(video_templates_router)
-# Backup routes assume the Docker bind-mount layout (``/app/storage``)
-# and are deliberately not surfaced on desktop installs -- per SCOPE.md
-# the desktop port defers to OS-native backup tooling. Set
-# DREVALIS_DESKTOP_MODE=0 to re-enable the legacy server-tier routes.
-import os as _os
-
-if _os.environ.get("DREVALIS_DESKTOP_MODE", "1") == "0":
-    router.include_router(backup_router)
+# Backup routes — work against ``settings.storage_base_path`` +
+# ``settings.backup_directory``, both of which already resolve to the
+# OS user-data dir on desktop installs (see ``core/paths.py``). The
+# service is portable; the Docker-mount-specific diagnostic copy is
+# only displayed when the backup probe detects a bind-mount and is
+# silent on desktop.
+router.include_router(backup_router)
 router.include_router(onboarding_router)
 router.include_router(music_router)
 router.include_router(ab_tests_router)
