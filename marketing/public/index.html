@@ -36,9 +36,9 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Drevalis Creator Studio",
-    "operatingSystem": "Linux, Windows, macOS (Docker)",
+    "operatingSystem": "Windows",
     "applicationCategory": "MultimediaApplication",
-    "description": "An app that turns a topic into a finished video or audiobook on your own computer — AI script, AI voice, AI visuals, word-by-word captions, automatic editing, and one-click upload to YouTube, TikTok, Instagram, Facebook and X.",
+    "description": "A native Windows app that turns a topic into a finished video or audiobook on your own computer — AI script, AI voice, AI visuals, word-by-word captions, automatic editing, and one-click upload to YouTube, TikTok, Instagram, Facebook and X.",
     "url": "https://drevalis.com/",
     "image": "https://drevalis.com/assets/images/hero-dashboard.png",
     "offers": [
@@ -63,12 +63,7 @@
         "price": "99",
         "availability": "https://schema.org/InStock"
       }
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "12"
-    }
+    ]
   }
   </script>
 
@@ -83,7 +78,7 @@
         "name": "What hardware do I need?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Minimum: 16 GB RAM and an NVIDIA GPU with 8 GB VRAM (or a RunPod / Vast.ai / Lambda Labs pod on Pro tier). Long-form video benefits from 16 GB+ VRAM."
+          "text": "Drevalis itself is light — 8 GB RAM and a recent CPU run it fine. The heavy lifting is ComfyUI (image/video generation), which wants an NVIDIA GPU with 12 GB+ VRAM for comfortable long-form. No GPU? Rent a cloud GPU on the Pro plan."
         }
       },
       {
@@ -144,7 +139,6 @@
         <a href="/pricing" class="site-nav-link">Pricing</a>
         <a href="/download" class="site-nav-link">Download</a>
         <a href="/account" class="site-nav-link hide-xs">Account</a>
-        <a href="https://demo.drevalis.com" target="_blank" rel="noopener" class="site-nav-link accent hide-sm">Live demo</a>
         <a href="/pricing" class="btn btn-primary btn-sm">Get started</a>
       </div>
     </div>
@@ -157,101 +151,35 @@
 
     <div class="container-xl pt-20 pb-12 relative z-10">
       <div class="text-center max-w-3xl mx-auto reveal">
-        <span class="eyebrow mb-6"><span class="eyebrow-dot"></span>Runs on your computer · You keep your work</span>
+        <span class="eyebrow mb-6"><span class="eyebrow-dot"></span>Native Windows app · Your machine, your files</span>
         <h1 class="display-hero mt-6 mb-5">
           Type a topic.<br/>
           Get a finished, captioned, <span class="accent-gradient">uploaded video</span>.
         </h1>
         <p class="lead max-w-2xl mx-auto mb-9">
-          The app writes the script, narrates it, draws the visuals, adds captions, picks a thumbnail, and uploads it — all on your computer. No paying-per-video. No surprise bills. One flat price.
+          The app writes the script, narrates it, draws the visuals, adds captions, picks a thumbnail, and uploads it — all on your computer. No per-video fees. No cloud lock-in. One flat price.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3 mb-4">
-          <a href="https://demo.drevalis.com" target="_blank" rel="noopener" class="btn btn-primary btn-lg">Try it live →</a>
+          <a href="/download" class="btn btn-primary btn-lg">Download for Windows →</a>
           <a href="/pricing" class="btn btn-secondary btn-lg">See pricing</a>
-          <a href="/download" class="btn btn-ghost btn-lg hide-xs">How to install</a>
         </div>
         <p class="small-muted">
-          Cancel anytime · We don't keep your card · Real creators using it now run 7+ channels and 200+ videos
+          Pre-release alpha · Signed installer · Cancel anytime
         </p>
       </div>
     </div>
 
-    <!-- Hero: autoplay loop video with a static image fallback. The
-         <video> element tries hero-demo.mp4; if the file isn't present
-         (or the browser blocks autoplay with no poster fetch), the
-         poster image stands in. If even the video element itself fails
-         to load, site.js swaps in the legacy <a><img> block. -->
+    <!-- Hero screenshot. Replace with a real product capture when one's
+         ready. site.js degrades to the static <img> if the <video>
+         element fails to load. -->
     <div class="container-xl pb-8 relative z-10 reveal">
-      <a href="https://demo.drevalis.com" target="_blank" rel="noopener" class="demo-hero-card block group" aria-label="Try the live demo" data-hero-video-wrapper>
-        <div class="img-slot" data-aspect="16/9" data-hint="hero-demo.mp4 (looping screen capture)&#10;Click to open the live demo">
-          <video
-            class="absolute inset-0 w-full h-full object-cover"
-            autoplay
-            muted
-            loop
-            playsinline
-            preload="metadata"
-            poster="/assets/images/hero-dashboard.png"
-            aria-label="Drevalis app demo"
-            data-hero-video
-          >
-            <source src="/assets/videos/hero-demo.mp4" type="video/mp4" />
-          </video>
-          <!-- Static fallback — hidden while the video is healthy; shown
-               by site.js when the video fires an ``error`` event. -->
+      <div class="demo-hero-card block" aria-label="Drevalis dashboard" data-hero-video-wrapper>
+        <div class="img-slot" data-aspect="16/9" data-hint="hero-dashboard.png&#10;Drevalis dashboard screenshot">
           <img
             src="/assets/images/hero-dashboard.png"
-            alt="Drevalis dashboard — click to try the live demo"
+            alt="Drevalis dashboard"
             loading="eager"
-            data-hero-fallback
-            hidden
           />
-          <div class="demo-hero-overlay">
-            <div class="demo-hero-badge">
-              <span class="demo-hero-dot"></span>
-              Live · Click to try
-            </div>
-            <div class="demo-hero-label">demo.drevalis.com</div>
-          </div>
-        </div>
-      </a>
-      <p class="text-center small-muted mt-4">
-        Click to try the app right now in your browser. The demo resets every night, so play around freely — nothing you do is saved, nothing to install.
-      </p>
-    </div>
-  </section>
-
-  <!-- ── Built by creators (social proof) ──────────────────── -->
-  <section class="section-compact" id="built-by-creators">
-    <div class="container-xl">
-      <div class="text-center max-w-2xl mx-auto mb-10 reveal">
-        <span class="eyebrow mb-3">Built by creators</span>
-        <h2 class="display-section mt-3 mb-3">Used by creators publishing right now.</h2>
-        <p class="lead">Real channels making real videos with Drevalis today. No press release, no paid endorsement — just their subscriber counts and how many episodes they've put out.</p>
-      </div>
-      <div class="grid md:grid-cols-3 gap-5 reveal" data-built-by-creators>
-        <!-- Cards rendered by site.js from /data/channels.json.
-             SSR-safe placeholder cards render while JS loads. -->
-        <div class="card p-6 flex items-center gap-4 channel-card-placeholder">
-          <div class="w-14 h-14 rounded-full bg-[var(--bg-elevated)] shrink-0"></div>
-          <div class="min-w-0 flex-1">
-            <div class="h-4 w-24 rounded bg-[var(--bg-elevated)] mb-2"></div>
-            <div class="h-3 w-32 rounded bg-[var(--bg-elevated)]"></div>
-          </div>
-        </div>
-        <div class="card p-6 flex items-center gap-4 channel-card-placeholder">
-          <div class="w-14 h-14 rounded-full bg-[var(--bg-elevated)] shrink-0"></div>
-          <div class="min-w-0 flex-1">
-            <div class="h-4 w-24 rounded bg-[var(--bg-elevated)] mb-2"></div>
-            <div class="h-3 w-32 rounded bg-[var(--bg-elevated)]"></div>
-          </div>
-        </div>
-        <div class="card p-6 flex items-center gap-4 channel-card-placeholder">
-          <div class="w-14 h-14 rounded-full bg-[var(--bg-elevated)] shrink-0"></div>
-          <div class="min-w-0 flex-1">
-            <div class="h-4 w-24 rounded bg-[var(--bg-elevated)] mb-2"></div>
-            <div class="h-3 w-32 rounded bg-[var(--bg-elevated)]"></div>
-          </div>
         </div>
       </div>
     </div>
@@ -479,73 +407,34 @@
     </div>
   </section>
 
-  <!-- ── Hardware matrix ──────────────────────────────────── -->
+  <!-- ── Hardware reality ─────────────────────────────────── -->
   <section id="hardware" class="section border-y border-white/[0.04]">
-    <div class="container-xl">
+    <div class="container-lg">
       <div class="text-center max-w-2xl mx-auto mb-12 reveal">
-        <span class="eyebrow mb-4">Real numbers, no fluff</span>
-        <h2 class="display-section mt-4 mb-4">How long it takes on different computers.</h2>
-        <p class="lead">Times measured from start to finished video. The graphics card matters most — writing scripts and recording voices is fast even on a basic computer.</p>
+        <span class="eyebrow mb-4">What it actually takes</span>
+        <h2 class="display-section mt-4 mb-4">Drevalis itself is light. ComfyUI is what eats your GPU.</h2>
+        <p class="lead">The app, the worker, FFmpeg, the SQLite database and Redis sidecar together use about as much CPU as a Chrome tab with a few videos open. Scenes are the expensive step — whatever ComfyUI workflow you pick decides your hardware ceiling, not us.</p>
       </div>
 
-      <div class="card overflow-x-auto reveal">
-        <table class="compare">
-          <thead>
-            <tr>
-              <th>Build</th>
-              <th>CPU</th>
-              <th>RAM</th>
-              <th>GPU</th>
-              <th>60s Short</th>
-              <th>10 min long-form</th>
-              <th>30 min audiobook</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="feat"><div class="font-semibold">Entry</div><span class="pill pill-amber mt-1">works · slow</span></td>
-              <td>Ryzen 5 · i5 · 6 cores</td>
-              <td>16 GB</td>
-              <td>RTX 3060 8 GB <span class="text-[var(--txt-muted)]">or RunPod</span></td>
-              <td>20 – 40 min</td>
-              <td>2.5 – 5 h</td>
-              <td>4 – 10 min</td>
-            </tr>
-            <tr>
-              <td class="feat"><div class="font-semibold">Mid</div><span class="pill pill-green mt-1">sweet spot</span></td>
-              <td>Ryzen 7 · i7 · 8 cores</td>
-              <td>32 GB</td>
-              <td>RTX 4070 12 GB</td>
-              <td>8 – 15 min</td>
-              <td>45 – 90 min</td>
-              <td>2 – 5 min</td>
-            </tr>
-            <tr>
-              <td class="feat"><div class="font-semibold">High</div><span class="pill pill-blue mt-1">pro</span></td>
-              <td>Ryzen 9 · i9 · 12+ cores</td>
-              <td>64 GB</td>
-              <td>RTX 4090 24 GB</td>
-              <td>3 – 7 min</td>
-              <td>20 – 40 min</td>
-              <td>1 – 3 min</td>
-            </tr>
-            <tr>
-              <td class="feat"><div class="font-semibold">Cloud-only</div><span class="pill pill-purple mt-1">Pro tier+</span></td>
-              <td>any quad-core</td>
-              <td>16 GB</td>
-              <td>RunPod A100 · H100 <span class="text-[var(--txt-muted)]">~$1–3/hr</span></td>
-              <td>3 – 8 min</td>
-              <td>30 – 60 min</td>
-              <td>2 – 5 min</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="grid md:grid-cols-3 gap-5 reveal">
+        <div class="card p-6">
+          <span class="pill pill-green mb-3">Light path</span>
+          <h4 class="mt-3 mb-2">Audiobooks · still-image Shorts</h4>
+          <p class="text-sm text-[var(--txt-secondary)]">Any modern laptop works. Use Edge or Kokoro TTS, a remote LLM (Claude / ChatGPT / LM Studio over LAN), and skip animated scenes. Output in minutes, not hours, with no local GPU.</p>
+        </div>
+        <div class="card p-6">
+          <span class="pill pill-amber mb-3">Local GPU path</span>
+          <h4 class="mt-3 mb-2">Run everything on one box</h4>
+          <p class="text-sm text-[var(--txt-secondary)]">An NVIDIA card with 12 GB+ VRAM (RTX 4070 / 3090 / 4080 / 4090 territory) and 32 GB system RAM is the sweet spot. Image scenes are fast; animated video scenes are tight on 8 GB VRAM — workable for Shorts, slow for long-form.</p>
+        </div>
+        <div class="card p-6">
+          <span class="pill pill-purple mb-3">Cloud GPU path</span>
+          <h4 class="mt-3 mb-2">Rent only when you need it</h4>
+          <p class="text-sm text-[var(--txt-secondary)]">On the Pro plan, point Drevalis at a RunPod / Vast.ai pod. The app stays on your laptop; the heavy ComfyUI workflow runs on rented hardware by the hour. Stop the pod when you're done generating.</p>
+        </div>
       </div>
 
-      <div class="grid md:grid-cols-2 gap-4 mt-6 reveal">
-        <p class="small-muted"><strong class="text-[var(--txt-primary)]">How we measured.</strong> Total time from clicking Generate to a finished video, using the default settings. Free, public AI models for the visuals and voices. The first run is slower because the AI models have to download.</p>
-        <p class="small-muted"><strong class="text-[var(--txt-primary)]">Heads up.</strong> Long videos with moving visuals work best on cards with 16 GB or more graphics memory. With less than 8 GB, stick to still-image scenes — or rent a cloud graphics card for the heavy work. Audiobooks barely use the graphics card.</p>
-      </div>
+      <p class="small-muted text-center mt-8 reveal">No benchmark table here — generation time is dominated by the ComfyUI workflow you choose. SDXL vs. SD 1.5 vs. video diffusion all behave differently; quoting times we measured on one workflow would mislead anyone running a different one.</p>
     </div>
   </section>
 
@@ -595,7 +484,7 @@
       <div class="text-center max-w-2xl mx-auto mb-14 reveal">
         <span class="eyebrow mb-4">Pricing</span>
         <h2 class="display-section mt-4 mb-4">Pick the plan that fits.</h2>
-        <p class="lead">Free to try in the <a href="https://demo.drevalis.com">live demo</a>. Pay monthly or yearly. Card, PayPal, Apple Pay — whatever's easiest. We charge in Swiss Francs; your bank converts at checkout.</p>
+        <p class="lead">Pay monthly or yearly. Card, PayPal, Apple Pay — whatever's easiest. We charge in Swiss Francs; your bank converts at checkout.</p>
       </div>
 
       <!-- Identical markup to /pricing — injected from /assets/pricing-block.html -->
@@ -703,11 +592,9 @@
             <li>✓ Upload your own music; it auto-quiets under speech</li>
             <li>✓ Dashboard for usage and compute time</li>
             <li>✓ A/B-test two titles and let the app pick the winner</li>
-            <li>✓ Track AI usage costs per video</li>
             <li>✓ Rent cloud GPUs from RunPod, Vast.ai, or Lambda Labs</li>
             <li>✓ Scripts and voices in many languages</li>
             <li>✓ Team mode with owner / editor / viewer roles</li>
-            <li>✓ Live demo at demo.drevalis.com</li>
             <li>✓ Single library for all your reference files (no duplicates)</li>
             <li>✓ Drop in a long recording, the app picks the best 30–60 second clip</li>
             <li>✓ Use a reference image to lock in a look per scene</li>
@@ -755,11 +642,11 @@
       <div class="card divide-y divide-white/[0.05] reveal">
         <details class="faq-item">
           <summary>What kind of computer do I need?</summary>
-          <p>See the <a href="#hardware">table further up the page</a>. The minimum: 16 GB of memory and an NVIDIA graphics card with at least 8 GB of dedicated memory. No graphics card? On the Pro plan you can rent one in the cloud for a few dollars an hour. Long videos run smoother with 16 GB+ on the graphics card.</p>
+          <p>The app itself is light — Windows 10/11, 8 GB RAM, any recent CPU. For image and video scenes you need either a local NVIDIA GPU with 12 GB+ VRAM, or a rented cloud GPU (Pro plan). Audiobooks and still-image Shorts run fine on a laptop without a graphics card. See <a href="#hardware">the hardware section</a> for the three paths.</p>
         </details>
         <details class="faq-item">
           <summary>Do I need to install other software too?</summary>
-          <p>Yes — two free helper apps (one for AI images, one for AI writing) need to run alongside Drevalis. The <a href="/download">install guide</a> shows you exactly how. Or, on the Pro plan, you can skip both: point at a cloud rental for the images and use Claude or ChatGPT for the writing — no local graphics card needed.</p>
+          <p>For scenes, yes: <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank" rel="noopener">ComfyUI</a> (free, separate install). For scripts, either a local LLM (LM Studio / Ollama, free) or a cloud one (Claude, OpenAI — you bring the API key). FFmpeg and Redis come bundled inside the Drevalis installer — you don't install those separately.</p>
         </details>
         <details class="faq-item">
           <summary>Can I upgrade or cancel later?</summary>
@@ -791,7 +678,7 @@
           <p class="lead max-w-lg mx-auto mb-8">Cancel any time. We don't keep your card.</p>
           <div class="flex flex-wrap items-center justify-center gap-3">
             <a href="/pricing" class="btn btn-primary btn-lg">Pick a plan</a>
-            <a href="/download" class="btn btn-secondary btn-lg">How to install</a>
+            <a href="/download" class="btn btn-secondary btn-lg">Download for Windows</a>
           </div>
         </div>
       </div>

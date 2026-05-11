@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Install — Drevalis Creator Studio</title>
-  <meta name="description" content="Install Drevalis Creator Studio with one command. Runs on your own computer — Linux, macOS, or Windows. No cloud account needed." />
+  <title>Download — Drevalis Creator Studio</title>
+  <meta name="description" content="Download Drevalis Creator Studio for Windows. Native installer — no Docker, no terminal. Signed updates delivered in-app." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,7 +27,6 @@
       <button type="button" class="site-menu-btn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button><div class="site-nav-links">
         <a href="/#features" class="site-nav-link hide-xs">Features</a>
         <a href="/#workflow" class="site-nav-link hide-sm">How it works</a>
-        <a href="/#hardware" class="site-nav-link hide-sm">Hardware</a>
         <a href="/pricing" class="site-nav-link">Pricing</a>
         <a href="/download" class="site-nav-link" aria-current="page">Download</a>
         <a href="/account" class="site-nav-link hide-xs">Account</a>
@@ -36,241 +35,173 @@
     </div>
   </nav>
 
+  <!-- ── Hero ──────────────────────────────────────────────────────── -->
   <section class="section-compact relative overflow-hidden">
     <div class="bg-glow" style="background: var(--accent); top: -80px; right: 10%; width: 400px; height: 400px; opacity: 0.2;"></div>
     <div class="container-xl text-center relative z-10 reveal">
-      <span class="eyebrow mb-5">Install on your computer</span>
-      <h1 class="display-hero mt-5 mb-5">Install in <span class="accent-gradient">one command</span>.</h1>
-      <p class="lead max-w-2xl mx-auto">Paste a single line into your terminal. The installer downloads everything, sets it up, and starts it for you. About 5 minutes start to finish.</p>
+      <span class="eyebrow mb-5">Windows · pre-release alpha</span>
+      <h1 class="display-hero mt-5 mb-5">Download for <span class="accent-gradient">Windows</span>.</h1>
+      <p class="lead max-w-2xl mx-auto">One signed installer. No Docker, no terminal, no command line. The installer drops the app into <code class="inline">%LOCALAPPDATA%\Drevalis</code>, registers an auto-start tray icon, and you're done in under two minutes.</p>
+      <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-lg" rel="noopener">Download installer →</a>
+        <a href="https://github.com/Various5/drevalis-desktop/releases" class="btn btn-secondary btn-lg" rel="noopener">All releases</a>
+      </div>
+      <p class="small-muted mt-4">Latest build is signed with our Ed25519 updater key. Verify the <code class="inline">.exe.sig</code> alongside the installer if you want.</p>
     </div>
   </section>
 
-  <!-- Install commands -->
+  <!-- ── Platform support ──────────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-xl">
       <div class="grid md:grid-cols-3 gap-5 reveal">
 
-        <!-- Linux -->
-        <div class="card p-7">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="pill pill-green">Linux · server or desktop</span>
-          </div>
-          <h3 class="mb-2">One line, headless or GUI</h3>
-          <p class="text-sm text-[var(--txt-secondary)] mb-4">Just needs Docker Engine + the Compose plugin. Works on Ubuntu, Debian, Fedora, Arch — anything with <code class="inline">docker</code> and <code class="inline">docker compose</code> on PATH. SSH into your VPS or workstation and paste:</p>
-          <pre class="text-sm"><code>curl -fsSL https://drevalis.com/install.sh | bash</code></pre>
-          <p class="small-muted mt-3">Prefer to read before piping? View <a href="/install.sh">install.sh</a>.</p>
-
-          <details class="mt-5 text-sm">
-            <summary class="cursor-pointer text-[var(--accent)] font-medium">No Docker yet? (Ubuntu / Debian)</summary>
-            <pre class="text-xs mt-3"><code>curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker</code></pre>
-            <p class="small-muted mt-2">Log out and back in if <code class="inline">newgrp</code> isn't enough. Then rerun the install command above.</p>
-          </details>
-        </div>
-
-        <!-- macOS -->
-        <div class="card p-7">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="pill pill-purple">macOS · Apple silicon &amp; Intel</span>
-          </div>
-          <h3 class="mb-2">One line on Mac</h3>
-          <p class="text-sm text-[var(--txt-secondary)] mb-4">Install <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener noreferrer">Docker Desktop for Mac</a> first (free, includes Compose). Then open Terminal and paste:</p>
-          <pre class="text-sm"><code>curl -fsSL https://drevalis.com/install.sh | bash</code></pre>
-          <p class="small-muted mt-3">View <a href="/install.sh">install.sh</a>.</p>
-        </div>
-
-        <!-- Windows -->
         <div class="card p-7">
           <div class="flex items-center gap-3 mb-2">
             <span class="pill pill-blue">Windows 10 · 11</span>
           </div>
-          <h3 class="mb-2">One line in PowerShell</h3>
-          <p class="text-sm text-[var(--txt-secondary)] mb-4">Install <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener noreferrer">Docker Desktop</a> first (it enables WSL2 automatically). Then open PowerShell and paste:</p>
-          <pre class="text-sm"><code>iwr -useb https://drevalis.com/install.ps1 | iex</code></pre>
-          <p class="small-muted mt-3">If PowerShell blocks remote scripts, run <code class="inline">Set-ExecutionPolicy -Scope Process RemoteSigned</code> first. View <a href="/install.ps1">install.ps1</a>.</p>
+          <h3 class="mb-2">Native installer</h3>
+          <p class="text-sm text-[var(--txt-secondary)] mb-4">An NSIS .exe — install as a regular user (no admin prompt needed). FFmpeg and Redis are bundled inside the install directory. The first launch creates a SQLite database under <code class="inline">%LOCALAPPDATA%\Drevalis</code>.</p>
+          <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-sm" rel="noopener">Get the .exe</a>
+        </div>
 
-          <details class="mt-5 text-sm">
-            <summary class="cursor-pointer text-[var(--accent)] font-medium">First time with Docker Desktop?</summary>
-            <ol class="mt-3 space-y-2 text-[var(--txt-secondary)] list-decimal list-inside text-sm">
-              <li>Download Docker Desktop from <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener noreferrer">docker.com</a> — choose Windows · AMD64 or ARM64.</li>
-              <li>Run the installer, accept the WSL2 option when prompted.</li>
-              <li>Reboot when it asks.</li>
-              <li>Launch Docker Desktop; wait until the tray icon is solid, not animated.</li>
-              <li>Open PowerShell and paste the command above.</li>
-            </ol>
-          </details>
+        <div class="card p-7" style="opacity: 0.6;">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="pill pill-purple">macOS</span>
+          </div>
+          <h3 class="mb-2">Coming next</h3>
+          <p class="text-sm text-[var(--txt-secondary)] mb-4">Tauri shell already cross-compiles for Apple silicon and Intel; we still need to wire up the Developer ID signing pipeline before we ship a .dmg. Drop your email below to be notified when it lands.</p>
+          <a href="mailto:support@drevalis.com?subject=macOS%20alpha%20interest" class="btn btn-ghost btn-sm">Email when ready</a>
+        </div>
+
+        <div class="card p-7" style="opacity: 0.6;">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="pill pill-green">Linux</span>
+          </div>
+          <h3 class="mb-2">Coming after macOS</h3>
+          <p class="text-sm text-[var(--txt-secondary)] mb-4">AppImage build planned — same Tauri shell, same FastAPI backend bundle, same SQLite DB. No package-manager fight.</p>
+          <a href="mailto:support@drevalis.com?subject=Linux%20alpha%20interest" class="btn btn-ghost btn-sm">Email when ready</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- What the installer does -->
+  <!-- ── What the installer does ──────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-lg">
-      <h2 class="display-section mb-6 reveal">What the installer actually does</h2>
+      <h2 class="display-section mb-6 reveal">What the installer puts on your disk</h2>
       <div class="card p-7 reveal">
         <ol class="space-y-3 text-[var(--txt-secondary)]">
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>Creates <code class="inline">/srv/drevalis</code> (Linux) or <code class="inline">C:\drevalis</code> (Windows).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Writes <code class="inline">docker-compose.yml</code> pulling the official images from <code class="inline">ghcr.io/drevaliscs/*</code>.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>Creates a unique encryption key just for your install (it stays on your computer — we never see it).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>Pulls all images (~3 GB — coffee break).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">5</span><span>Runs database migrations.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">6</span><span>Starts the stack and prints the URL to open.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>The app, FFmpeg, and a bundled Redis sidecar go into <code class="inline">%LOCALAPPDATA%\Drevalis Creator Studio</code> — about 250 MB on disk.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Your SQLite database, logs, and generated episodes go into <code class="inline">%LOCALAPPDATA%\Drevalis</code> (separate from the program files so an uninstall doesn't nuke your work).</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>A Start-menu shortcut and a tray icon. The app keeps running in the tray when you close the window so background generation doesn't get killed.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>That's it. No Docker, no PostgreSQL, no Python — everything's bundled and self-contained.</span></li>
         </ol>
       </div>
     </div>
   </section>
 
-  <!-- Requirements -->
+  <!-- ── System requirements ───────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-xl">
       <h2 class="display-section mb-8 text-center reveal">System requirements</h2>
       <div class="grid md:grid-cols-2 gap-5 reveal">
         <div class="card p-7">
           <span class="pill pill-amber mb-3">Minimum</span>
-          <h4 class="mt-4 mb-3">Works, some things slow</h4>
+          <h4 class="mt-4 mb-3">Runs, but slow on big jobs</h4>
           <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>— Linux (Docker Engine), macOS (Docker Desktop), or Windows (WSL2 + Docker Desktop)</li>
-            <li>— 8 CPU cores, 16 GB RAM</li>
-            <li>— 50 GB free disk space</li>
-            <li>— Docker Engine 24+, Compose v2</li>
-            <li>— GPU optional (can offload to RunPod on Pro tier)</li>
+            <li>— Windows 10 (22H2+) or Windows 11</li>
+            <li>— 4 CPU cores, 8 GB RAM</li>
+            <li>— 5 GB free disk for the app + a few episodes</li>
+            <li>— GPU optional — needed only for ComfyUI image/video generation</li>
           </ul>
         </div>
         <div class="card p-7">
           <span class="pill pill-green mb-3">Recommended</span>
-          <h4 class="mt-4 mb-3">Smooth generation on any format</h4>
+          <h4 class="mt-4 mb-3">Smooth on Shorts and long-form</h4>
           <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>— 12+ CPU cores, 32 GB RAM</li>
-            <li>— NVIDIA GPU with 12 GB+ VRAM</li>
-            <li>— 200 GB NVMe SSD</li>
-            <li>— 100 Mbps+ internet for first-time model downloads</li>
+            <li>— 8+ CPU cores, 16 GB+ RAM</li>
+            <li>— NVIDIA GPU with 12 GB+ VRAM (for local ComfyUI)</li>
+            <li>— 50 GB+ NVMe for episode storage</li>
+            <li>— Or rent a cloud GPU from RunPod / Vast.ai (Pro plan) and the app itself runs fine on a laptop</li>
           </ul>
         </div>
       </div>
-      <p class="text-center small-muted mt-5 reveal">See the <a href="/#hardware">hardware matrix</a> on the homepage for end-to-end timing per build.</p>
+      <p class="text-center small-muted mt-5 reveal">The app itself is light. The heavy lifting is whatever LLM, TTS, and ComfyUI workflow you point it at — they decide your hardware ceiling, not Drevalis.</p>
     </div>
   </section>
 
-  <!-- External services -->
+  <!-- ── External services you point it at ─────────────────────────── -->
   <section class="section-compact">
     <div class="container-xl">
-      <h2 class="display-section mb-4 reveal">External services you'll configure</h2>
-      <p class="lead max-w-2xl mb-8 reveal">Drevalis orchestrates these. You install them separately — so you control the models, the versions, and the licence of what runs.</p>
+      <h2 class="display-section mb-4 reveal">External tools you point it at</h2>
+      <p class="lead max-w-2xl mb-8 reveal">Drevalis orchestrates these — they aren't bundled. You install them once and Drevalis remembers the URL.</p>
       <div class="grid md:grid-cols-3 gap-4 reveal">
         <div class="card p-6">
           <h4 class="mb-2">ComfyUI</h4>
-          <p class="text-sm text-[var(--txt-secondary)] mb-3">Scene image and video generation.</p>
+          <p class="text-sm text-[var(--txt-secondary)] mb-3">Scene image and video generation. Default URL <code class="inline">http://localhost:8188</code>; the app discovers it the first time you launch.</p>
           <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank" rel="noopener noreferrer" class="text-sm">Install guide →</a>
         </div>
         <div class="card p-6">
-          <h4 class="mb-2">LM Studio or Ollama</h4>
-          <p class="text-sm text-[var(--txt-secondary)] mb-3">Local LLM for scripts. Or plug in Claude / OpenAI-compatible instead.</p>
+          <h4 class="mb-2">LM Studio · Ollama · or Claude</h4>
+          <p class="text-sm text-[var(--txt-secondary)] mb-3">Any OpenAI-compatible LLM works. Free local options (LM Studio, Ollama) or paid (Claude, OpenAI) — set the key in Settings.</p>
           <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" class="text-sm">LM Studio →</a>
         </div>
         <div class="card p-6">
-          <h4 class="mb-2">FFmpeg</h4>
-          <p class="text-sm text-[var(--txt-secondary)] mb-3">Installed inside the Docker container — you don't have to.</p>
+          <h4 class="mb-2">FFmpeg + Redis</h4>
+          <p class="text-sm text-[var(--txt-secondary)] mb-3">Both bundled. Redis runs as a sidecar on port 6379; FFmpeg sits inside the install directory. You don't install either separately.</p>
           <span class="text-sm text-[var(--accent)]">Included</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- After install -->
+  <!-- ── After install ─────────────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-lg">
-      <h2 class="display-section mb-6 reveal">After install</h2>
+      <h2 class="display-section mb-6 reveal">After you install</h2>
       <div class="card p-7 reveal">
         <ol class="space-y-3 text-[var(--txt-secondary)]">
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>Open <code class="inline">http://localhost:3000</code>.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Paste your license key (from the purchase email) into the activation screen.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>Settings → ComfyUI Servers → add your ComfyUI URL (e.g. <code class="inline">http://host.docker.internal:8188</code>).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>Settings → LLM Configs → add your LM Studio / Ollama / Claude endpoint.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">5</span><span>Settings → Voice Profiles → pick a default TTS voice.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>Launch from the Start menu. The app window opens after a few seconds (the bundled Redis + worker need to spin up).</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Paste your license key from the purchase email into the activation screen. It exchanges with <code class="inline">license.drevalis.com</code> for a signed token and unlocks the app.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>Settings → ComfyUI Servers → add your ComfyUI URL (usually <code class="inline">http://localhost:8188</code>).</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>Settings → LLM Configs → add your LM Studio / Ollama / Claude endpoint and pick a default model.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">5</span><span>Settings → Voice Profiles → pick a default TTS voice (Edge or Kokoro are free and ship locally).</span></li>
           <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">6</span><span>Create your first series and generate an episode.</span></li>
         </ol>
       </div>
     </div>
   </section>
 
-  <!-- Updates -->
+  <!-- ── Updates ──────────────────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-lg reveal">
       <h2 class="display-section mb-4">Updates</h2>
-      <p class="lead mb-5">In-app, one click: Settings → Updates → <em>Update now</em>. The updater sidecar pulls the new images and restarts the stack automatically. No terminal needed.</p>
-      <p class="text-sm text-[var(--txt-secondary)] mb-3">Prefer manual?</p>
-      <pre class="text-sm"><code>cd /srv/drevalis
-docker compose pull
-docker compose up -d --remove-orphans</code></pre>
+      <p class="lead mb-5">In-app, one click: Settings → Updates → <em>Check for updates</em>. The Tauri auto-updater downloads the signed installer, verifies the Ed25519 signature against the public key embedded in your install, and re-launches the new version. No reinstall, no migrations to run manually.</p>
+      <p class="text-sm text-[var(--txt-secondary)]">Prefer a manual update? Download the latest <code class="inline">.exe</code> from <a href="https://github.com/Various5/drevalis-desktop/releases/latest" rel="noopener">GitHub Releases</a> and run it. Your data lives in <code class="inline">%LOCALAPPDATA%\Drevalis</code> — completely separate from the program files, so reinstalling won't touch anything you've made.</p>
     </div>
   </section>
 
-  <!-- Manual install -->
+  <!-- ── Verifying the download ───────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-lg reveal">
-      <h2 class="display-section mb-4">Manual install (if you'd rather not pipe to bash)</h2>
-      <p class="text-sm text-[var(--txt-secondary)] mb-4">Create a <code class="inline">docker-compose.yml</code> with:</p>
-      <pre class="text-xs"><code>services:
-  app:
-    image: ghcr.io/drevaliscs/creator-studio-app:latest
-    restart: unless-stopped
-    ports: ["8000:8000"]
-    env_file: .env
-    volumes: [./storage:/app/storage, updater_shared:/shared]
-    depends_on: [postgres, redis]
+      <h2 class="display-section mb-4">Want to verify the download?</h2>
+      <p class="text-sm text-[var(--txt-secondary)] mb-4">Every release ships three artifacts next to each other on GitHub: the installer, a detached <code class="inline">.sig</code> (Ed25519 minisign), and a <code class="inline">latest.json</code> updater manifest. If you want belt-and-braces verification before running an .exe:</p>
+      <pre class="text-xs"><code># 1. Download the installer + .sig from the same release page.
+# 2. Verify with minisign and the public key from:
+#    https://github.com/Various5/drevalis-desktop/blob/main/.tauri-keys/drevalis-updater.key.pub
 
-  worker:
-    image: ghcr.io/drevaliscs/creator-studio-app:latest
-    restart: unless-stopped
-    env_file: .env
-    volumes: [./storage:/app/storage]
-    command: python -m arq drevalis.workers.settings.WorkerSettings
-    depends_on: [postgres, redis]
-
-  frontend:
-    image: ghcr.io/drevaliscs/creator-studio-frontend:latest
-    restart: unless-stopped
-    ports: ["3000:3000"]
-    depends_on: [app]
-
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: drevalis
-      POSTGRES_PASSWORD: drevalis
-      POSTGRES_DB: drevalis
-    volumes: [pg:/var/lib/postgresql/data]
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-
-  updater:
-    image: ghcr.io/drevaliscs/creator-studio-updater:latest
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - .:/project
-      - updater_shared:/shared
-
-volumes:
-  pg:
-  updater_shared:</code></pre>
-      <p class="text-sm text-[var(--txt-secondary)] mt-4">
-        Then write <code class="inline">.env</code> with <code class="inline">ENCRYPTION_KEY</code> (generate with <code class="inline">python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</code>) and <code class="inline">LICENSE_SERVER_URL=https://license.drevalis.com</code>, then run <code class="inline">docker compose up -d</code>.
-      </p>
+minisign -Vm "Drevalis Creator Studio_*_x64-setup.exe" \
+         -P "RWQ25V8RbLTQAErpTcxm7HBW6OojHEAQzHLEF4tkAXtOXp/LbxrK5jZN"</code></pre>
+      <p class="text-sm text-[var(--txt-secondary)] mt-4">The in-app auto-updater does this for you every time it pulls a new version — these manual steps are only if you want to verify before the first install.</p>
     </div>
   </section>
 
-  <!-- Support -->
+  <!-- ── Support ──────────────────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-md reveal">
       <div class="card p-8 text-center">
-        <h2 class="display-section mb-3">Still stuck?</h2>
-        <p class="text-[var(--txt-secondary)] mb-6">Email <a href="mailto:support@drevalis.com">support@drevalis.com</a> with the output of <code class="inline">docker compose logs app worker</code> and we'll help. One business-day response, usually faster.</p>
+        <h2 class="display-section mb-3">Stuck during install?</h2>
+        <p class="text-[var(--txt-secondary)] mb-6">Email <a href="mailto:support@drevalis.com">support@drevalis.com</a> with the launcher log from <code class="inline">%LOCALAPPDATA%\Drevalis\Logs\drevalis.log</code> and we'll help. One business-day response, usually faster.</p>
         <a href="mailto:support@drevalis.com" class="btn btn-primary">Email support</a>
       </div>
     </div>
@@ -287,7 +218,7 @@ volumes:
         <p class="text-sm text-[var(--txt-secondary)] max-w-sm mt-3">An app for making AI videos and audiobooks on your own computer. Made in Switzerland.</p>
         <p class="small-muted mt-3">© 2026 Drevalis · Creator Studio is a trademark of Drevalis.</p>
       </div>
-      <div><div class="site-footer-heading">Product</div><ul class="site-footer-list"><li><a href="/#features">Features</a></li><li><a href="/#workflow">How it works</a></li><li><a href="/#hardware">Hardware</a></li><li><a href="/pricing">Pricing</a></li><li><a href="/download">Download</a></li></ul></div>
+      <div><div class="site-footer-heading">Product</div><ul class="site-footer-list"><li><a href="/#features">Features</a></li><li><a href="/#workflow">How it works</a></li><li><a href="/pricing">Pricing</a></li><li><a href="/download">Download</a></li></ul></div>
       <div><div class="site-footer-heading">Account</div><ul class="site-footer-list"><li><a href="/account">Manage subscription</a></li><li><a href="mailto:support@drevalis.com">Support</a></li><li><a href="mailto:abuse@drevalis.com">Report abuse</a></li></ul></div>
       <div><div class="site-footer-heading">Legal</div><ul class="site-footer-list"><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/acceptable-use">Acceptable Use</a></li><li><a href="/impressum">Impressum</a></li></ul></div>
     </div>
