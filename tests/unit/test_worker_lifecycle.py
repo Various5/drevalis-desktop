@@ -70,11 +70,12 @@ class TestOnJobStartLicenseGate:
         set_state(LicenseState(status=LicenseStatus.ACTIVE, claims=claims))
         await on_job_start({"job_name": "generate_episode", "job_id": "x"})
 
-    async def test_unactivated_protected_job_raises_retry(self) -> None:
-        # Non-exempt job with no license → arq.Retry so the job is
-        # deferred for an hour. Worker stays alive.
-        from arq.worker import Retry
-
+    async def test_unactivated_protected_job_returns_without_raising(self) -> None:
+        # Non-exempt job with no license: the hook used to ``raise
+        # arq.worker.Retry`` here, but arq's job-level try/except wraps
+        # the job body — NOT ``on_job_start`` — so the Retry crashed
+        # the worker (launcher then killed the API). Hook now just
+        # logs; the individual job functions self-gate on license.
         from drevalis.core.license.state import (
             LicenseState,
             LicenseStatus,
@@ -82,16 +83,10 @@ class TestOnJobStartLicenseGate:
         )
 
         set_state(LicenseState(status=LicenseStatus.UNACTIVATED))
-        with pytest.raises(Retry) as exc:
-            await on_job_start({"job_name": "generate_episode", "job_id": "x"})
-        # Defer is 1 hour (3600s). arq's Retry stores the defer-until
-        # value on ``defer_score`` (epoch seconds when set) — just
-        # confirm it's populated; exact value depends on test wall clock.
-        assert exc.value.defer_score is not None
+        # Should NOT raise.
+        await on_job_start({"job_name": "generate_episode", "job_id": "x"})
 
-    async def test_invalid_license_protected_job_raises_retry(self) -> None:
-        from arq.worker import Retry
-
+    async def test_invalid_license_protected_job_returns_without_raising(self) -> None:
         from drevalis.core.license.state import (
             LicenseState,
             LicenseStatus,
@@ -99,24 +94,37 @@ class TestOnJobStartLicenseGate:
         )
 
         set_state(LicenseState(status=LicenseStatus.INVALID, error="signature mismatch"))
-        with pytest.raises(Retry):
-            await on_job_start({"job_name": "generate_episode", "job_id": "x"})
+        await on_job_start({"job_name": "generate_episode", "job_id": "x"})
 
-    async def test_missing_job_name_treated_as_protected(self) -> None:
-        # Defensive: if arq context didn't populate ``job_name`` for
-        # some reason, fall through to the license check rather than
-        # silently skipping the gate.
-        from arq.worker import Retry
-
+    async def test_extracts_function_name_from_cron_job_id(self) -> None:
+        # arq does NOT populate ``job_name`` in the ctx for on_job_start
+        # (only job_id, job_try, enqueue_time, score). Cron job_ids
+        # always look like ``cron:<funcname>:<timestamp>`` — the hook
+        # parses the function name out so exempt cron jobs (like
+        # ``worker_heartbeat``) are correctly recognised.
         from drevalis.core.license.state import (
             LicenseState,
             LicenseStatus,
             set_state,
         )
+        from drevalis.workers.lifecycle import _job_name_from_ctx
 
         set_state(LicenseState(status=LicenseStatus.UNACTIVATED))
-        with pytest.raises(Retry):
-            await on_job_start({"job_id": "x"})  # no job_name
+        assert (
+            _job_name_from_ctx({"job_id": "cron:worker_heartbeat:1778524020123"})
+            == "worker_heartbeat"
+        )
+        assert (
+            _job_name_from_ctx({"job_id": "cron:publish_scheduled_posts:1"})
+            == "publish_scheduled_posts"
+        )
+        # Non-cron id → empty string fall-through; caller decides.
+        assert _job_name_from_ctx({"job_id": "some-uuid"}) == ""
+        # Explicit job_name in ctx wins over parsing.
+        assert (
+            _job_name_from_ctx({"job_name": "explicit", "job_id": "cron:other:1"})
+            == "explicit"
+        )
 
 
 # ── shutdown ────────────────────────────────────────────────────────

@@ -342,33 +342,67 @@ _LICENSE_EXEMPT_JOBS: frozenset[str] = frozenset(
 )
 
 
-async def on_job_start(ctx: dict[str, Any]) -> None:
-    """Defer protected jobs when no valid license is active.
+def _job_name_from_ctx(ctx: dict[str, Any]) -> str:
+    """Best-effort job-name extraction.
 
-    Reads the process-wide license state populated by ``startup``. Raises
-    ``arq.worker.Retry(defer=3600)`` so the job is put back on the queue
-    for an hour and retried — the worker stays alive, and jobs resume as
-    soon as the user activates.
+    arq does NOT put ``job_name`` into the ctx it passes to
+    ``on_job_start`` (only ``job_id``, ``job_try``, ``enqueue_time``,
+    ``score`` plus the long-lived worker ctx). Cron job_ids always
+    have the shape ``cron:<funcname>:<timestamp>``, so we parse the
+    function name out of the id.
+
+    For non-cron jobs the id is typically a UUID or caller-supplied
+    string — we return "" in that case and let the caller decide.
+    Returning the ctx value first keeps us forward-compat with future
+    arq versions that may set ``job_name`` directly.
     """
-    job_name = ctx.get("job_name") or ""
-    if job_name in _LICENSE_EXEMPT_JOBS:
-        return
+    explicit = ctx.get("job_name")
+    if isinstance(explicit, str) and explicit:
+        return explicit
+    job_id = ctx.get("job_id") or ""
+    if isinstance(job_id, str) and job_id.startswith("cron:"):
+        # cron:<funcname>:<timestamp> → second segment
+        parts = job_id.split(":", 2)
+        if len(parts) >= 2:
+            return parts[1]
+    return ""
 
+
+async def on_job_start(ctx: dict[str, Any]) -> None:
+    """Log when a job is starting against an unlicensed install.
+
+    The previous implementation raised ``arq.worker.Retry(defer=3600)``
+    from this hook to defer protected jobs. That backfired: arq's
+    retry-handling try/except only wraps the job-body call, not the
+    ``on_job_start`` callback (verified against arq's worker.py at
+    the ``await self.on_job_start(ctx)`` site). So the Retry
+    propagated, the worker crashed, the launcher detected the dead
+    child and killed the API too — and the SPA's first
+    ``POST /api/v1/license/activate`` got "failed to fetch" because
+    there was no backend to talk to.
+
+    Fix: don't raise from here. Individual jobs already check license
+    state internally (``publish_scheduled_posts`` fails the upload
+    cleanly; ``generate_episode`` is gated upstream at the route, so
+    it can't even be enqueued without a license). Logging keeps the
+    operator-visibility signal we wanted from the original deferral.
+    """
     from drevalis.core.license.state import get_state
 
     state = get_state()
     if state.is_usable:
         return
 
-    from arq.worker import Retry
+    job_name = _job_name_from_ctx(ctx)
+    if job_name in _LICENSE_EXEMPT_JOBS:
+        return
 
     logger.info(
-        "job_deferred_no_license",
-        job=job_name,
+        "job_starting_no_license",
+        job=job_name or "<unknown>",
         job_id=ctx.get("job_id"),
         license_status=state.status.value,
     )
-    raise Retry(defer=3600)
 
 
 async def shutdown(ctx: dict[str, Any]) -> None:
