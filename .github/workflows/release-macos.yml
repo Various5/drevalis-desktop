@@ -1,0 +1,146 @@
+name: Release (macOS, manual)
+
+# WIP — manual-dispatch only. Produces an UNSIGNED .app + .dmg suitable
+# for local testing on the maintainer's machine. Notes before this can
+# go GA:
+#
+#   - Apple Developer ID Application certificate not wired up yet. The
+#     resulting .app triggers Gatekeeper's "cannot be opened because
+#     Apple cannot check it for malicious software" warning on first
+#     launch. End-user workaround: right-click → Open → confirm. Fine
+#     for an alpha; not acceptable for a Latest release.
+#   - ``scripts/fetch_sidecars.py`` is Windows-only as of writing. This
+#     workflow therefore skips the bundled FFmpeg/Redis copy — the
+#     resulting installer expects ``ffmpeg`` and ``redis-server`` on
+#     PATH (``brew install ffmpeg redis``). When the macOS fetcher
+#     lands, drop the skip step + add the equivalent copy logic.
+#   - Notarization (xcrun notarytool) is NOT included. The build only
+#     ad-hoc-signs the .app via tauri-action's default behaviour.
+#   - Universal binary (arm64 + x86_64) handling is also pending —
+#     this builds for the runner's native arch only.
+#
+# How to use:
+#
+#   gh workflow run "Release (macOS, manual)" -R Various5/drevalis-desktop \
+#        -f tag=v0.1.0-alpha.X
+#
+# Tag must already exist + push to ``main`` first; the workflow checks
+# out that tag's commit. Artefacts attach to the existing draft
+# Release created by the Windows release workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach to (e.g. v0.1.0-alpha.5).'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up uv (Python ${{ env.PYTHON_VERSION }})
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Tauri 2 wants both targets for a universal .app. Build for
+          # the runner's native arch only for now; flip on when we wire
+          # in the universal-binary lipo step.
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Cargo target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('tauri/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      # ── Frontend MUST build before pyinstaller (same gotcha as
+      #     Windows; the spec gates the SPA mount on frontend/dist) ──
+      - name: Frontend npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build:loose
+
+      - name: Tauri shell npm ci
+        working-directory: tauri
+        run: npm ci
+
+      # ── Backend bundle (PyInstaller) ────────────────────────────────
+      - name: Install Python deps
+        run: uv sync --extra dev
+
+      # NOTE: fetch_sidecars.py is Windows-only at the moment. Once it
+      # grows a macOS branch (evermeet.cx for FFmpeg, redis source build
+      # for redis-server), uncomment + adapt:
+      #
+      # - name: Fetch FFmpeg + Redis sidecars
+      #   run: uv run python scripts/fetch_sidecars.py
+
+      - name: Build backend (PyInstaller)
+        run: |
+          uv run pyinstaller drevalis-backend.spec --noconfirm --clean
+          # Prune googleapiclient discovery cache (~96 MB → ~1 MB).
+          DOCS=dist/drevalis/_internal/googleapiclient/discovery_cache/documents
+          if [ -d "$DOCS" ]; then
+            find "$DOCS" -type f ! -name 'youtube*' -delete
+          fi
+
+      - name: Verify frontend SPA bundled into backend
+        run: |
+          SPA=dist/drevalis/_internal/frontend/dist/index.html
+          if [ ! -f "$SPA" ]; then
+            echo "FATAL: $SPA missing — frontend build must run BEFORE pyinstaller."
+            exit 1
+          fi
+          echo "[verify] SPA bundled: $SPA"
+
+      # ── Tauri build (unsigned, alpha-quality) ──────────────────────
+      - name: Tauri build + attach to existing release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # NOTE: we re-use the updater signing key from the Windows
+          # workflow so the in-app auto-updater can verify .app updates
+          # against the same embedded pubkey. macOS code signing
+          # (Developer ID) is a separate concern; not configured here.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: tauri
+          tagName: ${{ github.event.inputs.tag }}
+          releaseName: 'Drevalis Creator Studio ${{ github.event.inputs.tag }}'
+          # Use the same draft Release the Windows workflow created.
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
