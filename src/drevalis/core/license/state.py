@@ -18,12 +18,15 @@ from dataclasses import dataclass
 
 from drevalis.core.license.claims import LicenseClaims
 
-# Desktop port: SCOPE.md says single-user desktop has no licensing in v1.0.
-# Rather than touch every gate site (middleware, on_job_start hook, lifespan
-# bootstrap, generate_episode inline check), bypass at the read sites here.
-# Set ``DREVALIS_DESKTOP_MODE=0`` to re-enable the gates (e.g. for SaaS
-# revival or to exercise the license flow in tests).
-_DESKTOP_BYPASS = os.environ.get("DREVALIS_DESKTOP_MODE", "1") != "0"
+# License bypass — opt-in escape hatch for development. The default is
+# OFF: the desktop port now talks to the real license server (the
+# original SCOPE.md decision to ship desktop license-free has been
+# reversed). Set ``DREVALIS_LICENSE_BYPASS=1`` only for dev / CI work
+# that needs the gates open without a real activation. Not coupled to
+# ``DREVALIS_DESKTOP_MODE`` anymore — that flag still controls
+# desktop-only routing and error-hint flavor, but licensing is now
+# enforced on every install regardless of platform.
+_LICENSE_BYPASS = os.environ.get("DREVALIS_LICENSE_BYPASS", "0") == "1"
 
 
 class LicenseStatus(enum.StrEnum):
@@ -127,7 +130,7 @@ _bootstrapped: bool = False
 
 
 def get_state() -> LicenseState:
-    if _DESKTOP_BYPASS:
+    if _LICENSE_BYPASS:
         return _desktop_state()
     with _lock:
         return _state
@@ -147,7 +150,7 @@ def is_bootstrapped() -> bool:
     the startup window where state is still at its default UNACTIVATED
     value but bootstrap simply hasn't executed yet.
     """
-    if _DESKTOP_BYPASS:
+    if _LICENSE_BYPASS:
         return True
     with _lock:
         return _bootstrapped

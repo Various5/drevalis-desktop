@@ -145,9 +145,11 @@ class Settings(BaseSettings):
     longform_job_timeout: int = 14400  # 4 hours
 
     # ── Licensing ─────────────────────────────────────────────────────────
-    # Base URL of the owner-operated license server (Phase 2). None in
-    # Phase 1 since licenses are minted offline with scripts/mint_license.py.
-    license_server_url: str | None = None
+    # Base URL of the owner-operated license server. Desktop installs hit
+    # this for activation (key → JWT exchange), heartbeats, and seat
+    # management. Override via ``LICENSE_SERVER_URL`` env to point at a
+    # staging server or a self-hosted clone.
+    license_server_url: str | None = "https://license.drevalis.com"
     # Dev/test escape hatch: when set, replaces the embedded public key list
     # with this single PEM. Never set in production.
     license_public_key_override: str | None = None
