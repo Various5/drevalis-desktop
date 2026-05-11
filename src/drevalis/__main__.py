@@ -273,12 +273,29 @@ def _run_migrations_inproc() -> int:
     Idempotent. Applies the bundled migrations against the configured
     DATABASE_URL. The launcher invokes this once before spawning api +
     worker so neither child queries an unmigrated schema.
+
+    After alembic completes, runs a **schema heal** pass: imports every
+    ORM model so all tables register on ``Base.metadata``, reflects the
+    live database, and creates any table that the current models
+    expect but the DB is missing. This covers the case where an early
+    alpha install stamped ``alembic_version`` to a baseline revision
+    that has since been edited to include additional tables — alembic
+    sees "already at head" and skips them, so the API later 500s on
+    "no such table". ``create_all(checkfirst=True)`` is idempotent and
+    only touches tables that don't exist; it never modifies existing
+    schema (column drift still requires a real migration).
     """
     from alembic import command
     from alembic.config import Config
+    from sqlalchemy import create_engine, inspect
 
     from drevalis.core.binaries import resources_root
     from drevalis.core.config import Settings
+
+    # Import ``drevalis.models`` so every ORM class registers its table
+    # on ``Base.metadata``. Done before the engine is created so the
+    # heal step below has a complete picture.
+    from drevalis import models as _models  # noqa: F401
 
     settings = Settings()
     migrations_dir = resources_root() / "migrations"
@@ -298,6 +315,28 @@ def _run_migrations_inproc() -> int:
     config.set_main_option("sqlalchemy.url", settings.database_url)
     command.upgrade(config, "head")
     print("[drevalis migrate] done", flush=True)
+
+    # ── Schema heal ─────────────────────────────────────────────────
+    # Build a sync engine against the same URL (alembic + create_all
+    # both want a sync driver; aiosqlite is async-only).
+    sync_url = settings.database_url.replace("+aiosqlite", "")
+    engine = create_engine(sync_url)
+    try:
+        expected = set(_models.Base.metadata.tables.keys())
+        existing = set(inspect(engine).get_table_names())
+        missing = expected - existing
+        if missing:
+            print(
+                f"[drevalis migrate] schema-heal: alembic was at head but "
+                f"{len(missing)} expected table(s) absent — creating: "
+                f"{', '.join(sorted(missing))}",
+                flush=True,
+            )
+            _models.Base.metadata.create_all(engine, checkfirst=True)
+            print("[drevalis migrate] schema-heal done", flush=True)
+    finally:
+        engine.dispose()
+
     return 0
 
 

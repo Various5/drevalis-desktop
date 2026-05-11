@@ -1,6 +1,6 @@
 [package]
 name = "drevalis-shell"
-version = "0.1.0-alpha.6"
+version = "0.1.0-alpha.7"
 description = "Tauri shell for Drevalis Creator Studio."
 authors = ["Drevalis"]
 edition = "2021"
@@ -31,10 +31,16 @@ serde_json = "1"
 # (improves performance versus the legacy http:// scheme).
 custom-protocol = ["tauri/custom-protocol"]
 
-# Smaller release binaries — release builds with strip + LTO.
+# Release profile tuned for **CI build wall-clock** rather than
+# squeezing every last byte. The previous full-LTO + codegen-units=1
+# setup added ~6 min to every alpha build for a few percent of size
+# savings — not worth it at this stage. Thin-LTO + parallel codegen
+# cuts the cargo step roughly in half while still stripping debug
+# info and aborting on panic to keep the binary tight. Revisit when
+# we're shipping public 1.0 releases.
 [profile.release]
-codegen-units = 1
-lto = true
+codegen-units = 16
+lto = "thin"
 opt-level = "s"
 panic = "abort"
 strip = true
