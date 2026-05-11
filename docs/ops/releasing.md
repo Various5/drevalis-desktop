@@ -1,30 +1,37 @@
 # Releasing a new version
 
-Drevalis Creator Studio is distributed as Docker images on GHCR
-(`ghcr.io/<org>/creator-studio-*`). Customer installs reference these
-images and update via the in-app "Update now" button, which pulls the
-newest tag matching what the license server's `/updates/manifest`
-advertises.
+Drevalis Creator Studio ships as a signed NSIS installer attached to a
+[GitHub Release](https://github.com/Various5/drevalis-desktop/releases).
+Customer installs verify the Ed25519 minisign signature embedded in
+`tauri.conf.json`'s `plugins.updater.pubkey` and auto-update from
+[`latest.json`](https://github.com/Various5/drevalis-desktop/releases/latest/download/latest.json).
+
+There is **no** GHCR image push, no `/admin/updates/publish` call, and
+no client-side cache TTL — the Tauri auto-updater hits GitHub directly
+on the user's request.
 
 ## Release pipeline at a glance
 
 ```
-Tag v1.2.3 on main
-     │
-     ▼
-.github/workflows/release.yml fires
-     │
-     ├── Build + push 3 images to GHCR
-     │     ghcr.io/<org>/creator-studio-app:1.2.3       (and :stable)
-     │     ghcr.io/<org>/creator-studio-frontend:1.2.3  (and :stable)
-     │     ghcr.io/<org>/creator-studio-updater:1.2.3   (and :stable)
-     │
-     └── POST the manifest to https://license.drevalis.com/admin/updates/publish
-           with the new version number + image tags + changelog URL
-
-Every licensed install's Settings → Updates tab flips to "Update available"
-within 6 hours (the client-side cache TTL).
+Tag v0.1.0-alpha.N on main
+        │
+        ▼
+.github/workflows/release.yml fires (~15 min total)
+        │
+        ├── Frontend npm ci + build:loose       (must run BEFORE pyinstaller)
+        ├── Tauri shell npm ci
+        ├── uv sync --extra dev
+        ├── Fetch FFmpeg + Redis sidecars
+        ├── PyInstaller backend (drevalis-backend.spec)
+        ├── Verify SPA bundled into backend     (guards the silent breakage we
+        │                                        shipped in alpha.2)
+        ├── tauri-action@v0 builds + signs the NSIS installer
+        └── Uploads .exe + .exe.sig + latest.json to a DRAFT GitHub Release
 ```
+
+The release is created as a **draft** so you can smoke-test the installer
+before exposing it to existing installs. Promoting from draft → "latest"
+is what triggers the in-app auto-updater on any older install.
 
 ## One-time setup
 
@@ -34,95 +41,167 @@ Settings → Secrets and variables → Actions:
 
 | Name | Value | Where it comes from |
 |------|-------|---------------------|
-| `LICENSE_SERVER_ADMIN_TOKEN` | the `ADMIN_TOKEN` from your `/srv/drevalis-license/.env` | password manager |
+| `TAURI_SIGNING_PRIVATE_KEY` | `.tauri-keys/drevalis-updater.key` (full file content, base64) | offline owner machine |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | password used when generating the keypair | password manager |
 
-### GitHub repository variables
+**Upload via `--body-file`** (NOT `--body "$(cat ...)"` — PowerShell mangles
+the base64 on substitution; we shipped one broken signing run that way):
 
-Same page, Variables tab:
+```powershell
+gh secret set TAURI_SIGNING_PRIVATE_KEY -R Various5/drevalis-desktop `
+    --body-file .tauri-keys/drevalis-updater.key
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD -R Various5/drevalis-desktop `
+    --body "<password>"
+```
 
-| Name | Value |
-|------|-------|
-| `LICENSE_SERVER_URL` | `https://license.drevalis.com` |
+(`gh` versions older than 2.31 don't have `--body-file` — stdin redirect
+works as a fallback: `gh secret set ... < .tauri-keys/drevalis-updater.key`.)
 
-### GHCR package visibility
+### Public key embedded in the client
 
-After the first run, GHCR creates the packages as **Private** by default.
-Make them public so anonymous customers can pull:
-
-- github.com/\<org\>?tab=packages → each `creator-studio-*` package → Package settings → **Change visibility → Public**
-
-Otherwise `docker compose pull` in the installer fails with `unauthorized`.
+`tauri.conf.json` → `plugins.updater.pubkey` already contains the
+base64-encoded `.tauri-keys/drevalis-updater.key.pub`. The Tauri updater
+verifies every downloaded installer against this key. If you ever rotate
+the signing keypair, both files must change together and a new release
+must be cut — old installs cannot verify updates signed with the new
+key until they're re-installed manually.
 
 ## Cutting a release
 
-```bash
-# Make sure main is clean and the version bumps in pyproject.toml / frontend/package.json are committed
-git checkout main
-git pull
+Versioning is `0.MAJOR.MINOR-pre.N` while pre-1.0. Bump in three places
+(Cargo's strict semver means all three must match):
+
+| File | Field |
+|---|---|
+| `tauri/src-tauri/tauri.conf.json` | `version` |
+| `tauri/src-tauri/Cargo.toml` | `[package] version` |
+| `tauri/src-tauri/Cargo.lock` | `name = "drevalis-shell"` block |
+
+```powershell
+# Bump the three files above to 0.1.0-alpha.5 (example)
+git add -A
+git commit -m "release: v0.1.0-alpha.5"
+git push origin main
 
 # Tag
-git tag v1.2.3
-git push origin v1.2.3
+git tag v0.1.0-alpha.5
+git push origin v0.1.0-alpha.5
 ```
 
-The Actions workflow picks up the tag, builds, pushes, and tells the
-license server. Watch it in the Actions tab. Total time: ~5–8 min.
+The Actions workflow picks up the tag, builds, signs, and uploads. Watch
+in the [Actions tab](https://github.com/Various5/drevalis-desktop/actions).
+Total time: ~15 min on `windows-latest`.
 
-## Manual publish (no git tag)
+### Manual re-run (existing tag)
 
-Actions → Release workflow → **Run workflow** → type version → Run.
+```bash
+gh workflow run Release -R Various5/drevalis-desktop -f tag=v0.1.0-alpha.5
+```
 
 ## Verifying the release
 
 ```bash
-# Images visible on GHCR
-docker pull ghcr.io/<org>/creator-studio-app:1.2.3
-docker pull ghcr.io/<org>/creator-studio-app:stable
+# 1. CI finished and the workflow conclusion is "success"
+gh run list -R Various5/drevalis-desktop --limit 1 --json conclusion,databaseId
 
-# License server has the new manifest
-curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
-     https://license.drevalis.com/admin/updates/current
+# 2. The draft release has all 3 expected assets
+gh release view v0.1.0-alpha.5 -R Various5/drevalis-desktop
+# Expect:
+#   Drevalis.Creator.Studio_0.1.0-alpha.5_x64-setup.exe
+#   Drevalis.Creator.Studio_0.1.0-alpha.5_x64-setup.exe.sig
+#   latest.json
 
-# Customer install sees the update (do this on one of your own test boxes)
-curl -s http://localhost:8000/api/v1/updates/status?force=true | jq .
+# 3. Download + minisign-verify the installer (full belt-and-braces)
+gh release download v0.1.0-alpha.5 -R Various5/drevalis-desktop -D ./dist
+minisign -Vm ./dist/Drevalis.Creator.Studio_*_x64-setup.exe \
+         -P "RWQ25V8RbLTQAErpTcxm7HBW6OojHEAQzHLEF4tkAXtOXp/LbxrK5jZN"
+
+# 4. Install on a clean Windows VM, activate against license.drevalis.com,
+#    generate a test episode, confirm Settings → Updates shows "you're on
+#    the latest".
 ```
+
+## Promoting the draft to Latest
+
+Once you've smoke-tested the installer:
+
+```bash
+gh release edit v0.1.0-alpha.5 -R Various5/drevalis-desktop \
+    --draft=false --latest
+```
+
+Within a few seconds, every existing install that opens Settings →
+Updates → "Check for updates" sees the new version and offers to install
+it. The Tauri plugin downloads `.exe.sig`, verifies it against the
+embedded public key, then launches the new installer.
 
 ## Rolling back
 
-If a release breaks something:
+If a promoted release turns out to break things:
 
-1. Re-publish the previous manifest (roll the `current_stable`):
+1. Un-set it as Latest:
    ```bash
-   curl -fsSL -X POST "https://license.drevalis.com/admin/updates/publish" \
-     -H "Authorization: Bearer $ADMIN_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "current_stable": "1.2.2",
-       "image_tags": {
-         "app":      "ghcr.io/<org>/creator-studio-app:1.2.2",
-         "worker":   "ghcr.io/<org>/creator-studio-app:1.2.2",
-         "frontend": "ghcr.io/<org>/creator-studio-frontend:1.2.2",
-         "updater":  "ghcr.io/<org>/creator-studio-updater:1.2.2"
-       }
-     }'
+   gh release edit v0.1.0-alpha.5 -R Various5/drevalis-desktop --draft=true
    ```
-2. Clients already updated to 1.2.3 will NOT auto-downgrade — they need to
-   manually edit their `docker-compose.yml` to pin `:1.2.2` and `docker compose up -d`.
-3. Clients still on 1.2.2 stay there (they no longer see "update available").
+   Existing installs that already updated to it stay on it (the
+   auto-updater is one-way; we can't downgrade in place). New
+   "Check for updates" calls stop seeing it as available.
 
-Because GHCR doesn't delete images, `:1.2.2` always stays pullable.
+2. If the previous release is still available as a downloadable .exe,
+   tell affected users to re-install it manually from the
+   [releases page](https://github.com/Various5/drevalis-desktop/releases).
+   Their data lives in `%LOCALAPPDATA%\Drevalis` (separate from the
+   program files), so a fresh install picks up where they left off.
+
+3. Issue a patch release ASAP — pre-1.0 we don't promise zero downtime,
+   but every broken alpha makes users less willing to take the next
+   update.
+
+## Cleaning up failed / superseded artefacts
+
+After a failed signing run or a superseded draft:
+
+```bash
+# Drop a draft release whose tag should be reused
+gh release delete v0.1.0-alpha.5 -R Various5/drevalis-desktop \
+    --yes --cleanup-tag
+
+# Or just remove an orphan tag (no release was ever created)
+git push origin :refs/tags/v0.1.0-alpha.5
+git tag -d v0.1.0-alpha.5
+```
 
 ## Semver conventions
 
-- **Patch** (1.2.3 → 1.2.4): bug fixes only, always safe
-- **Minor** (1.2.3 → 1.3.0): new features, no breaking changes, DB
-  migrations allowed (Alembic runs on container start)
-- **Major** (1.2.3 → 2.0.0): breaking changes. Publish with
-  `"mandatory_security_update": false` unless it's a security fix. Consider
-  writing a migration notes page before tagging.
+We're pre-1.0; the alpha tags are `v0.1.0-alpha.N`. After the first
+GA we'll move to standard semver:
+
+- **Patch** (1.2.3 → 1.2.4): bug fixes only, always safe to auto-update.
+- **Minor** (1.2.3 → 1.3.0): new features, no breaking changes. Alembic
+  migrations are allowed — the launcher runs them on startup before the
+  API + worker boot.
+- **Major** (1.2.3 → 2.0.0): breaking changes. Communicate ahead of the
+  release, consider holding the auto-update for a grace window.
 
 ## Changelog
 
-Every release should ship with a GitHub Release (auto-created by the tag).
-The release body becomes the "View changelog" link in the in-app update
-banner.
+The GitHub Release body becomes the "What's new" panel in
+Settings → Updates inside the app. Keep it bulleted and user-facing —
+not a commit-message dump.
+
+## License-server tier-features sync
+
+The license server (`license-server/app/crypto.py`) and the client
+(`src/drevalis/core/license/features.py`) both carry a canonical
+`tier → features` map. The client unions the JWT's `features` claim
+with its own per-tier defaults, so a stale server map still works at
+runtime — but the JWT is supposed to be self-describing. **When you
+change tier features**:
+
+1. Update `src/drevalis/core/license/features.py`.
+2. Update `license-server/app/crypto.py` to match.
+3. Update the marketing pricing matrix (`pricing.html` +
+   `marketing/public/assets/pricing-block.html`).
+4. Re-deploy the license server (`/srv/drevalis-license` → `docker
+   compose up -d --build`).
+5. Cut a client release that picks up the new client-side defaults.
