@@ -70,9 +70,11 @@ class TestWorkerHeartbeat:
         with patch("redis.asyncio.Redis.from_url", return_value=redis) as p:
             await worker_heartbeat({})  # no redis_url in ctx
         called_url = p.call_args.args[0]
-        # Default mirrors the docker-compose service host; if this changes
-        # the test should be updated together with the source.
-        assert called_url == "redis://redis:6379/0"
+        # Default mirrors Settings.redis_url — desktop installs run a
+        # bundled Redis on localhost; compose stacks override via
+        # REDIS_URL env. If this changes the test should be updated
+        # together with the source.
+        assert called_url == "redis://localhost:6379/0"
 
     async def test_redis_connection_closed_after_set(self) -> None:
         redis = AsyncMock()

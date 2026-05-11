@@ -32,7 +32,7 @@ async def worker_heartbeat(ctx: dict[str, Any]) -> None:
     try:
         # Use a fresh Redis connection — the arq pool's set() may not
         # work reliably for plain key/value operations.
-        _r = _Redis.from_url(ctx.get("redis_url", "redis://redis:6379/0"))
+        _r = _Redis.from_url(ctx.get("redis_url", "redis://localhost:6379/0"))
         try:
             await _r.set(
                 "worker:heartbeat",

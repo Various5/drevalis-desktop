@@ -33,18 +33,20 @@ from drevalis.workers.settings import (
 
 class TestRedisHostPort:
     def test_default_when_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Default targets the bundled Redis sidecar on localhost (desktop
+        # installs). Compose stacks override via REDIS_URL.
         monkeypatch.delenv("REDIS_URL", raising=False)
-        assert _redis_host_port() == ("redis", 6379)
+        assert _redis_host_port() == ("localhost", 6379)
 
     def test_parses_full_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("REDIS_URL", "redis://my-redis:6380/3")
         assert _redis_host_port() == ("my-redis", 6380)
 
-    def test_falls_back_to_redis_when_no_host(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_falls_back_to_localhost_when_no_host(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("REDIS_URL", "redis://")
         host, port = _redis_host_port()
         # Defaults preserved.
-        assert host == "redis"
+        assert host == "localhost"
         assert port == 6379
 
 

@@ -33,9 +33,12 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 def _redis_host_port() -> tuple[str, int]:
-    url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+    # Default matches Settings.redis_url for desktop installs (bundled
+    # Redis sidecar listens on 127.0.0.1:6379). Docker compose stacks
+    # override with REDIS_URL=redis://redis:6379/0 in their env_file.
+    url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     parsed = urlparse(url)
-    return (parsed.hostname or "redis", parsed.port or 6379)
+    return (parsed.hostname or "localhost", parsed.port or 6379)
 
 
 async def _wait_for_redis(
