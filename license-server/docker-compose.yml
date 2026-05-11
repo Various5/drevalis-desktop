@@ -1,0 +1,44 @@
+# Production compose file for self-hosted deploys.
+#
+# Assumes an external Docker network named ``proxy`` exists and that a
+# reverse proxy on that network (Nginx Proxy Manager, Caddy, Traefik, ...)
+# terminates TLS for ``license.<yourdomain>`` and forwards to this
+# container on port 8080.
+#
+# Create the external network once, before `docker compose up`:
+#   docker network create proxy
+#
+# Deploy:
+#   docker compose up -d --build
+#   docker compose logs -f license-server
+
+services:
+  license-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: drevalis-license-server:local
+    container_name: drevalis-license-server
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # SQLite database and manifest.json persist here. Back this up.
+      - ./data:/data
+    networks:
+      - proxy
+    # No ``ports:`` block: the reverse proxy reaches this container by
+    # name on the shared ``proxy`` network. Exposing 8080 to the host is
+    # unnecessary and would leak an unencrypted endpoint.
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  proxy:
+    external: true

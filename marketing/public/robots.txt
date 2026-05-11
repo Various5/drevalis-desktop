@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /thank-you
+
+Sitemap: https://drevalis.com/sitemap.xml

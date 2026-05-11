@@ -1,0 +1,47 @@
+# fly.toml — Drevalis license server.
+#
+# First-time deploy (run once):
+#   fly launch --copy-config --name drevalis-license --no-deploy
+#   fly volumes create data --size 1 --region fra  # pick your region
+#   fly secrets set \
+#       LICENSE_PRIVATE_KEY_PEM="$(cat dev_private.pem)" \
+#       STRIPE_SECRET_KEY=sk_live_... \
+#       STRIPE_WEBHOOK_SECRET=whsec_... \
+#       ADMIN_TOKEN=$(openssl rand -hex 32) \
+#       RESEND_API_KEY=re_... \
+#       STRIPE_PRICE_SOLO_MONTHLY=price_... \
+#       STRIPE_PRICE_SOLO_YEARLY=price_... \
+#       STRIPE_PRICE_PRO_MONTHLY=price_... \
+#       STRIPE_PRICE_PRO_YEARLY=price_... \
+#       STRIPE_PRICE_STUDIO_MONTHLY=price_... \
+#       STRIPE_PRICE_STUDIO_YEARLY=price_...
+#   fly deploy
+
+app = "drevalis-license"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "256mb"

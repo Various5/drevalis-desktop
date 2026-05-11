@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thank you — Drevalis Creator Studio</title>
+  <meta name="robots" content="noindex" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google tag (gtag.js) with Consent Mode v2 defaults -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FJ3ZBMTLCF"></script>
+  <script src="/assets/gtag-init.js" defer></script>
+  <script src="/assets/consent.js" defer></script>
+</head>
+
+<body class="antialiased">
+  <nav class="site-nav">
+    <div class="site-nav-inner">
+      <a href="/" class="site-brand">
+        <span class="site-brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 3 L13 8 L4 13 Z" fill="currentColor"/></svg></span>
+        Drevalis
+      </a>
+      <button type="button" class="site-menu-btn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button><div class="site-nav-links">
+        <a href="/pricing" class="site-nav-link">Pricing</a>
+        <a href="/download" class="site-nav-link">Download</a>
+        <a href="/account" class="site-nav-link">Account</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section relative overflow-hidden">
+    <div class="bg-glow" style="background: var(--accent); top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 500px; opacity: 0.25;"></div>
+    <div class="container-md text-center relative z-10 reveal">
+      <div class="w-16 h-16 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center mx-auto mb-6">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h1 class="display-hero mb-4">Thanks — payment received.</h1>
+      <p class="lead max-w-xl mx-auto">Your license key is on its way to your inbox. Check the next minute or two — it'll be a long string of letters and numbers. Not arriving? Look in spam, or email support.</p>
+    </div>
+  </section>
+
+  <section class="section-compact">
+    <div class="container-md">
+      <h2 class="display-section mb-8 reveal">Next steps</h2>
+      <ol class="space-y-4 reveal">
+        <li class="card p-6 flex gap-5">
+          <div class="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--bg-base)] font-bold flex items-center justify-center flex-shrink-0">1</div>
+          <div>
+            <h4 class="mb-1">Find your license key in your email</h4>
+            <p class="text-sm text-[var(--txt-secondary)]">Sent from <code class="inline">no-reply@drevalis.com</code>. Save it somewhere safe (a password manager works well). You'll paste it into the app once and never need it again.</p>
+          </div>
+        </li>
+        <li class="card p-6 flex gap-5">
+          <div class="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--bg-base)] font-bold flex items-center justify-center flex-shrink-0">2</div>
+          <div class="min-w-0 flex-1">
+            <h4 class="mb-1">Install the app</h4>
+            <p class="text-sm text-[var(--txt-secondary)] mb-3">It runs on your own computer. On Mac or Linux, paste this into a terminal:</p>
+            <pre class="text-xs"><code>curl -fsSL https://drevalis.com/install.sh | bash</code></pre>
+            <p class="small-muted mt-2">Windows or step-by-step instructions: <a href="/download">drevalis.com/download</a></p>
+          </div>
+        </li>
+        <li class="card p-6 flex gap-5">
+          <div class="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--bg-base)] font-bold flex items-center justify-center flex-shrink-0">3</div>
+          <div>
+            <h4 class="mb-1">Open the app and paste your key</h4>
+            <p class="text-sm text-[var(--txt-secondary)]">When the install finishes, open <code class="inline">http://localhost:3000</code> in your browser. Paste your license key on the welcome screen. That's it.</p>
+          </div>
+        </li>
+        <li class="card p-6 flex gap-5">
+          <div class="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--bg-base)] font-bold flex items-center justify-center flex-shrink-0">4</div>
+          <div>
+            <h4 class="mb-1">Need to change your subscription later?</h4>
+            <p class="text-sm text-[var(--txt-secondary)]">Switch plans, update your card, or cancel any time at <a href="/account">drevalis.com/account</a>.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="card p-6 mt-8 reveal" style="border-color: rgba(0,229,184,0.2); background: linear-gradient(135deg, rgba(0,229,184,0.04), rgba(20,22,27,0.85));">
+        <h4 class="mb-2">Stuck somewhere?</h4>
+        <p class="text-sm text-[var(--txt-secondary)]">Just reply to the license email, or write to <a href="mailto:support@drevalis.com">support@drevalis.com</a>. We answer within one business day, usually faster.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="site-footer-grid">
+      <div class="site-footer-about">
+        <a href="/" class="site-brand mb-3">
+          <span class="site-brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 3 L13 8 L4 13 Z" fill="currentColor"/></svg></span>
+          Drevalis
+        </a>
+        <p class="text-sm text-[var(--txt-secondary)] max-w-sm mt-3">An app for making AI videos and audiobooks on your own computer. Made in Switzerland.</p>
+        <p class="small-muted mt-3">© 2026 Drevalis · Creator Studio is a trademark of Drevalis.</p>
+      </div>
+      <div><div class="site-footer-heading">Product</div><ul class="site-footer-list"><li><a href="/#features">Features</a></li><li><a href="/pricing">Pricing</a></li><li><a href="/download">Download</a></li></ul></div>
+      <div><div class="site-footer-heading">Account</div><ul class="site-footer-list"><li><a href="/account">Manage subscription</a></li><li><a href="mailto:support@drevalis.com">Support</a></li></ul></div>
+      <div><div class="site-footer-heading">Legal</div><ul class="site-footer-list"><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/acceptable-use">Acceptable Use</a></li><li><a href="/impressum">Impressum</a></li></ul></div>
+    </div>
+    <div class="site-footer-bottom">
+      <span>Made in Switzerland · Hosted in the EU</span>
+      <span><a href="mailto:support@drevalis.com" class="text-[var(--txt-muted)] hover:text-[var(--txt-primary)]">support@drevalis.com</a></span>
+    </div>
+  </footer>
+
+  <script src="/assets/menu-toggle.js" defer></script>
+  <script src="/assets/site.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!--
+  Shared pricing block — rendered identically on the homepage preview
+  (``index.html#pricing``) and the standalone pricing page (``/pricing``).
+  site.js fetches this file and injects it into any element with
+  ``data-pricing-block``. Update THIS file — never the two copies.
+-->
+
+<div class="flex items-center justify-center mb-10 reveal">
+  <div class="toggle-group" role="group" aria-label="Billing interval">
+    <input type="radio" name="pricing-interval" id="pi-monthly" value="monthly" checked />
+    <label for="pi-monthly">Monthly</label>
+    <input type="radio" name="pricing-interval" id="pi-yearly" value="yearly" />
+    <label for="pi-yearly">
+      Yearly
+      <span class="save-badge">Save 20%</span>
+    </label>
+  </div>
+</div>
+
+<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 reveal">
+  <!-- Free -->
+  <article class="card p-6 flex flex-col">
+    <header>
+      <h3 class="text-lg mb-1">Free</h3>
+      <p class="text-xs text-[var(--txt-muted)] mb-5">Explore the full app.</p>
+    </header>
+    <div class="mb-5">
+      <span class="text-4xl font-bold" style="font-family: var(--font-display); letter-spacing: -0.025em;">CHF 0</span>
+      <span class="text-[var(--txt-secondary)] ml-1">/mo</span>
+    </div>
+    <a href="https://demo.drevalis.com" target="_blank" rel="noopener" class="btn btn-secondary mb-5">Open demo →</a>
+    <ul class="text-sm space-y-2.5 text-[var(--txt-secondary)] flex-1">
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Full UI, read-only</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Simulated generation</li>
+      <li class="flex gap-2"><span class="text-[var(--txt-muted)]">✗</span> No real uploads</li>
+      <li class="flex gap-2"><span class="text-[var(--txt-muted)]">✗</span> Resets nightly</li>
+    </ul>
+  </article>
+
+  <!-- Creator -->
+  <article class="card p-6 flex flex-col">
+    <header>
+      <h3 class="text-lg mb-1">Creator</h3>
+      <p class="text-xs text-[var(--txt-muted)] mb-5">Solo creator, one channel.</p>
+    </header>
+    <div class="mb-5">
+      <span class="text-4xl font-bold" style="font-family: var(--font-display); letter-spacing: -0.025em;">CHF <span data-price data-price-monthly="19" data-price-yearly="190">19</span></span>
+      <span class="text-[var(--txt-secondary)] ml-1" data-interval-label>/mo</span>
+    </div>
+    <p class="text-xs text-[var(--txt-muted)] mb-5" data-interval-hint>Billed monthly · cancel anytime</p>
+    <button data-checkout data-tier="creator" data-interval="monthly" class="btn btn-secondary mb-5">Start Creator</button>
+    <ul class="text-sm space-y-2.5 text-[var(--txt-secondary)] flex-1">
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> 1 machine seat</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> <strong>Unlimited</strong> episodes</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> 1 YouTube channel</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Local TTS + editor + asset library</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> SEO pre-flight</li>
+    </ul>
+  </article>
+
+  <!-- Pro (featured) -->
+  <article class="card card-featured p-6 flex flex-col relative">
+    <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+      <span class="pill pill-indigo">Most popular</span>
+    </div>
+    <header>
+      <h3 class="text-lg mb-1">Pro</h3>
+      <p class="text-xs text-[var(--txt-muted)] mb-5">Multiple channels, real volume.</p>
+    </header>
+    <div class="mb-5">
+      <span class="text-4xl font-bold" style="font-family: var(--font-display); letter-spacing: -0.025em;">CHF <span data-price data-price-monthly="49" data-price-yearly="490">49</span></span>
+      <span class="text-[var(--txt-secondary)] ml-1" data-interval-label>/mo</span>
+    </div>
+    <p class="text-xs text-[var(--txt-muted)] mb-5" data-interval-hint>Billed monthly · cancel anytime</p>
+    <button data-checkout data-tier="pro" data-interval="monthly" class="btn btn-primary mb-5">Start Pro</button>
+    <ul class="text-sm space-y-2.5 text-[var(--txt-secondary)] flex-1">
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> 3 machine seats</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> <strong>Unlimited</strong> episodes</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> 3 YouTube channels + TikTok</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Cloud GPU (RunPod · Vast · Lambda)</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> ElevenLabs TTS + voice cloning</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Audiobook studio</li>
+    </ul>
+  </article>
+
+  <!-- Studio -->
+  <article class="card p-6 flex flex-col">
+    <header>
+      <h3 class="text-lg mb-1">Studio</h3>
+      <p class="text-xs text-[var(--txt-muted)] mb-5">Teams, agencies, studios.</p>
+    </header>
+    <div class="mb-5">
+      <span class="text-4xl font-bold" style="font-family: var(--font-display); letter-spacing: -0.025em;">CHF <span data-price data-price-monthly="99" data-price-yearly="990">99</span></span>
+      <span class="text-[var(--txt-secondary)] ml-1" data-interval-label>/mo</span>
+    </div>
+    <p class="text-xs text-[var(--txt-muted)] mb-5" data-interval-hint>Billed monthly · cancel anytime</p>
+    <button data-checkout data-tier="studio" data-interval="monthly" class="btn btn-secondary mb-5">Start Studio</button>
+    <ul class="text-sm space-y-2.5 text-[var(--txt-secondary)] flex-1">
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> 5 machine seats · unlimited channels</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Instagram Reels + Facebook + X</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Team mode (roles)</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> REST API access</li>
+      <li class="flex gap-2"><span class="text-[var(--accent)]">✓</span> Priority support (24h SLA)</li>
+    </ul>
+  </article>
+</div>
+
+<p class="text-center small-muted mt-8 reveal">
+  Billed in CHF via Stripe or PayPal · Local currency at checkout · VAT/MWST added where applicable · <a href="/account" class="underline">Manage subscription</a>
+</p>

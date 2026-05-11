@@ -1,0 +1,25 @@
+# Marketing site for drevalis.com. Attaches to the same ``proxy`` network
+# as nginx-proxy-manager and the license-server.
+#
+# NPM proxy host config:
+#   Domain: drevalis.com (and www.drevalis.com)
+#   Scheme: http
+#   Forward Hostname: drevalis-site
+#   Forward Port: 80
+
+services:
+  drevalis-site:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: drevalis-site:local
+    container_name: drevalis-site
+    restart: unless-stopped
+    networks:
+      - proxy
+    expose:
+      - "80"
+
+networks:
+  proxy:
+    external: true

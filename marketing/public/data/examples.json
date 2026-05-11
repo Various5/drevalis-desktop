@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "true-crime-diamond-caper",
+    "series_name": "Shocking True Crime: The Untold Stories",
+    "title": "The $10 Million Diamond Caper — One Mistake, One Fingerprint",
+    "video_url": "/assets/examples/true-crime-diamond-caper.mp4",
+    "poster_url": "/assets/examples/true-crime-diamond-caper.jpg",
+    "duration_seconds": 60,
+    "gpu_used": "RTX 4090",
+    "generation_time_minutes": 7
+  },
+  {
+    "slug": "interrogation-hypnosis-2004",
+    "series_name": "Interrogation Secrets: The Dark Art of Truth",
+    "title": "Hypnosis in Interrogations — The 2004 Experiment That Changed Everything",
+    "video_url": "/assets/examples/interrogation-hypnosis-2004.mp4",
+    "poster_url": "/assets/examples/interrogation-hypnosis-2004.jpg",
+    "duration_seconds": 60,
+    "gpu_used": "RTX 4090",
+    "generation_time_minutes": 6
+  },
+  {
+    "slug": "strangest-foods-yak-butter",
+    "series_name": "World's Strangest Foods: Bites That Shock",
+    "title": "The 2,500-Year-Old Secret of Yak Butter Tea",
+    "video_url": "/assets/examples/strangest-foods-yak-butter.mp4",
+    "poster_url": "/assets/examples/strangest-foods-yak-butter.jpg",
+    "duration_seconds": 60,
+    "gpu_used": "RTX 4090",
+    "generation_time_minutes": 6
+  }
+]

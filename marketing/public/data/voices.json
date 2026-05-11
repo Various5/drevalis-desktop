@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Aria",
+    "description": "Warm female narrator · English",
+    "use_case": "True crime · explainers",
+    "preview_url": "/assets/voice-previews/preview-1.wav"
+  },
+  {
+    "name": "Orion",
+    "description": "Deep male narrator · English",
+    "use_case": "Documentaries · mystery",
+    "preview_url": "/assets/voice-previews/preview-2.wav"
+  },
+  {
+    "name": "Luna",
+    "description": "Bright female narrator · English",
+    "use_case": "Food · lifestyle shorts",
+    "preview_url": "/assets/voice-previews/preview-3.wav"
+  },
+  {
+    "name": "Atlas",
+    "description": "Neutral male narrator · English",
+    "use_case": "History · tech",
+    "preview_url": "/assets/voice-previews/preview-4.wav"
+  },
+  {
+    "name": "Iris",
+    "description": "Energetic female narrator · English",
+    "use_case": "Pop culture · vlogs",
+    "preview_url": "/assets/voice-previews/preview-5.wav"
+  },
+  {
+    "name": "Vega",
+    "description": "Rich male narrator · English",
+    "use_case": "Audiobook · long-form",
+    "preview_url": "/assets/voice-previews/preview-6.wav"
+  }
+]

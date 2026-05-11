@@ -1,6 +1,8 @@
-# ─── Owner-only — NEVER commit to this repo ────────────────────────────
-# These live in a separate private repo (license-server + minting CLI).
-license-server/
+# ─── Owner-only key material — NEVER commit to this repo ──────────────
+# Mint scripts and key material live OFF the repo (offline machine /
+# password manager / VPS only). The license-server source IS in-tree
+# under ``license-server/`` for maintenance, but its private keys and
+# ``.env`` stay out per the secret patterns below.
 scripts/mint_license.py
 license_keys/
 

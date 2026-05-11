@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — Drevalis Creator Studio</title>
+  <meta name="robots" content="index, follow" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google tag (gtag.js) with Consent Mode v2 defaults -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FJ3ZBMTLCF"></script>
+  <script src="/assets/gtag-init.js" defer></script>
+  <script src="/assets/consent.js" defer></script>
+</head>
+
+<body class="antialiased">
+  <nav class="site-nav">
+    <div class="site-nav-inner">
+      <a href="/" class="site-brand">
+        <span class="site-brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 3 L13 8 L4 13 Z" fill="currentColor"/></svg></span>
+        Drevalis
+      </a>
+      <button type="button" class="site-menu-btn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button><div class="site-nav-links">
+        <a href="/#features" class="site-nav-link hide-xs">Features</a>
+        <a href="/pricing" class="site-nav-link">Pricing</a>
+        <a href="/download" class="site-nav-link">Download</a>
+        <a href="/account" class="site-nav-link hide-xs">Account</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section">
+    <div class="container-md prose">
+      <h1>Privacy Policy</h1>
+      <p class="intro">Last updated: 2026-04-21 · Governed by the Swiss Federal Act on Data Protection (FADP / revDSG, in force since 1 September 2023). For data subjects in the EU/EEA this policy is also read in conjunction with the GDPR; where the two differ, both are honoured.</p>
+
+      <h2>The short version, in plain English</h2>
+      <ul>
+        <li><strong>Your stuff stays on your computer.</strong> Scripts, voices, videos, AI models, and the logins you saved for YouTube, TikTok, and Instagram — all on your disk. We can't see any of it.</li>
+        <li>We only hold the bare minimum to sell you the app: your email, the payment info Stripe needs, your license, and a list of computers you've activated on.</li>
+        <li>We never sell or rent your data, and never share it for marketing. We use four other companies to run the business: Stripe (handles payments), Resend (sends emails like your receipts), an EU hosting provider (runs the license server), and Google Analytics (only if you click "Accept" on the cookie banner — to help us see which pages people use).</li>
+        <li>You can complain to the Swiss data-protection authority (FDPIC / EDÖB) or your country's equivalent any time.</li>
+      </ul>
+
+      <h2>1. Data controller</h2>
+      <p>Drevalis — see <a href="/impressum">Impressum</a> for the full commercial contact. For all privacy matters: <a href="mailto:privacy@drevalis.com">privacy@drevalis.com</a>.</p>
+
+      <h2>2. What we collect and why</h2>
+
+      <h3>a) Purchase &amp; licensing</h3>
+      <p>When you buy a subscription, Stripe transmits to us: your email address, your country (for VAT / MWST), and a Stripe customer ID. Payment card details never touch our servers — Stripe stores and processes them. We retain this data for the lifetime of your account plus 10 years after the last transaction to comply with Swiss commercial-record retention (OR Art. 958f) and tax law.</p>
+      <p>We generate a license record that includes: license UUID, tier, period end, and revocation status. Your install checks this on a 24-hour heartbeat.</p>
+      <p>Legal basis (FADP Art. 31 / GDPR Art. 6(1)(b) &amp; (c)): performance of contract and legal obligation.</p>
+
+      <h3>b) Machine activation</h3>
+      <p>When your install activates or heartbeats, it sends us: the license key, a SHA-256-derived machine identifier (not reversible to your hostname or MAC address), the Software version, and the current timestamp. We respond with a freshly-signed JWT.</p>
+      <p>We store the activation list so we can enforce the seat cap of your tier and respond to revocation. We do not collect IP addresses beyond what any webserver log records, and we retain access logs for 14 days.</p>
+      <p>Legal basis (FADP Art. 31(2)(a) / GDPR Art. 6(1)(b)): performance of contract.</p>
+
+      <h3>c) Transactional email</h3>
+      <p>We send three kinds of email: purchase receipts, renewal reminders, and important security updates. You can unsubscribe from renewal reminders; receipts and security updates are sent regardless because they are part of the contract and our obligation as service provider.</p>
+      <p>Legal basis (FADP Art. 31(2)(a), (d) / GDPR Art. 6(1)(b) and 6(1)(f)): performance of contract and legitimate interest in informing paying users of security fixes.</p>
+
+      <h3>d) Website analytics</h3>
+      <p>drevalis.com uses <strong>Google Analytics 4</strong> (measurement ID <code>G-FJ3ZBMTLCF</code>) to count visits and understand which pages are useful. Analytics are loaded with <strong>Google Consent Mode v2 defaulting to "denied"</strong>, which means no GA cookies are set and no hits are sent until you click <em>Accept analytics</em> on our consent banner. IP-anonymisation is enabled (<code>anonymize_ip: true</code>).</p>
+      <p>If you accept: GA4 sets the <code>_ga</code> and <code>_ga_FJ3ZBMTLCF</code> cookies (first-party, 2-year lifetime) and records pseudonymised pageview and event data. Google processes this in the EU / USA under the EU–U.S. Data Privacy Framework and Standard Contractual Clauses. Data is retained at Google for up to 14 months.</p>
+      <p>If you decline: no analytics cookies are set, no hits are sent. The consent state is stored in your browser's <code>localStorage</code> under the key <code>drevalis_consent</code>; it is not transmitted to us.</p>
+      <p>The webserver additionally logs IP address, User-Agent, and request path per visit for 14 days for security and debugging purposes; these logs are not cross-referenced against user accounts.</p>
+      <p><strong>Change your choice:</strong> <a href="#" data-consent-revoke>Revoke consent &amp; show the banner again</a>. Or clear <code>localStorage</code> for drevalis.com.</p>
+      <p>Legal basis: your consent under FADP Art. 31(1) / GDPR Art. 6(1)(a). You can withdraw consent at any time without prejudice to prior processing.</p>
+
+      <h2>3. What we do NOT collect</h2>
+      <ul>
+        <li>The contents of your scripts, voices, videos, or audiobooks;</li>
+        <li>The YouTube, TikTok, or Instagram logins you connect inside the app — those stay on your disk, encrypted with a key that's unique to your install;</li>
+        <li>Other AI account keys you set up (ElevenLabs, OpenAI, Anthropic, RunPod) — same story, kept on your machine and encrypted;</li>
+        <li>Your prompts, the topics you write about, or which AI model you picked;</li>
+        <li>Anything about how you use the app's features.</li>
+      </ul>
+      <p>The app doesn't send anything home about how you use it. The only thing that ever leaves your install is a once-a-day check that your subscription is still active.</p>
+
+      <h2>4. Subprocessors</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Purpose</th>
+            <th>Data processed</th>
+            <th>Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Stripe Payments Europe Ltd.</td><td>Billing, tax, invoicing</td><td>Name, email, card data, billing address</td><td>Ireland / USA</td></tr>
+          <tr><td>Resend, Inc.</td><td>Transactional email</td><td>Email, message content</td><td>USA</td></tr>
+          <tr><td>EU cloud-hosting provider</td><td>Hosting of license server</td><td>License &amp; activation records</td><td>Germany (EU)</td></tr>
+          <tr><td>Google Ireland Ltd. (Analytics)</td><td>Website analytics (consent-gated)</td><td>Pseudonymised pageviews, IP-anonymised</td><td>Ireland / USA</td></tr>
+        </tbody>
+      </table>
+      <p>All three are bound by data-processing agreements under FADP Art. 9 / GDPR Art. 28. For transfers to the United States (Stripe, Resend) we rely on the Swiss–U.S. Data Privacy Framework and the EU–U.S. Data Privacy Framework respectively, or on Standard Contractual Clauses where those frameworks do not apply.</p>
+
+      <h2>5. Your rights</h2>
+      <p>Under the FADP (and, where you reside in the EU/EEA, the GDPR), you have the right to:</p>
+      <ul>
+        <li>Access the personal data we hold about you;</li>
+        <li>Rectify inaccurate data;</li>
+        <li>Erase it — subject to our statutory 10-year commercial-record retention;</li>
+        <li>Restrict or object to processing;</li>
+        <li>Data portability (receive your data in a machine-readable format);</li>
+        <li>Lodge a complaint with the Swiss Federal Data Protection and Information Commissioner (FDPIC / EDÖB, <a href="https://www.edoeb.admin.ch" target="_blank" rel="noreferrer">edoeb.admin.ch</a>), or with your national data-protection authority if you are in the EU/EEA.</li>
+      </ul>
+      <p>To exercise any of these, email <a href="mailto:privacy@drevalis.com">privacy@drevalis.com</a> from the address on your account. We respond within 30 days.</p>
+
+      <h2>6. Security</h2>
+      <p>Our license server runs on a hardened EU cloud instance with automatic security updates, host-based firewalling, and key-only administrative access. License JWTs are signed with Ed25519; activation heartbeats use HTTPS (TLS 1.2+). Customer data in our database is limited to what section 2 describes.</p>
+      <p>Inside the app, your platform logins and AI account keys are encrypted on your disk with a key that's unique to your install (kept in your <code>.env</code> file and never sent to us).</p>
+
+      <h2>7. Cross-border data transfer</h2>
+      <p>We host our license server in Germany, an EU/EEA country with an adequate level of protection recognised by Switzerland. Stripe and Resend process data in the United States under the Swiss–U.S. DPF and EU–U.S. DPF; where those frameworks do not cover a specific transfer, Standard Contractual Clauses plus supplementary technical measures are in place.</p>
+
+      <h2>8. Children</h2>
+      <p>The Software is not directed to children under 16. We do not knowingly collect data from anyone under 16. If you believe we have, contact us and we will delete it.</p>
+
+      <h2>9. Changes to this policy</h2>
+      <p>Material changes are notified to active subscribers by email at least 14 days before they take effect.</p>
+
+      <h2>10. Questions</h2>
+      <p>Privacy: <a href="mailto:privacy@drevalis.com">privacy@drevalis.com</a>. General support: <a href="mailto:support@drevalis.com">support@drevalis.com</a>.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-grid">
+      <div class="site-footer-about">
+        <a href="/" class="site-brand mb-3">
+          <span class="site-brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 3 L13 8 L4 13 Z" fill="currentColor"/></svg></span>
+          Drevalis
+        </a>
+        <p class="text-sm text-[var(--txt-secondary)] max-w-sm mt-3">An app for making AI videos and audiobooks on your own computer. Made in Switzerland.</p>
+        <p class="small-muted mt-3">© 2026 Drevalis · Creator Studio is a trademark of Drevalis.</p>
+      </div>
+      <div><div class="site-footer-heading">Product</div><ul class="site-footer-list"><li><a href="/#features">Features</a></li><li><a href="/pricing">Pricing</a></li><li><a href="/download">Download</a></li></ul></div>
+      <div><div class="site-footer-heading">Account</div><ul class="site-footer-list"><li><a href="/account">Manage subscription</a></li><li><a href="mailto:support@drevalis.com">Support</a></li></ul></div>
+      <div><div class="site-footer-heading">Legal</div><ul class="site-footer-list"><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy" aria-current="page">Privacy Policy</a></li><li><a href="/acceptable-use">Acceptable Use</a></li><li><a href="/impressum">Impressum</a></li></ul></div>
+    </div>
+    <div class="site-footer-bottom">
+      <span>Made in Switzerland · Hosted in the EU</span>
+      <span><a href="mailto:support@drevalis.com" class="text-[var(--txt-muted)] hover:text-[var(--txt-primary)]">support@drevalis.com</a></span>
+    </div>
+  </footer>
+
+  <script src="/assets/menu-toggle.js" defer></script>
+  <script src="/assets/site.js" defer></script>
+</body>
+</html>
