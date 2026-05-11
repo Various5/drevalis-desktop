@@ -22,29 +22,48 @@ from app.config import get_settings
 ISS = "drevalis-license-server"
 GRACE_DAYS = 7
 
-# Canonical tier → features mapping. Keep in sync with
-# ``src/drevalis/core/license/features.py``.
+# Canonical tier → features mapping. Mirrors
+# ``src/drevalis/core/license/features.py`` exactly. The client unions
+# the JWT's ``features`` claim with its own per-tier defaults, so a
+# JWT minted from a stale server map would still work — but issuing
+# self-describing JWTs is the contract; future client versions may
+# rely on the claim being authoritative.
 #
-# ``creator`` is the post-rebrand name for what used to be ``solo``.
-# Both names are kept in this map so legacy JWTs (issued before the
-# rename) keep verifying; ``creator`` is the canonical name for new
-# issuance. ``lifetime_pro`` inherits the Pro feature set.
-_PRO_FEATURES = ["basic_generation", "runpod", "audiobooks"]
+# ``creator`` is the post-rebrand name for ``solo``. Both names are
+# kept so legacy JWTs (issued before the rename) keep verifying;
+# ``creator`` is the canonical name for new issuance. ``lifetime_pro``
+# inherits the Pro feature set.
+_CREATOR_FEATURES = [
+    "basic_generation",
+    "scheduled_publish",
+    "seo_preflight",
+]
+
+_PRO_FEATURES = _CREATOR_FEATURES + [
+    "runpod",
+    "audiobooks",
+    "elevenlabs",
+    "character_packs",
+    "continuity_check",
+    "social_tiktok",
+    "multichannel",
+    "cross_platform_bulk",
+]
+
+_STUDIO_FEATURES = _PRO_FEATURES + [
+    "social_extended",
+    "social_platforms",  # legacy alias kept for back-compat
+    "team_mode",
+    "api_access",
+]
 
 TIER_FEATURES: dict[str, list[str]] = {
     "trial": ["basic_generation"],
-    "solo": ["basic_generation"],
-    "creator": ["basic_generation"],
+    "solo": list(_CREATOR_FEATURES),
+    "creator": list(_CREATOR_FEATURES),
     "pro": list(_PRO_FEATURES),
     "lifetime_pro": list(_PRO_FEATURES),
-    "studio": [
-        "basic_generation",
-        "runpod",
-        "audiobooks",
-        "multichannel",
-        "social_platforms",
-        "api_access",
-    ],
+    "studio": list(_STUDIO_FEATURES),
 }
 
 TIER_MACHINES: dict[str, int] = {
