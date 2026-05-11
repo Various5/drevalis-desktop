@@ -1,9 +1,28 @@
 """baseline desktop sqlite schema
 
 Revision ID: 6bf6d3143c4c
-Revises: 
+Revises:
 Create Date: 2026-05-08 20:38:04.903840
 
+⚠ FROZEN — DO NOT EDIT ⚠
+
+This file was last modified during early alpha and is now treated as
+append-only history. Editing it after a release has shipped causes
+schema drift: alembic sees ``alembic_version = '6bf6d3143c4c'`` on
+existing installs, declares "already at head", and skips the new
+tables you added — yielding ``sqlite3.OperationalError: no such
+table: <whatever>`` once the API starts querying.
+
+If you need a new table or column, create a NEW migration with::
+
+    uv run alembic revision -m "add foo table"
+
+then write the upgrade/downgrade ops there. The launcher's
+schema-heal (``__main__.py:_run_migrations_inproc``) is a safety net
+for the damage already done; it is NOT a substitute for proper
+append-only migrations.
+
+See ``GOTCHAS.md`` → "Migrations are append-only".
 """
 from typing import Sequence, Union
 

@@ -16,6 +16,26 @@ Size budgets that triggered the split:
 
 When you split a file, keep `_monolith.py` as the implementation and re-export from `__init__.py`.
 
+## Migrations are append-only
+
+`migrations/versions/6bf6d3143c4c_baseline_desktop_sqlite_schema.py` is **frozen**. Treat it as historical, not editable.
+
+Why this matters: alembic identifies migrations by `revision`. When you stamp a DB with `alembic upgrade head`, the resulting `alembic_version` row records which revision the schema is at. Alembic decides whether to apply a migration by comparing `revision` strings — **not by inspecting the schema**. If you edit the baseline migration after a release has shipped, every existing install still has `alembic_version = '6bf6d3143c4c'`, alembic declares "already at head", and skips the new tables you added. Result: the API later 500s with `sqlite3.OperationalError: no such table: <thing you added>` once it tries to query.
+
+This already bit us between alpha.2 and alpha.6 — the launcher's schema-heal (`__main__.py:_run_migrations_inproc`) is the safety net that recovers existing damaged installs, **not** a license to keep editing the baseline.
+
+**Rule:** every schema change goes in a new migration file.
+
+```
+uv run alembic revision -m "add foo table"
+# edit the upgrade()/downgrade() in the generated file
+# commit it
+```
+
+`alembic` will chain `down_revision` to the previous head automatically. On the next install / upgrade, alembic applies your new migration on top of whatever revision the DB is currently at.
+
+Apply the same rule to any future migration once it has shipped to a release. The only file that's safe to edit after the fact is the one currently being authored on `main` that hasn't been included in a tagged release yet.
+
 ## SQLAlchemy dialects (Postgres → SQLite)
 
 The current code uses Postgres-only constructs in a few places. The desktop port must remove or guard these:
