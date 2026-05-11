@@ -1,6 +1,29 @@
 # Drevalis Creator Studio Operational Runbook
 
-This document covers diagnosis and resolution of common failures in Drevalis Creator Studio. Each section describes symptoms, triage steps, and resolution procedures.
+This document covers diagnosis and resolution of common failures in
+Drevalis Creator Studio.
+
+> **Heads up — written for the Docker product, partially adapted for desktop.**
+> The architecture-level sections (ComfyUI, LM Studio, TTS, FFmpeg,
+> generation pipeline, encryption) are provider-agnostic and apply
+> identically on the desktop install. The infrastructure-level sections
+> (Docker container restarts, `docker compose logs`, container-network
+> debugging) only apply to legacy Docker-stack installs.
+>
+> **Desktop equivalent commands:**
+>
+> | Docker | Desktop |
+> |---|---|
+> | `docker compose logs app worker` | `%LOCALAPPDATA%\Drevalis\Logs\drevalis.log` |
+> | `docker compose restart worker` | Quit from system tray + relaunch |
+> | `docker compose exec app alembic upgrade head` | `drevalis migrate` from a terminal in the install dir |
+> | `docker ps` | Settings → Diagnostics shows worker / Redis state |
+> | `redis-cli -h redis` | The bundled `redis-cli.exe` lives in `_internal\resources\bin\win\` |
+>
+> When in doubt: the in-app Logs page (sidebar) and Settings → Diagnostics
+> both stream live structured JSON logs — that's the first place to look
+> on a desktop install. Bundle them via Diagnostics → "Download zip" and
+> attach to a support ticket.
 
 ---
 
