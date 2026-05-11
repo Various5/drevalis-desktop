@@ -1,19 +1,21 @@
 name: Release (macOS, manual)
 
 # WIP — manual-dispatch only. Produces an UNSIGNED .app + .dmg suitable
-# for local testing on the maintainer's machine. Notes before this can
-# go GA:
+# for local testing on the maintainer's machine. Remaining gaps before
+# this can go GA:
 #
 #   - Apple Developer ID Application certificate not wired up yet. The
 #     resulting .app triggers Gatekeeper's "cannot be opened because
 #     Apple cannot check it for malicious software" warning on first
 #     launch. End-user workaround: right-click → Open → confirm. Fine
 #     for an alpha; not acceptable for a Latest release.
-#   - ``scripts/fetch_sidecars.py`` is Windows-only as of writing. This
-#     workflow therefore skips the bundled FFmpeg/Redis copy — the
-#     resulting installer expects ``ffmpeg`` and ``redis-server`` on
-#     PATH (``brew install ffmpeg redis``). When the macOS fetcher
-#     lands, drop the skip step + add the equivalent copy logic.
+#   - FFmpeg + ffprobe ARE now bundled (evermeet.cx universal builds via
+#     ``scripts/fetch_sidecars.py --platform mac``). Redis is NOT
+#     bundled — no canonical static binary distribution exists for
+#     macOS like there is for Windows. End-user install instructions
+#     must say ``brew install redis && brew services start redis``;
+#     the launcher's ``_maybe_launch_redis`` already detects an
+#     externally-running Redis on :6379.
 #   - Notarization (xcrun notarytool) is NOT included. The build only
 #     ad-hoc-signs the .app via tauri-action's default behaviour.
 #   - Universal binary (arm64 + x86_64) handling is also pending —
@@ -100,12 +102,14 @@ jobs:
       - name: Install Python deps
         run: uv sync --extra dev
 
-      # NOTE: fetch_sidecars.py is Windows-only at the moment. Once it
-      # grows a macOS branch (evermeet.cx for FFmpeg, redis source build
-      # for redis-server), uncomment + adapt:
-      #
-      # - name: Fetch FFmpeg + Redis sidecars
-      #   run: uv run python scripts/fetch_sidecars.py
+      # FFmpeg + ffprobe come from evermeet.cx as a universal binary;
+      # Redis is not bundled (no canonical static distribution for
+      # macOS), the fetcher just prints the brew install hint and the
+      # launcher's _maybe_launch_redis detects an externally-running
+      # Redis on :6379. End-user macOS install instructions need to
+      # call out ``brew install redis && brew services start redis``.
+      - name: Fetch FFmpeg + Redis sidecars
+        run: uv run python scripts/fetch_sidecars.py --platform mac
 
       - name: Build backend (PyInstaller)
         run: |
