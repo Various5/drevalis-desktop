@@ -304,7 +304,7 @@ function ComfyUIStep({
 // Step 2 — LLM
 // ─────────────────────────────────────────────────────────────────
 
-type LLMPreset = 'lm_studio' | 'ollama' | 'anthropic' | 'openai_custom';
+type LLMPreset = 'lm_studio' | 'ollama' | 'anthropic' | 'openai' | 'openai_custom';
 
 const LLM_PRESETS: Record<
   LLMPreset,
@@ -325,7 +325,16 @@ const LLM_PRESETS: Record<
   anthropic: {
     name: 'Claude (Anthropic)',
     baseUrl: 'https://api.anthropic.com',
-    model: 'claude-sonnet-4-20250514',
+    // Latest Sonnet at the time of writing — set in features.py
+    // canonical list. The endpoint accepts any current model id, so
+    // bump this when a new flagship Sonnet drops.
+    model: 'claude-sonnet-4-6',
+    needsKey: true,
+  },
+  openai: {
+    name: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o',
     needsKey: true,
   },
   openai_custom: {
