@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 from drevalis.api.routes.voice_profiles import (
     _service,
@@ -239,7 +239,7 @@ class TestCloneVoice:
         )
         svc.clone = AsyncMock(return_value=resp)
         body = CloneVoiceRequest(asset_id=uuid4(), display_name="Sara Clone")
-        out = await clone_voice(body, svc=svc)
+        out = await clone_voice(body, response=Response(), svc=svc)
         assert out.status == "pending_training"
 
     async def test_not_found_maps_to_404(self) -> None:
@@ -247,7 +247,7 @@ class TestCloneVoice:
         svc.clone = AsyncMock(side_effect=NotFoundError("asset", uuid4()))
         body = CloneVoiceRequest(asset_id=uuid4(), display_name="Sara")
         with pytest.raises(HTTPException) as exc:
-            await clone_voice(body, svc=svc)
+            await clone_voice(body, response=Response(), svc=svc)
         assert exc.value.status_code == 404
 
     async def test_validation_error_maps_to_400(self) -> None:
@@ -255,5 +255,5 @@ class TestCloneVoice:
         svc.clone = AsyncMock(side_effect=ValidationError("not an audio asset"))
         body = CloneVoiceRequest(asset_id=uuid4(), display_name="Sara")
         with pytest.raises(HTTPException) as exc:
-            await clone_voice(body, svc=svc)
+            await clone_voice(body, response=Response(), svc=svc)
         assert exc.value.status_code == 400

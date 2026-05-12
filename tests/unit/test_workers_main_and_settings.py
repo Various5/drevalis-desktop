@@ -358,10 +358,13 @@ class TestWorkerSettings:
         assert WorkerSettings.on_job_start is on_job_start
 
     def test_cron_jobs_present(self) -> None:
-        # 7 cron entries documented (publish-posts every 5min, social
+        # 6 cron entries on desktop (publish-posts every 5min, social
         # publish every 5min, heartbeat every min, license heartbeat
-        # daily, ab winner daily, nightly backup, prune scheduled posts).
-        assert len(WorkerSettings.cron_jobs) == 7
+        # daily, ab winner daily, prune scheduled posts). The
+        # ``scheduled_backup`` cron is intentionally NOT registered —
+        # SCOPE.md defers full-install backups to OS-native tooling +
+        # the manual "Create backup" button in Settings.
+        assert len(WorkerSettings.cron_jobs) == 6
 
     def test_job_timeout_uses_longform_setting(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # The class is built at import time, so this is just a smoke

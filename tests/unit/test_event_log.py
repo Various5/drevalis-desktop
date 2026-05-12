@@ -15,7 +15,7 @@ Coverage targets:
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -208,7 +208,19 @@ class TestReadRecentEventsTailBehaviour:
 
     async def test_limit_returns_n_most_recent(self, tmp_path: Path) -> None:
         log_file = tmp_path / "app.json"
-        lines = [_json_line(level="error", event=f"error_{i}") for i in range(10)]
+        # Spread timestamps a second apart so the newest-first sort is
+        # deterministic. ``datetime.now()`` ticks faster than the loop,
+        # so without explicit offsets several lines tie and the result
+        # order goes non-deterministic.
+        base = datetime.now(UTC)
+        lines = [
+            _json_line(
+                level="error",
+                event=f"error_{i}",
+                ts=(base + timedelta(seconds=i)).isoformat(),
+            )
+            for i in range(10)
+        ]
         _write_lines(log_file, lines)
         settings = _make_settings(str(log_file))
 

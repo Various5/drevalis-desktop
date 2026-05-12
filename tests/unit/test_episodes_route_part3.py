@@ -32,7 +32,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 from drevalis.api.routes.episodes._monolith import (
     InpaintRequest,
@@ -678,6 +678,7 @@ class TestContinuityCheck:
         with pytest.raises(HTTPException) as exc:
             await check_script_continuity(
                 uuid4(),
+                response=Response(),
                 db=AsyncMock(),
                 settings=_settings(tmp_path),
                 svc=svc,
@@ -698,6 +699,7 @@ class TestContinuityCheck:
         ):
             out = await check_script_continuity(
                 uuid4(),
+                response=Response(),
                 db=AsyncMock(),
                 settings=_settings(tmp_path),
                 svc=svc,
@@ -734,6 +736,7 @@ class TestContinuityCheck:
         ):
             out = await check_script_continuity(
                 uuid4(),
+                response=Response(),
                 db=AsyncMock(),
                 settings=_settings(tmp_path),
                 svc=svc,

@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 from drevalis.api.routes.episodes._monolith import (
     PublishAllRequest,
@@ -82,6 +82,7 @@ class TestPublishAllValidation:
             await publish_all(
                 uuid4(),
                 _publish_request(),
+                response=Response(),
                 db=AsyncMock(),
                 svc=svc,
             )
@@ -98,6 +99,7 @@ class TestPublishAllValidation:
                 await publish_all(
                     ep.id,
                     _publish_request(),
+                    response=Response(),
                     db=AsyncMock(),
                     svc=svc,
                 )
@@ -113,6 +115,7 @@ class TestPublishAllValidation:
             await publish_all(
                 ep.id,
                 _publish_request(),
+                response=Response(),
                 db=AsyncMock(),
                 svc=svc,
             )
@@ -133,6 +136,7 @@ class TestPublishAllYouTube:
         out = await publish_all(
             ep.id,
             _publish_request(platforms=["youtube"]),
+            response=Response(),
             db=db,
             svc=svc,
         )
@@ -181,6 +185,7 @@ class TestPublishAllYouTube:
             out = await publish_all(
                 ep.id,
                 _publish_request(platforms=["youtube"], privacy="unlisted"),
+                response=Response(),
                 db=db,
                 svc=svc,
             )
@@ -232,6 +237,7 @@ class TestPublishAllYouTube:
                     title="My Override",
                     description="My override desc",
                 ),
+                response=Response(),
                 db=db,
                 svc=svc,
             )
@@ -272,6 +278,7 @@ class TestPublishAllYouTube:
             await publish_all(
                 ep.id,
                 _publish_request(platforms=["youtube"]),
+                response=Response(),
                 db=db,
                 svc=svc,
             )
@@ -301,6 +308,7 @@ class TestPublishAllSocial:
         out = await publish_all(
             ep.id,
             _publish_request(platforms=["instagram"]),
+            response=Response(),
             db=db,
             svc=svc,
         )
@@ -326,6 +334,7 @@ class TestPublishAllSocial:
         out = await publish_all(
             ep.id,
             _publish_request(platforms=["tiktok"]),
+            response=Response(),
             db=db,
             svc=svc,
         )
@@ -363,6 +372,7 @@ class TestPublishAllSocial:
         out = await publish_all(
             ep.id,
             _publish_request(platforms=["tiktok"]),
+            response=Response(),
             db=db,
             svc=svc,
         )
@@ -402,6 +412,7 @@ class TestPublishAllSocial:
         out = await publish_all(
             ep.id,
             _publish_request(platforms=["youtube", "tiktok", "instagram"]),
+            response=Response(),
             db=db,
             svc=svc,
         )
