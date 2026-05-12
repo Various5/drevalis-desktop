@@ -12,6 +12,16 @@ Pre-1.0 releases are alpha-tagged.
 ## [Unreleased]
 
 ### Fixed
+- **Restoring a Docker-era (PostgreSQL) backup into the desktop
+  (SQLite) install crashed with `near "SET": syntax error`.**
+  `BackupService.restore_backup` was issuing
+  `SET session_replication_role = replica` to disable FK checks during
+  the bulk insert — a Postgres-only statement. The restore path is
+  now dialect-aware: PostgreSQL targets keep the `session_replication_role`
+  swap; SQLite targets get `PRAGMA defer_foreign_keys = 1` instead,
+  which defers FK enforcement to commit time so the bulk insert can
+  satisfy FKs in any order before the transaction closes. Tested
+  against a real 22 GB / 8 341-row Docker-era backup.
 - **Fresh installs were starting with an empty SQLite database.**
   Inside the PyInstaller bundle, `alembic upgrade head` raised before
   any baseline table was created; the launcher's schema-heal pass was

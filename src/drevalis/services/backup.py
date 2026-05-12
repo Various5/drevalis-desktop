@@ -369,14 +369,39 @@ class BackupService:
             inserted: dict[str, int] = {}
             if restore_db:
                 await _emit("truncate", 15, "Truncating existing rows…")
-                # Disable user-defined + foreign-key triggers for this
-                # session so backups taken against slightly older schemas
+                # Relax foreign-key checks for the duration of the bulk
+                # insert so backups taken against slightly older schemas
                 # (enum value not yet migrated, tightened CHECK constraint,
                 # missing FK target that we're about to insert anyway)
-                # don't abort the restore mid-flight. Requires superuser or
-                # table ownership — our migrations run the app's DB user as
-                # table owner so this works in normal installs.
-                await session.execute(sa.text("SET session_replication_role = replica"))
+                # don't abort the restore mid-flight. The mechanism is
+                # dialect-specific:
+                #
+                # * PostgreSQL — ``SET session_replication_role = replica``
+                #   disables triggers AND FK enforcement for the session.
+                #   Requires table ownership; our migrations run as the
+                #   app's DB user (which IS the table owner), so this
+                #   works on normal Docker-era installs.
+                #
+                # * SQLite — ``PRAGMA defer_foreign_keys = 1`` defers FK
+                #   constraint checking until COMMIT instead of running
+                #   per-statement, which is the strongest in-transaction
+                #   relaxation SQLite offers. The strictly stronger
+                #   ``PRAGMA foreign_keys = OFF`` would need to be set
+                #   outside any transaction (SQLite silently no-ops it
+                #   inside one) and would persist for the connection's
+                #   lifetime — not worth the complication. Deferred is
+                #   enough for the documented use case: rows inserted
+                #   later in the same restore satisfy FKs by commit time.
+                bind = session.get_bind()
+                dialect_name = bind.dialect.name if bind is not None else ""
+                if dialect_name == "postgresql":
+                    await session.execute(
+                        sa.text("SET session_replication_role = replica")
+                    )
+                elif dialect_name == "sqlite":
+                    await session.execute(
+                        sa.text("PRAGMA defer_foreign_keys = 1")
+                    )
                 try:
                     # 1. Drop all user rows (reverse dependency order).
                     for table_name, model in reversed(_TABLE_ORDER):
@@ -409,10 +434,15 @@ class BackupService:
 
                     await session.commit()
                 finally:
-                    # Even on failure, flip the session back so the next
-                    # request (same pool connection) doesn't inherit the
-                    # bypass flag.
-                    await session.execute(sa.text("SET session_replication_role = origin"))
+                    # Even on failure, flip the relax flag back so the
+                    # next request (same pool connection) doesn't inherit
+                    # the bypass. For SQLite ``defer_foreign_keys`` is
+                    # already per-transaction (auto-resets on the next
+                    # BEGIN) so no explicit re-enable is needed.
+                    if dialect_name == "postgresql":
+                        await session.execute(
+                            sa.text("SET session_replication_role = origin")
+                        )
 
             # 3. Extract storage/.
             src_storage = tmp / "storage"
