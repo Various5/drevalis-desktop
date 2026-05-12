@@ -1,0 +1,167 @@
+name: Release (Linux, manual)
+
+# WIP — manual-dispatch only. Produces an unsigned AppImage suitable
+# for local testing on the maintainer's machine. Remaining gaps before
+# this can go GA:
+#
+#   - AppImages are inherently unsigned (no Linux equivalent of
+#     Authenticode / Developer ID). End-user trust comes from the
+#     Tauri updater plugin's Ed25519 signature verification against
+#     the embedded public key, same as Windows.
+#   - FFmpeg + ffprobe ARE bundled (johnvansickle.com static builds
+#     via ``scripts/fetch_sidecars.py --platform linux``). Redis is
+#     NOT bundled — no canonical static binary distribution exists
+#     for Linux. End-user install instructions must say
+#     ``apt install redis-server`` (or distro-equivalent); the
+#     launcher's ``_maybe_launch_redis`` already detects an
+#     externally-running Redis on :6379.
+#   - x86_64 only. ARM Linux (aarch64) builds will need a separate
+#     job + cross-compile setup; deferred until there's demand.
+#   - .deb / .rpm packaging is also pending — AppImage covers the
+#     "just runs" use case; distro-native packages can come later.
+#
+# How to use:
+#
+#   gh workflow run "Release (Linux, manual)" -R Various5/drevalis-desktop \
+#        -f tag=v0.1.0-alpha.X
+#
+# Tag must already exist + push to ``main`` first; the workflow checks
+# out that tag's commit. Artefacts attach to the existing draft
+# Release created by the Windows release workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach to (e.g. v0.1.0-alpha.5).'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up uv (Python ${{ env.PYTHON_VERSION }})
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri AppImage build deps
+        # Tauri 2 on Linux needs webkit2gtk, libsoup, and a few X libs
+        # to build the AppImage. ubuntu-latest is currently 24.04
+        # which carries the 4.1 variants by default.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libsoup-3.0-dev \
+            libssl-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            xz-utils
+
+      - name: Cache Cargo target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tauri/src-tauri/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('tauri/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      # ── Frontend MUST build before pyinstaller ────────────────────
+      - name: Frontend npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build:loose
+
+      - name: Tauri shell npm ci
+        working-directory: tauri
+        run: npm ci
+
+      # ── Backend bundle (PyInstaller) ────────────────────────────────
+      - name: Install Python deps
+        run: uv sync --extra dev
+
+      # FFmpeg + ffprobe come from johnvansickle.com static builds.
+      # Redis is NOT bundled (no canonical Linux static distribution);
+      # ``fetch_redis_unix`` just prints the ``apt install redis-server``
+      # hint. The launcher's _maybe_launch_redis detects an externally-
+      # running Redis on :6379. End-user install instructions need to
+      # call out the manual Redis install.
+      - name: Fetch FFmpeg + Redis sidecars
+        run: uv run python scripts/fetch_sidecars.py --platform linux
+
+      - name: Build backend (PyInstaller)
+        run: |
+          uv run pyinstaller drevalis-backend.spec --noconfirm --clean
+          # Prune googleapiclient discovery cache (~96 MB → ~1 MB).
+          DOCS=dist/drevalis/_internal/googleapiclient/discovery_cache/documents
+          if [ -d "$DOCS" ]; then
+            find "$DOCS" -type f ! -name 'youtube*' -delete
+          fi
+          # Normalize binary name — see release-macos.yml for the
+          # rationale (tauri.conf.json's bundle.resources is global,
+          # PyInstaller drops the .exe on Unix).
+          if [ -f dist/drevalis/drevalis ] && [ ! -f dist/drevalis/drevalis.exe ]; then
+            cp dist/drevalis/drevalis dist/drevalis/drevalis.exe
+            chmod +x dist/drevalis/drevalis.exe
+          fi
+
+      - name: Verify frontend SPA bundled into backend
+        run: |
+          SPA=dist/drevalis/_internal/frontend/dist/index.html
+          if [ ! -f "$SPA" ]; then
+            echo "FATAL: $SPA missing — frontend build must run BEFORE pyinstaller."
+            exit 1
+          fi
+          echo "[verify] SPA bundled: $SPA"
+
+      # ── Tauri build (AppImage, unsigned) ──────────────────────────
+      - name: Tauri build + attach to existing release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Re-use the updater signing key from the Windows workflow
+          # so the in-app auto-updater can verify .AppImage updates
+          # against the same embedded pubkey.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: tauri
+          tagName: ${{ github.event.inputs.tag }}
+          releaseName: 'Drevalis Creator Studio ${{ github.event.inputs.tag }}'
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true

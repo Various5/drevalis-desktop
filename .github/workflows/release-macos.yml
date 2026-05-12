@@ -119,6 +119,18 @@ jobs:
           if [ -d "$DOCS" ]; then
             find "$DOCS" -type f ! -name 'youtube*' -delete
           fi
+          # Normalize binary name. tauri.conf.json's bundle.resources
+          # map uses ``drevalis.exe`` as the canonical name across all
+          # platforms (Tauri's resources config doesn't support
+          # per-platform overrides). PyInstaller on macOS/Linux drops
+          # the extension; we copy it back into place so the resource
+          # path resolves. Inside the .app/.AppImage the binary lives
+          # alongside its no-.exe sibling — the launcher's
+          # ``locate_backend_executable`` checks the .exe path first.
+          if [ -f dist/drevalis/drevalis ] && [ ! -f dist/drevalis/drevalis.exe ]; then
+            cp dist/drevalis/drevalis dist/drevalis/drevalis.exe
+            chmod +x dist/drevalis/drevalis.exe
+          fi
 
       - name: Verify frontend SPA bundled into backend
         run: |
@@ -129,7 +141,7 @@ jobs:
           fi
           echo "[verify] SPA bundled: $SPA"
 
-      # ── Tauri build (unsigned, alpha-quality) ──────────────────────
+      # ── Tauri build (universal, unsigned, alpha-quality) ──────────
       - name: Tauri build + attach to existing release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -148,3 +160,10 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+          # Build a universal binary so the .app runs natively on both
+          # Apple silicon and Intel. Both rust targets are installed in
+          # the ``Set up Rust`` step above. Note the PyInstaller backend
+          # bundle is still native-arch only (whatever the runner is);
+          # cross-arch backend support waits for a python.org
+          # universal2 toolchain in CI.
+          args: --target universal-apple-darwin
