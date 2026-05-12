@@ -13,20 +13,26 @@ from __future__ import annotations
 
 import enum
 import os
+import sys
 import threading
 from dataclasses import dataclass
 
 from drevalis.core.license.claims import LicenseClaims
 
-# License bypass — opt-in escape hatch for development. The default is
-# OFF: the desktop port now talks to the real license server (the
-# original SCOPE.md decision to ship desktop license-free has been
-# reversed). Set ``DREVALIS_LICENSE_BYPASS=1`` only for dev / CI work
-# that needs the gates open without a real activation. Not coupled to
-# ``DREVALIS_DESKTOP_MODE`` anymore — that flag still controls
-# desktop-only routing and error-hint flavor, but licensing is now
-# enforced on every install regardless of platform.
-_LICENSE_BYPASS = os.environ.get("DREVALIS_LICENSE_BYPASS", "0") == "1"
+# License bypass — opt-in escape hatch for development ONLY.
+#
+# Honored when the process is running from source (``python -m
+# drevalis``) and ``DREVALIS_LICENSE_BYPASS=1`` is set. SILENTLY
+# IGNORED in PyInstaller-bundled release builds (``sys.frozen`` is
+# True), so a shipped .exe cannot be unlocked by an end-user just
+# setting an env var. A determined attacker can still patch this
+# file and rebuild from source — that's the irreducible weakness of
+# all client-side license checks — but the friction is now "edit
+# Python + rebuild" rather than "set one env var".
+#
+# See GOTCHAS.md for the threat-model write-up.
+_DEV_MODE = not getattr(sys, "frozen", False)
+_LICENSE_BYPASS = _DEV_MODE and os.environ.get("DREVALIS_LICENSE_BYPASS", "0") == "1"
 
 
 class LicenseStatus(enum.StrEnum):

@@ -16,6 +16,19 @@ Size budgets that triggered the split:
 
 When you split a file, keep `_monolith.py` as the implementation and re-export from `__init__.py`.
 
+## License bypass is dev-only by construction
+
+`DREVALIS_LICENSE_BYPASS=1` unlocks Studio-tier claims without contacting the licence server. It exists for two cases:
+
+1. Local development (`python -m drevalis`) where running the activation wizard against the prod licence server every restart is friction.
+2. CI / tests where the unit suite needs the gate open without minting a real JWT.
+
+`src/drevalis/core/license/state.py` gates the env var on `not getattr(sys, "frozen", False)`. PyInstaller-bundled release builds (the `.exe` that ships to users) have `sys.frozen = True`, so the env var is **silently ignored** there — the gate code path is unreachable. End users cannot unlock a shipped install by setting an env var.
+
+A determined attacker can still clone the public repo, edit `state.py` to remove the gate, and rebuild via `scripts/build/win.ps1`. That's the irreducible weakness of any client-side licence check — true of every desktop app on the market, public source or not. The fix when this matters: move the value-bearing actions server-side (have `license.drevalis.com` validate "may I do X?" per billable action, so a patched client just gets server-side `402` denials).
+
+**Rule:** Never reintroduce a runtime-only bypass that doesn't check `sys.frozen`. If you add a new "skip checks" knob, gate it on `_DEV_MODE` from `state.py` the same way.
+
 ## Migrations are append-only
 
 `migrations/versions/6bf6d3143c4c_baseline_desktop_sqlite_schema.py` is **frozen**. Treat it as historical, not editable.

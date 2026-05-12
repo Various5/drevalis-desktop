@@ -104,7 +104,7 @@ uv run uvicorn drevalis.main:app --port 8000 &
 cd frontend && npm run dev   # http://localhost:3000
 ```
 
-The frontend dev server proxies API calls to `:8000`. Set `DREVALIS_LICENSE_BYPASS=1` to skip activation in dev.
+The frontend dev server proxies API calls to `:8000`. Set `DREVALIS_LICENSE_BYPASS=1` to skip activation in dev — **only honored when running from source**; the flag is silently ignored in PyInstaller-bundled release builds (verified via `sys.frozen`).
 
 ### Running the test suite
 
@@ -132,7 +132,7 @@ For the why-and-how:
 
 The desktop app talks to a hosted license server (`license.drevalis.com`) for activation and a daily heartbeat. The local app stores the signed JWT in SQLite and verifies it against an embedded Ed25519 public key — your install keeps working for 7 days of grace if the server is unreachable.
 
-For development without a real licence, set `DREVALIS_LICENSE_BYPASS=1` in the backend environment. The bypass is **off by default** in production builds.
+For development without a real licence, set `DREVALIS_LICENSE_BYPASS=1` in the backend environment. The bypass is **off by default** AND **structurally disabled in release builds** — `sys.frozen` is True inside the PyInstaller bundle, and the bypass code path is gated on dev-mode. End-users cannot unlock a shipped install just by setting the env var.
 
 Pricing tiers (Creator / Pro / Studio) and the canonical feature map live in [`src/drevalis/core/license/features.py`](./src/drevalis/core/license/features.py) on the client and [`license-server/app/crypto.py`](./license-server/app/crypto.py) on the server — they're kept in sync.
 
