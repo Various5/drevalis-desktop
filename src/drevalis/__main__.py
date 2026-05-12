@@ -123,7 +123,8 @@ def _maybe_launch_redis(redis_url: str) -> subprocess.Popen[bytes] | None:
             "no",
             "--protected-mode",
             "no",
-        ]
+        ],
+        creationflags=_windows_no_console_creationflags(),
     )
 
     # Wait up to 4s for Redis to accept connections before returning.
@@ -181,6 +182,8 @@ def _force_utf8_stdio() -> None:
     """
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     for stream in (sys.stdout, sys.stderr):
+        if stream is None:
+            continue
         if hasattr(stream, "reconfigure") and getattr(stream, "encoding", "").lower() != "utf-8":
             try:
                 stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
@@ -188,7 +191,68 @@ def _force_utf8_stdio() -> None:
                 pass
 
 
+def _windows_no_console_creationflags() -> int:
+    """Return ``CREATE_NO_WINDOW`` on Windows, ``0`` elsewhere.
+
+    Tauri spawns the backend with this flag so the PyInstaller bundle's
+    console-subsystem doesn't pop a cmd-style window. The launcher's
+    own subprocess.Popen / subprocess.call sites must mirror it,
+    otherwise *each child* (migrate, worker, api, bundled Redis) would
+    open its own console because the parent has none to inherit.
+    """
+    return subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+
+
+def _redirect_stdio_to_launcher_log_if_no_console() -> None:
+    """When started without a visible console, send stdio to a log file.
+
+    Tauri spawns drevalis.exe with CREATE_NO_WINDOW (and the same is
+    propagated to the launcher's children), so stdout/stderr are
+    valid file objects but connected to nothing — every ``print()`` is
+    silently dropped on the floor. That makes the launcher's own
+    diagnostics (``[drevalis] applying database migrations``, the
+    migrate function's tracebacks, the Redis-startup messages) invisible
+    when something goes wrong post-install.
+
+    On Windows, we detect "no visible console" via the Win32
+    ``GetConsoleWindow`` API (NULL when no console is attached). If
+    no console is present, we open a launcher log file in the user's
+    log dir and replace ``sys.stdout`` / ``sys.stderr`` with line-
+    buffered handles to it. Source-mode runs and explicit
+    ``drevalis.exe healthcheck`` invocations from a real terminal keep
+    their inherited console stdout untouched.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes  # stdlib
+
+        if ctypes.windll.kernel32.GetConsoleWindow() != 0:
+            return
+    except Exception:
+        return  # err on the side of leaving stdout alone
+
+    try:
+        from drevalis.core.paths import ensure_user_dirs, user_log_dir
+
+        ensure_user_dirs()
+        log_path = user_log_dir() / "drevalis-launcher.log"
+        fh = open(log_path, "a", encoding="utf-8", buffering=1)
+        sys.stdout = fh  # type: ignore[assignment]
+        sys.stderr = fh  # type: ignore[assignment]
+        print(
+            f"\n[drevalis] launcher started (pid={os.getpid()}); "
+            "stdout/stderr redirected from missing console",
+            flush=True,
+        )
+    except Exception:
+        # If anything goes wrong with the redirect, prefer running
+        # without it over crashing the launcher.
+        pass
+
+
 def main() -> NoReturn:
+    _redirect_stdio_to_launcher_log_if_no_console()
     _force_utf8_stdio()
 
     # Prepend resources/bin/<platform>/ to $PATH so subprocess sites that
@@ -424,7 +488,10 @@ def _run_launcher() -> NoReturn:
     # any errors are surfaced as a non-zero exit rather than crashing
     # the launcher.
     print("[drevalis] applying database migrations", flush=True)
-    migrate_rc = subprocess.call(_migrate_command())
+    migrate_rc = subprocess.call(
+        _migrate_command(),
+        creationflags=_windows_no_console_creationflags(),
+    )
     if migrate_rc != 0:
         print(
             f"[drevalis] migration step exited rc={migrate_rc}; continuing anyway "
@@ -445,10 +512,20 @@ def _run_launcher() -> NoReturn:
     # Worker next so it's ready to consume jobs by the time the API
     # accepts the first request (a few hundred ms saving on cold start).
     print("[drevalis] starting worker", flush=True)
-    processes.append(subprocess.Popen(_worker_command()))
+    processes.append(
+        subprocess.Popen(
+            _worker_command(),
+            creationflags=_windows_no_console_creationflags(),
+        )
+    )
 
     print("[drevalis] starting api", flush=True)
-    processes.append(subprocess.Popen(_api_command()))
+    processes.append(
+        subprocess.Popen(
+            _api_command(),
+            creationflags=_windows_no_console_creationflags(),
+        )
+    )
 
     # Babysit loop: poll children, exit when one dies.
     exit_code = 0

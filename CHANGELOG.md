@@ -12,6 +12,18 @@ Pre-1.0 releases are alpha-tagged.
 ## [Unreleased]
 
 ### Fixed
+- **Backend console window appeared next to the Tauri webview on
+  Windows, and closing it killed the app.** The PyInstaller bundle is a
+  console-subsystem executable, so a vanilla ``Command::spawn`` from
+  Tauri popped a stray cmd-style window users routinely closed. Both
+  sides now pass ``CREATE_NO_WINDOW``: the Rust ``spawn_backend`` flags
+  the initial process, and ``_windows_no_console_creationflags()`` in
+  the Python launcher mirrors it on every subprocess.Popen / .call
+  (migrate, worker, api, bundled Redis). The launcher's stdio is
+  redirected to ``%LOCALAPPDATA%\Drevalis\Logs\drevalis-launcher.log``
+  when no console is attached so its ``print()`` diagnostics aren't
+  silently dropped — detection uses Win32 ``GetConsoleWindow`` so CLI
+  runs from a terminal keep their inherited stdout.
 - **Restoring a Docker-era (PostgreSQL) backup into the desktop
   (SQLite) install crashed with `near "SET": syntax error`.**
   `BackupService.restore_backup` was issuing

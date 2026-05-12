@@ -16,6 +16,38 @@ Size budgets that triggered the split:
 
 When you split a file, keep `_monolith.py` as the implementation and re-export from `__init__.py`.
 
+## Windows subprocess spawns need `CREATE_NO_WINDOW`
+
+The PyInstaller bundle is a console-subsystem app (`console=True` in
+the spec). On Windows, any `subprocess.Popen` / `subprocess.call` that
+spawns `drevalis.exe` (or any other `.exe` from inside the bundle) will
+pop a cmd-style window unless the caller passes `CREATE_NO_WINDOW` in
+`creationflags`. The Tauri shell does this for the initial spawn; the
+Python launcher mirrors it via `_windows_no_console_creationflags()`
+in `src/drevalis/__main__.py` for every child it starts (migrate,
+worker, api, bundled Redis).
+
+**Rule:** any new subprocess call inside the desktop launcher or its
+children must pass `creationflags=_windows_no_console_creationflags()`
+on Windows. Forgetting this regresses the "X kills the backend" bug —
+users close the stray window thinking it's a leak and the app dies.
+
+If you can't import the helper from where you're calling, the inline
+equivalent is:
+
+```python
+import subprocess, sys
+flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+```
+
+The same flag is set on the Rust side via
+`CommandExt::creation_flags(CREATE_NO_WINDOW)` in
+`tauri/src-tauri/src/main.rs`. Both sides need it; one alone isn't
+enough because the launcher's children would otherwise inherit "no
+console" from the launcher only if you spawn console-subsystem exes
+without the flag, which on Windows actually means "allocate a new
+console for the child".
+
 ## License bypass is dev-only by construction
 
 `DREVALIS_LICENSE_BYPASS=1` unlocks Studio-tier claims without contacting the licence server. It exists for two cases:

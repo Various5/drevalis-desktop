@@ -4,11 +4,23 @@
 
 use std::io;
 use std::net::TcpStream;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
+
+/// Windows ``CREATE_NO_WINDOW`` process-creation flag. The PyInstaller
+/// bundle is a console-subsystem app, so a vanilla ``Command::spawn``
+/// pops a black cmd-style window alongside the Tauri webview. Users
+/// regularly close that window thinking it's a stray terminal, which
+/// kills the backend and breaks the app. This flag suppresses the
+/// console window for the spawned process tree; the launcher's Python
+/// side mirrors it for its own subprocess.Popen calls.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -99,7 +111,11 @@ fn spawn_backend(app: &tauri::AppHandle) -> io::Result<Option<Child>> {
 
     // .arg("run") matches drevalis CLI; the launcher then spawns Redis +
     // worker + uvicorn. See src/drevalis/__main__.py.
-    let child = Command::new(&exe).arg("run").spawn()?;
+    let mut cmd = Command::new(&exe);
+    cmd.arg("run");
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    let child = cmd.spawn()?;
     Ok(Some(child))
 }
 
