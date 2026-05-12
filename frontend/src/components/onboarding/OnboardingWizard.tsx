@@ -7,6 +7,8 @@ import {
   Sparkles,
   Youtube,
   AlertCircle,
+  Package,
+  ExternalLink,
 } from 'lucide-react';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -94,6 +96,38 @@ export function OnboardingWizard({ status, onRefresh, onDismiss }: Props) {
       description="Three quick configs and you're ready to generate. Each step is independent — skip anything you'll fill in later."
       maxWidth="xl"
     >
+      {/* What's bundled vs external — sets expectations before
+          asking for URLs. Hidden once any step is complete so the
+          wizard doesn't dominate the screen when the user comes
+          back to finish a skipped step. */}
+      {!STEPS.some((s) => isStepComplete(s.key, status)) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <div className="rounded-md border border-white/[0.08] bg-bg-elevated/40 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-txt-primary mb-1.5">
+              <Package size={13} className="text-accent shrink-0" />
+              Already installed for you
+            </div>
+            <p className="text-[11px] text-txt-secondary leading-relaxed">
+              FFmpeg, Redis, the SQLite database, and the worker
+              process all ship inside the installer. You don't need to
+              install or configure them.
+            </p>
+          </div>
+          <div className="rounded-md border border-white/[0.08] bg-bg-elevated/40 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-txt-primary mb-1.5">
+              <ExternalLink size={13} className="text-amber-300 shrink-0" />
+              You point Drevalis at these
+            </div>
+            <p className="text-[11px] text-txt-secondary leading-relaxed">
+              ComfyUI for image / video generation and a language
+              model (LM Studio, Ollama, Claude, OpenAI…) for scripts.
+              You install them separately so you control which
+              models and which licence terms.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Step nav pills */}
       <div className="flex items-center justify-between gap-2 mb-6">
         {STEPS.map((s, i) => {
