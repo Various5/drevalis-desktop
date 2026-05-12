@@ -4,10 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Drevalis Creator Studio — Type a topic. Get a finished video.</title>
-  <meta name="description" content="An app that turns a topic into a finished video — script, voice, visuals, captions, thumbnail, upload — all on your own computer. No per-video fees. One flat price. Try it live, no sign-up." />
-  <meta name="keywords" content="ai video generator, youtube shorts automation, self-hosted ai, comfyui pipeline, tts audiobook, ai content creation, short-form video ai, text to video self-hosted, ai video editor" />
+  <meta name="description" content="A native Windows app that turns a topic into a finished, captioned video — script, voice, visuals, captions, upload. Runs on your computer. One flat price. No per-video fees." />
   <meta name="theme-color" content="#0A0B0E" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="author" content="Drevalis" />
   <link rel="canonical" href="https://drevalis.com/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -16,21 +15,17 @@
   <!-- Open Graph -->
   <meta property="og:site_name" content="Drevalis Creator Studio" />
   <meta property="og:title" content="Type a topic. Get a finished video." />
-  <meta property="og:description" content="The whole thing runs on your own computer. No per-video fees. One flat price. Try it live, no sign-up." />
+  <meta property="og:description" content="A native Windows app. Runs on your computer. One flat price." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://drevalis.com/" />
-  <meta property="og:image" content="https://drevalis.com/assets/images/hero-dashboard.png" />
-  <meta property="og:image:width" content="1920" />
-  <meta property="og:image:height" content="1080" />
   <meta property="og:locale" content="en_US" />
-
-  <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Type a topic. Get a finished video." />
-  <meta name="twitter:description" content="The whole thing runs on your own computer. No per-video fees. One flat price. Try it live, no sign-up." />
-  <meta name="twitter:image" content="https://drevalis.com/assets/images/hero-dashboard.png" />
+  <meta name="twitter:description" content="A native Windows app. Runs on your computer. One flat price." />
 
-  <!-- JSON-LD: SoftwareApplication -->
+  <!-- JSON-LD: SoftwareApplication. The FAQ JSON-LD that used to live here
+       has been removed — it was keyword-stuffing and the answers are also
+       on the page below for real readers. -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -38,73 +33,12 @@
     "name": "Drevalis Creator Studio",
     "operatingSystem": "Windows",
     "applicationCategory": "MultimediaApplication",
-    "description": "A native Windows app that turns a topic into a finished video or audiobook on your own computer — AI script, AI voice, AI visuals, word-by-word captions, automatic editing, and one-click upload to YouTube, TikTok, Instagram, Facebook and X.",
+    "description": "A native Windows app that turns a topic into a finished video or audiobook on your own computer — AI script, AI voice, AI visuals, word-by-word captions, and one-click upload to YouTube.",
     "url": "https://drevalis.com/",
-    "image": "https://drevalis.com/assets/images/hero-dashboard.png",
     "offers": [
-      {
-        "@type": "Offer",
-        "name": "Creator",
-        "priceCurrency": "CHF",
-        "price": "19",
-        "availability": "https://schema.org/InStock"
-      },
-      {
-        "@type": "Offer",
-        "name": "Pro",
-        "priceCurrency": "CHF",
-        "price": "49",
-        "availability": "https://schema.org/InStock"
-      },
-      {
-        "@type": "Offer",
-        "name": "Studio",
-        "priceCurrency": "CHF",
-        "price": "99",
-        "availability": "https://schema.org/InStock"
-      }
-    ]
-  }
-  </script>
-
-  <!-- JSON-LD: FAQPage -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What hardware do I need?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Drevalis itself is light — 8 GB RAM and a recent CPU run it fine. The heavy lifting is ComfyUI (image/video generation), which wants an NVIDIA GPU with 12 GB+ VRAM for comfortable long-form. No GPU? Rent a cloud GPU on the Pro plan."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Do I need a subscription to use it?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes — the app verifies a license against the Drevalis server. You can cancel anytime; access continues until the end of your paid period."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Is my data sent anywhere?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Scripts, voices, videos, and channel credentials stay on your machine. Drevalis servers only handle licensing via a 24h heartbeat."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What payment methods do you accept?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Credit / debit cards, Apple Pay, Google Pay, SEPA, Klarna and more via Stripe. PayPal is supported on plans billed in CHF."
-        }
-      }
+      { "@type": "Offer", "name": "Creator", "priceCurrency": "CHF", "price": "19", "availability": "https://schema.org/InStock" },
+      { "@type": "Offer", "name": "Pro",     "priceCurrency": "CHF", "price": "49", "availability": "https://schema.org/InStock" },
+      { "@type": "Offer", "name": "Studio",  "priceCurrency": "CHF", "price": "99", "availability": "https://schema.org/InStock" }
     ]
   }
   </script>
@@ -132,10 +66,10 @@
         </span>
         Drevalis
       </a>
-      <button type="button" class="site-menu-btn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button><div class="site-nav-links">
+      <button type="button" class="site-menu-btn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+      <div class="site-nav-links">
         <a href="/#features" class="site-nav-link hide-xs">Features</a>
         <a href="/#workflow" class="site-nav-link hide-sm">How it works</a>
-        <a href="/#hardware" class="site-nav-link hide-sm">Hardware</a>
         <a href="/pricing" class="site-nav-link">Pricing</a>
         <a href="/download" class="site-nav-link">Download</a>
         <a href="/account" class="site-nav-link hide-xs">Account</a>
@@ -151,57 +85,48 @@
 
     <div class="container-xl pt-20 pb-12 relative z-10">
       <div class="text-center max-w-3xl mx-auto reveal">
-        <span class="eyebrow mb-6"><span class="eyebrow-dot"></span>Native Windows app · Your machine, your files</span>
+        <span class="eyebrow mb-6"><span class="eyebrow-dot"></span>Native Windows app · Pre-release alpha</span>
         <h1 class="display-hero mt-6 mb-5">
           Type a topic.<br/>
           Get a finished, captioned, <span class="accent-gradient">uploaded video</span>.
         </h1>
         <p class="lead max-w-2xl mx-auto mb-9">
-          The app writes the script, narrates it, draws the visuals, adds captions, picks a thumbnail, and uploads it — all on your computer. No per-video fees. No cloud lock-in. One flat price.
+          Drevalis writes the script, narrates it, generates the visuals, adds captions, picks a thumbnail, and uploads to YouTube — all on your own computer. One flat price. No per-video fees.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3 mb-4">
           <a href="/download" class="btn btn-primary btn-lg">Download for Windows →</a>
           <a href="/pricing" class="btn btn-secondary btn-lg">See pricing</a>
         </div>
-        <p class="small-muted">
-          Pre-release alpha · Signed installer · Cancel anytime
-        </p>
+        <p class="small-muted">Signed installer · Cancel anytime · macOS &amp; Linux coming</p>
       </div>
     </div>
 
-    <!-- Hero screenshot. Replace with a real product capture when one's
-         ready. site.js degrades to the static <img> if the <video>
-         element fails to load. -->
+    <!-- Hero placeholder slot. Replace data-hint with a real screenshot
+         when one's ready; the .img-slot::after pseudo-element auto-renders
+         the hint text when no <img> child is present. -->
     <div class="container-xl pb-8 relative z-10 reveal">
-      <div class="demo-hero-card block" aria-label="Drevalis dashboard" data-hero-video-wrapper>
-        <div class="img-slot" data-aspect="16/9" data-hint="hero-dashboard.png&#10;Drevalis dashboard screenshot">
-          <img
-            src="/assets/images/hero-dashboard.png"
-            alt="Drevalis dashboard"
-            loading="eager"
-          />
-        </div>
+      <div class="demo-hero-card block" aria-label="Drevalis dashboard">
+        <div class="img-slot" data-aspect="16/9" data-hint="Screenshot placeholder&#10;hero-dashboard.png · 1920 × 1080&#10;Drevalis main window — series list, episode timeline, live progress bar"></div>
       </div>
     </div>
   </section>
 
-  <!-- ── Stack / "built with" row ──────────────────────────── -->
+  <!-- ── Stack row ─────────────────────────────────────────── -->
   <section class="section-compact border-y border-white/[0.04]">
     <div class="container-xl">
       <p class="text-center text-xs font-semibold uppercase tracking-widest text-[var(--txt-muted)] mb-6">
         Everything you need, in one app
       </p>
       <div class="stack-row">
-        <div class="stack-chip">AI image &amp; video</div>
         <div class="stack-chip">AI script writing</div>
-        <div class="stack-chip">Studio-quality voices</div>
-        <div class="stack-chip">Free local voices</div>
+        <div class="stack-chip">Local + cloud voices</div>
+        <div class="stack-chip">ComfyUI scenes</div>
         <div class="stack-chip">Word-by-word captions</div>
-        <div class="stack-chip">Auto video editing</div>
-        <div class="stack-chip">YouTube · TikTok · IG · Facebook · X</div>
+        <div class="stack-chip">YouTube upload</div>
+        <div class="stack-chip">Audiobook maker</div>
       </div>
       <p class="small-muted text-center mt-5 max-w-2xl mx-auto">
-        Don't like a piece of it? Swap it out from Settings — different writer, different voice, different image generator. Drevalis just glues them together; you pick what to use.
+        Don't like one of the pieces? Swap it from Settings — different LLM, different voice, different image generator. Drevalis glues them together.
       </p>
     </div>
   </section>
@@ -210,241 +135,118 @@
   <section id="features" class="section">
     <div class="container-xl">
       <div class="text-center max-w-2xl mx-auto mb-20 reveal">
-        <span class="eyebrow mb-4">What it can do today</span>
+        <span class="eyebrow mb-4">What it does</span>
         <h2 class="display-section mt-4 mb-4">Every step of making a video, done for you.</h2>
-        <p class="lead">Nothing on this page is "coming soon." Everything below works in the version you can install today. Future plans are in the <a href="#roadmap">Roadmap</a> further down.</p>
+        <p class="lead">Set up your show once, then a new episode is three clicks: pick the show, type the topic, hit Generate.</p>
       </div>
 
       <div class="space-y-24">
 
-        <!-- Feature 1 — Script -->
+        <!-- Script -->
         <div class="feature-row reveal">
           <div>
             <span class="pill pill-green mb-4">Step 1 · Writing</span>
             <h3>Scripts that sound the same across 100 episodes.</h3>
-            <p class="mb-4">Set up your show once — the tone, the characters, the look, your intro and outro — then just type a topic. The AI writes the whole script for you, scene by scene, in the voice of your show.</p>
+            <p class="mb-4">Configure your show's tone, characters, and format once. After that, type a topic and the AI writes a full scripted episode in your show's voice — scene by scene, with consistent hooks and pacing.</p>
             <ul class="text-sm text-[var(--txt-secondary)] space-y-2 leading-relaxed">
-              <li><strong class="text-[var(--txt-primary)]">Use any AI.</strong> Free ones running on your computer, or paid ones like Claude or ChatGPT. If one is down, the app tries the next automatically.</li>
-              <li><strong class="text-[var(--txt-primary)]">Long videos done right.</strong> For 10+ minute videos, the app plans the whole story first (chapter outline), then writes each chapter with the others in mind, so it doesn't drift or repeat.</li>
-              <li><strong class="text-[var(--txt-primary)]">Edit anything.</strong> Don't like a scene? Rewrite just that one. Want a punchier opening? Regenerate just the hook. Swap whole chapters in one click.</li>
+              <li><strong class="text-[var(--txt-primary)]">Use any LLM.</strong> Local (LM Studio, Ollama) or cloud (Claude, OpenAI). If one's down, the next in your fallback chain picks up.</li>
+              <li><strong class="text-[var(--txt-primary)]">Long-form planned, not drifted.</strong> For 10+ minute videos the app writes a chapter outline first, then writes each chapter aware of the rest.</li>
+              <li><strong class="text-[var(--txt-primary)]">Edit any scene.</strong> Rewrite a single line, regenerate just the hook, or swap whole chapters without re-running anything else.</li>
             </ul>
           </div>
-          <div class="img-slot" data-aspect="4/3" data-hint="feature-script-editor.png&#10;1600 × 1200 · Episode script editor with scene panels">
-            <img src="/assets/images/feature-script-editor.png" alt="Script editor" loading="lazy" />
-          </div>
+          <div class="img-slot" data-aspect="4/3" data-hint="Screenshot placeholder&#10;feature-script-editor.png · 1600 × 1200&#10;Episode script editor with per-scene panels"></div>
         </div>
 
-        <!-- Feature 2 — Voice -->
+        <!-- Voice -->
         <div class="feature-row reverse reveal">
           <div>
             <span class="pill pill-blue mb-4">Step 2 · Voice</span>
-            <h3>Four kinds of voices. A different one for each character. No file uploads.</h3>
-            <p class="mb-4">Mix free voices that run on your computer (hundreds of natural-sounding speakers come built in) with paid ones for studio quality. In the script, just write <code class="inline">[Alice]</code> or <code class="inline">[Bob]</code> at the start of a line and the right voice picks it up — handy for dialogue or audiobooks with multiple characters.</p>
+            <h3>Free local voices, paid studio voices, and per-character tagging.</h3>
+            <p class="mb-4">Hundreds of natural-sounding voices ship locally — no uploads, no per-character billing. Mix them with paid options (ElevenLabs) for studio quality. Tag a line with <code class="inline">[Alice]</code> or <code class="inline">[Bob]</code> and the matching voice picks it up — useful for dialogue and multi-character audiobooks.</p>
             <ul class="text-sm text-[var(--txt-secondary)] space-y-2 leading-relaxed">
-              <li><strong class="text-[var(--txt-primary)]">Faster on long videos.</strong> The app records several lines at once instead of one at a time.</li>
-              <li><strong class="text-[var(--txt-primary)]">Natural pauses.</strong> A short breath when one character finishes, a longer one when someone new starts speaking.</li>
-              <li><strong class="text-[var(--txt-primary)]">Tweak without re-rendering.</strong> Speed up the narration or shift the pitch — no need to remake the video.</li>
+              <li><strong class="text-[var(--txt-primary)]">Edge, Kokoro &amp; Piper.</strong> All run on your machine, no internet round-trip.</li>
+              <li><strong class="text-[var(--txt-primary)]">Natural pauses.</strong> Short breaths between lines, longer ones when a new speaker enters.</li>
+              <li><strong class="text-[var(--txt-primary)]">Pitch &amp; pace.</strong> Tweak without re-rendering the whole video.</li>
             </ul>
           </div>
-          <div class="img-slot" data-aspect="4/3" data-hint="feature-voice-profiles.png&#10;1600 × 1200 · Voice profile library with preview player">
-            <img src="/assets/images/feature-voice-profiles.png" alt="Voice profiles" loading="lazy" />
-          </div>
+          <div class="img-slot" data-aspect="4/3" data-hint="Screenshot placeholder&#10;feature-voice-profiles.png · 1600 × 1200&#10;Voice library with preview player"></div>
         </div>
 
-        <!-- Feature 3 — Scenes -->
+        <!-- Scenes -->
         <div class="feature-row reveal">
           <div>
             <span class="pill pill-purple mb-4">Step 3 · Visuals</span>
             <h3>Your look, your style, scene by scene.</h3>
-            <p class="mb-4">Settings ready for vertical (TikTok, Shorts) and widescreen (YouTube long-form) — or import your own image-generator setup. Got more than one computer with a graphics card? The app spreads the work across them. One scene didn't come out right? Re-do just that scene, leave the rest alone.</p>
+            <p class="mb-4">Drevalis ships ComfyUI workflows tuned for vertical (Shorts/TikTok) and widescreen (YouTube long-form) — or point it at your own workflow. Got multiple GPUs? The app spreads scenes across them. One scene didn't come out? Re-run only that scene.</p>
             <ul class="text-sm text-[var(--txt-secondary)] space-y-2 leading-relaxed">
-              <li><strong class="text-[var(--txt-primary)]">Same look, every time.</strong> The app remembers your show's style and applies it to every new scene so the look stays consistent.</li>
-              <li><strong class="text-[var(--txt-primary)]">No restart from zero.</strong> If something fails halfway through, finished scenes are kept. Hit retry and it picks up where it left off.</li>
-              <li><strong class="text-[var(--txt-primary)]">Rent a graphics card on demand.</strong> No GPU at home? On the Pro plan, rent one by the hour from RunPod, Vast.ai, or Lambda Labs — the app picks the cheapest one for you.</li>
+              <li><strong class="text-[var(--txt-primary)]">Same look, every episode.</strong> Style references + character packs keep the visuals consistent.</li>
+              <li><strong class="text-[var(--txt-primary)]">Resumable.</strong> A mid-pipeline failure preserves completed scenes; hit retry and it picks up where it left off.</li>
+              <li><strong class="text-[var(--txt-primary)]">No GPU? Rent one.</strong> Point Drevalis at a RunPod / Vast.ai pod (Pro plan) and the heavy work runs on rented hardware.</li>
             </ul>
           </div>
-          <div class="img-slot" data-aspect="4/3" data-hint="feature-scene-grid.png&#10;1600 × 1200 · Scene gallery with per-scene regenerate buttons">
-            <img src="/assets/images/feature-scene-grid.png" alt="Scene grid" loading="lazy" />
-          </div>
+          <div class="img-slot" data-aspect="4/3" data-hint="Screenshot placeholder&#10;feature-scene-grid.png · 1600 × 1200&#10;Scene gallery with per-scene regenerate buttons"></div>
         </div>
 
-        <!-- Feature 4 — Publishing -->
+        <!-- Publish -->
         <div class="feature-row reverse reveal">
           <div>
             <span class="pill pill-amber mb-4">Step 4 · Publish</span>
-            <h3>From "done rendering" to live on YouTube — one click.</h3>
-            <p class="mb-4">Hook up multiple YouTube channels, set different upload days for each one, and the app handles retries if anything goes wrong. The Studio plan also publishes to TikTok, Instagram, Facebook, and X. Or just save the video, thumbnail, and description as files and post them yourself.</p>
+            <h3>From rendered to live on YouTube — one click.</h3>
+            <p class="mb-4">Hook up multiple YouTube channels, schedule on a drag-and-drop calendar, and let the app retry failed uploads automatically. Or just save the MP4, thumbnail, and description to disk and post however you like.</p>
             <ul class="text-sm text-[var(--txt-secondary)] space-y-2 leading-relaxed">
-              <li><strong class="text-[var(--txt-primary)]">Plan ahead.</strong> Drag videos onto a calendar. Pick which days each channel posts, and at what time — your time zone, automatically.</li>
-              <li><strong class="text-[var(--txt-primary)]">Title, description, tags.</strong> Written for you alongside the video, ready for YouTube's search.</li>
-              <li><strong class="text-[var(--txt-primary)]">Thumbnail.</strong> Picked from any frame of your video — or upload your own custom one.</li>
+              <li><strong class="text-[var(--txt-primary)]">Multi-channel.</strong> Different upload schedules per channel, in your time zone.</li>
+              <li><strong class="text-[var(--txt-primary)]">Title, description, tags.</strong> Generated alongside the video, ready for YouTube search.</li>
+              <li><strong class="text-[var(--txt-primary)]">Thumbnails.</strong> Pick any frame, or upload your own.</li>
             </ul>
           </div>
-          <div class="img-slot" data-aspect="4/3" data-hint="feature-youtube-publish.png&#10;1600 × 1200 · YouTube publishing panel with multi-channel picker">
-            <img src="/assets/images/feature-youtube-publish.png" alt="YouTube publishing" loading="lazy" />
-          </div>
+          <div class="img-slot" data-aspect="4/3" data-hint="Screenshot placeholder&#10;feature-youtube-publish.png · 1600 × 1200&#10;Publishing panel with multi-channel picker"></div>
         </div>
 
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Everything else (grid) ────────────────────────────── -->
-  <section class="section-compact border-y border-white/[0.04]">
-    <div class="container-xl">
-      <h2 class="display-section text-center mb-4 reveal">Plus the small things most tools forget.</h2>
-      <p class="lead text-center max-w-2xl mx-auto mb-14 reveal">The little details you only notice when you're making videos every day.</p>
-
-      <div class="grid md:grid-cols-3 gap-5 reveal">
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Audiobook maker</h4>
-          <p class="text-sm">Paste in a long story or article and get a finished audiobook MP3 — proper chapters, cover art, and optional pictures for each chapter. Different voices for different characters by tagging them in your script.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Word-by-word captions</h4>
-          <p class="text-sm">Each word lights up exactly when it's spoken — the look you see on TikTok and Shorts. Pick a style: YouTube, TikTok, or simple.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Background music</h4>
-          <p class="text-sm">A built-in music library, or let the app generate music from 12 moods (calm, epic, mysterious, etc.). The music automatically gets quieter when someone is speaking, so the narration stays clear.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Multiple videos at once</h4>
-          <p class="text-sm">Make up to 8 videos at the same time. Tell the app whether to do short videos first, long ones first, or just in order.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">One-click backup</h4>
-          <p class="text-sm">Save everything — your videos, settings, channels — into a single file. Restore on a new computer, or pull back just the videos. Move machines without losing work.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Your logins stay safe</h4>
-          <p class="text-sm">Your YouTube login, your AI account keys, your platform connections — all encrypted on your own computer. Drevalis can't read them.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Live progress bar</h4>
-          <p class="text-sm">Watch every step finish in real time. If something breaks mid-way, hit retry and it picks up from the broken step — not from the start.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Updates inside the app</h4>
-          <p class="text-sm">New version out? Settings → Updates → Update now. The app handles the rest and shows you live progress.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Connect from your scripts (Studio)</h4>
-          <p class="text-sm">If you write your own automations, the app exposes the same controls the dashboard uses. Lock it down with a password of your choice.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">One library for all your files</h4>
-          <p class="text-sm">Upload reference photos, extra clips, your own music, your logo. Same file? It's stored once. Search by tag. Use them anywhere in the app.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Cut clips from a long recording</h4>
-          <p class="text-sm">Drop in a podcast, webinar, or recording. The app transcribes it, finds the best 30–60 second moments, and turns a clip into an episode in one click.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Built-in video editor</h4>
-          <p class="text-sm">Trim, cut, drag scenes around. Add text overlays, tweak captions word by word, draw volume up and down on the music. A lightweight preview lets you scrub through smoothly while you edit.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Same character, same look</h4>
-          <p class="text-sm">Upload a face photo and the app keeps that character looking the same across every scene. Same trick for lighting, color, and mood — pin a reference image and the look stays consistent.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Clone your own voice</h4>
-          <p class="text-sm">Record 30 seconds in your browser, or upload a clip. The app makes a voice that sounds like you, ready to use in any show.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Title &amp; thumbnail check</h4>
-          <p class="text-sm">Before you upload, the app scores your title, description, tags, and thumbnail with a traffic-light. Don't like the title? One click for two AI-suggested alternatives.</p>
-        </div>
-        <div class="card card-hover p-6">
-          <h4 class="mb-2">Work as a team</h4>
-          <p class="text-sm">Invite collaborators as owner, editor, or viewer. Solo? Skip this entirely — no login required for personal use.</p>
-        </div>
       </div>
     </div>
   </section>
 
   <!-- ── Workflow timeline ─────────────────────────────────── -->
-  <section id="workflow" class="section">
+  <section id="workflow" class="section border-y border-white/[0.04]">
     <div class="container-xl">
       <div class="text-center max-w-2xl mx-auto mb-16 reveal">
-        <span class="eyebrow mb-4">What it actually feels like</span>
+        <span class="eyebrow mb-4">How it works</span>
         <h2 class="display-section mt-4 mb-4">Set up once. Each new video takes three clicks.</h2>
-        <p class="lead">The first time takes about 15 minutes. After that, a new video is: pick your show, type a topic, hit Generate.</p>
+        <p class="lead">The first time takes about 15 minutes. After that, a new video is: pick the show, type a topic, hit Generate.</p>
       </div>
 
-      <div class="grid md:grid-cols-5 gap-4 reveal">
+      <div class="grid md:grid-cols-4 gap-4 reveal">
         <div class="card p-5">
           <div class="text-xs font-mono text-[var(--accent)] mb-2">STEP 1</div>
           <h4 class="text-base mb-2">Set up your show</h4>
-          <p class="text-sm">Pick the tone, voice, look, and format. One time only, about 10 minutes.</p>
+          <p class="text-sm">Tone, voices, look, format. One time, about 10 minutes.</p>
         </div>
         <div class="card p-5">
           <div class="text-xs font-mono text-[var(--accent)] mb-2">STEP 2</div>
-          <h4 class="text-base mb-2">Give it a topic</h4>
-          <p class="text-sm">One line of text. The AI writes the episode in your show's voice.</p>
+          <h4 class="text-base mb-2">Type a topic</h4>
+          <p class="text-sm">One line. The LLM writes a full episode in your show's voice.</p>
         </div>
         <div class="card p-5">
           <div class="text-xs font-mono text-[var(--accent)] mb-2">STEP 3</div>
-          <h4 class="text-base mb-2">Review (if you want)</h4>
-          <p class="text-sm">Adjust any scene, redo a picture, swap voices, change captions.</p>
+          <h4 class="text-base mb-2">Let it run</h4>
+          <p class="text-sm">Script → voice → scenes → captions → thumbnail. Live progress bar at the bottom of the screen.</p>
         </div>
         <div class="card p-5">
           <div class="text-xs font-mono text-[var(--accent)] mb-2">STEP 4</div>
-          <h4 class="text-base mb-2">Let it run</h4>
-          <p class="text-sm">Six steps run in the background. You can keep working — there's a live progress bar at the bottom of the screen.</p>
-        </div>
-        <div class="card p-5">
-          <div class="text-xs font-mono text-[var(--accent)] mb-2">STEP 5</div>
           <h4 class="text-base mb-2">Post it</h4>
-          <p class="text-sm">One click to YouTube, schedule for later, or just save the MP4 to your computer.</p>
+          <p class="text-sm">One click to YouTube, schedule for later, or save the MP4.</p>
         </div>
-      </div>
-
-      <div class="img-slot mt-12 reveal" data-aspect="21/9" data-hint="workflow-activity-monitor.png&#10;2100 × 900 · Activity monitor showing 5 episodes rendering in parallel">
-        <img src="/assets/images/workflow-activity-monitor.png" alt="Activity monitor" loading="lazy" />
       </div>
     </div>
   </section>
 
-  <!-- ── Hardware reality ─────────────────────────────────── -->
-  <section id="hardware" class="section border-y border-white/[0.04]">
-    <div class="container-lg">
-      <div class="text-center max-w-2xl mx-auto mb-12 reveal">
-        <span class="eyebrow mb-4">What it actually takes</span>
-        <h2 class="display-section mt-4 mb-4">Drevalis itself is light. ComfyUI is what eats your GPU.</h2>
-        <p class="lead">The app, the worker, FFmpeg, the SQLite database and Redis sidecar together use about as much CPU as a Chrome tab with a few videos open. Scenes are the expensive step — whatever ComfyUI workflow you pick decides your hardware ceiling, not us.</p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-5 reveal">
-        <div class="card p-6">
-          <span class="pill pill-green mb-3">Light path</span>
-          <h4 class="mt-3 mb-2">Audiobooks · still-image Shorts</h4>
-          <p class="text-sm text-[var(--txt-secondary)]">Any modern laptop works. Use Edge or Kokoro TTS, a remote LLM (Claude / ChatGPT / LM Studio over LAN), and skip animated scenes. Output in minutes, not hours, with no local GPU.</p>
-        </div>
-        <div class="card p-6">
-          <span class="pill pill-amber mb-3">Local GPU path</span>
-          <h4 class="mt-3 mb-2">Run everything on one box</h4>
-          <p class="text-sm text-[var(--txt-secondary)]">An NVIDIA card with 12 GB+ VRAM (RTX 4070 / 3090 / 4080 / 4090 territory) and 32 GB system RAM is the sweet spot. Image scenes are fast; animated video scenes are tight on 8 GB VRAM — workable for Shorts, slow for long-form.</p>
-        </div>
-        <div class="card p-6">
-          <span class="pill pill-purple mb-3">Cloud GPU path</span>
-          <h4 class="mt-3 mb-2">Rent only when you need it</h4>
-          <p class="text-sm text-[var(--txt-secondary)]">On the Pro plan, point Drevalis at a RunPod / Vast.ai pod. The app stays on your laptop; the heavy ComfyUI workflow runs on rented hardware by the hour. Stop the pod when you're done generating.</p>
-        </div>
-      </div>
-
-      <p class="small-muted text-center mt-8 reveal">No benchmark table here — generation time is dominated by the ComfyUI workflow you choose. SDXL vs. SD 1.5 vs. video diffusion all behave differently; quoting times we measured on one workflow would mislead anyone running a different one.</p>
-    </div>
-  </section>
-
-  <!-- ── Example gallery ──────────────────────────────────── -->
+  <!-- ── Real examples ────────────────────────────────────── -->
   <section class="section" id="examples">
     <div class="container-xl">
       <div class="text-center max-w-2xl mx-auto mb-10 reveal">
-        <span class="eyebrow mb-3">Real videos</span>
+        <span class="eyebrow mb-3">Real output</span>
         <h2 class="display-section mt-3 mb-3">See what it actually produces.</h2>
-        <p class="lead">Every clip below was made by Drevalis from start to finish — script, voice, visuals, captions, thumbnail. Click any one to watch right here. Nothing goes to YouTube, it's all hosted on this page.</p>
+        <p class="lead">Every clip below was made by Drevalis end-to-end — script, voice, visuals, captions, thumbnail. Click any tile to watch it inline.</p>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4 reveal" data-example-gallery>
         <!-- Rendered by site.js from /data/examples.json. Placeholder
@@ -457,179 +259,51 @@
     </div>
   </section>
 
-  <!-- ── Voice library preview ────────────────────────────── -->
-  <section class="section-compact" id="voices">
-    <div class="container-xl">
-      <div class="text-center max-w-2xl mx-auto mb-10 reveal">
-        <span class="eyebrow mb-3">Voices</span>
-        <h2 class="display-section mt-3 mb-3">Hundreds of voices, all on your computer.</h2>
-        <p class="lead">Natural-sounding voices come built in — no monthly limits, no paying per character. Hit play on a few of them:</p>
-      </div>
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 reveal" data-voice-previews>
-        <!-- Rendered by site.js from /data/voices.json. Each card has a
-             real .wav sample generated by the pipeline. -->
-        <div class="card p-5 voice-preview-placeholder">
-          <div class="text-sm text-[var(--txt-muted)]">Voice samples loading…</div>
-        </div>
-      </div>
-      <p class="small-muted text-center mt-6 reveal">
-        Paid plans also unlock ElevenLabs (top-tier studio voices) and voice cloning — record 30 seconds and get a voice that sounds like you.
-      </p>
-    </div>
-  </section>
-
   <!-- ── Pricing (shared block, 1:1 with /pricing) ─────────── -->
-  <section id="pricing" class="section">
+  <section id="pricing" class="section border-t border-white/[0.04]">
     <div class="container-xl">
       <div class="text-center max-w-2xl mx-auto mb-14 reveal">
         <span class="eyebrow mb-4">Pricing</span>
         <h2 class="display-section mt-4 mb-4">Pick the plan that fits.</h2>
-        <p class="lead">Pay monthly or yearly. Card, PayPal, Apple Pay — whatever's easiest. We charge in Swiss Francs; your bank converts at checkout.</p>
+        <p class="lead">Pay monthly or yearly. Card, PayPal, Apple Pay — whatever's easiest. Billed in Swiss Francs.</p>
       </div>
 
-      <!-- Identical markup to /pricing — injected from /assets/pricing-block.html -->
       <div data-pricing-block>
         <noscript>
-          <p class="text-center lead">
-            <a href="/pricing">See full pricing →</a>
-          </p>
+          <p class="text-center lead"><a href="/pricing">See full pricing →</a></p>
         </noscript>
       </div>
 
       <p class="text-center small-muted mt-6">
-        See the <a href="/pricing" class="underline">full feature comparison</a> · Cancel anytime · VAT/MWST automatic
+        <a href="/pricing" class="underline">Full feature comparison →</a> · Cancel anytime · VAT/MWST automatic
       </p>
     </div>
   </section>
 
-  <!-- ── "What it does NOT do" — honesty block ──────────────── -->
+  <!-- ── Honest "doesn't do" ──────────────────────────────── -->
   <section class="section">
     <div class="container-lg">
-      <div class="card p-10 md:p-14 reveal" style="border-color: rgba(251, 191, 36, 0.25); background: linear-gradient(135deg, rgba(251, 191, 36, 0.04), rgba(20, 22, 27, 0.85));">
+      <div class="card p-10 md:p-12 reveal" style="border-color: rgba(251, 191, 36, 0.25); background: linear-gradient(135deg, rgba(251, 191, 36, 0.04), rgba(20, 22, 27, 0.85));">
         <span class="pill pill-amber mb-4">Honest first</span>
         <h2 class="display-section mt-3 mb-4">What Drevalis <em>doesn't</em> do.</h2>
-        <p class="lead mb-10">It's cheaper to be honest now than to refund you later. Here's what this app isn't.</p>
+        <p class="lead mb-10">Cheaper to be honest now than to refund you later.</p>
         <div class="grid md:grid-cols-2 gap-5">
           <div>
             <h4 class="mb-2">It won't check copyright for you</h4>
-            <p class="text-sm">The AI generates whatever you ask it for. If it ends up looking like someone's brand or copyrighted character, that's on you to spot before you publish.</p>
+            <p class="text-sm">The AI generates whatever you ask. If something ends up resembling a copyrighted brand or character, that's on you to catch before publishing.</p>
           </div>
           <div>
             <h4 class="mb-2">It's not a cloud backup</h4>
-            <p class="text-sm">Your videos live on your computer — we never see them. The app has a "save everything to one file" button, but it's up to you to keep that file somewhere safe.</p>
+            <p class="text-sm">Your videos live on your computer — we never see them. The "backup to one file" button is up to you to keep somewhere safe.</p>
           </div>
           <div>
-            <h4 class="mb-2">It's not magic</h4>
-            <p class="text-sm">Good videos still need good ideas, good voices, and good visuals. The app saves you 90% of the mechanical work — picking what's worth making is still up to you.</p>
+            <h4 class="mb-2">It doesn't disclose AI for you</h4>
+            <p class="text-sm">YouTube, TikTok, and Instagram each have their own rules about disclosing AI-generated content. You handle the disclosure; the app just hands the MP4 to the upload endpoint.</p>
           </div>
           <div>
-            <h4 class="mb-2">It doesn't follow platform rules for you</h4>
-            <p class="text-sm">YouTube, TikTok, and Instagram each have their own rules about disclosing AI-made content. You follow them — the app just hands the file to the upload button.</p>
+            <h4 class="mb-2">It stops when you cancel</h4>
+            <p class="text-sm">7-day grace period — everything keeps working. After that, no new videos and no updates until you renew. Old videos stay on your disk forever, untouched.</p>
           </div>
-          <div>
-            <h4 class="mb-2">It might not work on weird setups</h4>
-            <p class="text-sm">Tested on regular Mac, Windows, and Linux machines. If you're behind a strict company firewall or running unusual software, support is best-effort.</p>
-          </div>
-          <div>
-            <h4 class="mb-2">It stops after you cancel</h4>
-            <p class="text-sm">You get a 7-day grace period — everything keeps working. After that, you can't make new videos or get updates until you renew. Your old videos stay on your disk forever, untouched.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Why self-hosted ──────────────────────────────────── -->
-  <section class="section-compact">
-    <div class="container-lg">
-      <div class="grid md:grid-cols-3 gap-8 reveal">
-        <div>
-          <div class="w-10 h-10 rounded-md bg-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--accent)]">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h4 class="mb-2">Your stuff stays yours</h4>
-          <p class="text-sm">Scripts, voices, AI models, channel logins — everything's on your computer. Drevalis can't see or change any of it.</p>
-        </div>
-        <div>
-          <div class="w-10 h-10 rounded-md bg-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--accent)]">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          </div>
-          <h4 class="mb-2">Your computer, your cost</h4>
-          <p class="text-sm">One flat price. The work happens on your machine — no charge per video. Need extra power? Rent a cloud GPU only when you actually need it.</p>
-        </div>
-        <div>
-          <div class="w-10 h-10 rounded-md bg-[var(--accent)]/10 flex items-center justify-center mb-4 text-[var(--accent)]">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
-          </div>
-          <h4 class="mb-2">Not stuck with us</h4>
-          <p class="text-sm">Don't like the AI we picked? Swap it for another one. The app just glues together open tools — nothing is locked to Drevalis.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Roadmap ──────────────────────────────────────────── -->
-  <section id="roadmap" class="section border-t border-white/[0.04]">
-    <div class="container-xl">
-      <div class="text-center max-w-2xl mx-auto mb-14 reveal">
-        <span class="eyebrow mb-4">Roadmap</span>
-        <h2 class="display-section mt-4 mb-4">What's next.</h2>
-        <p class="lead">Plans, not promises. We move things up the list based on what paying customers ask for.</p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-5 reveal">
-        <div class="card p-7">
-          <span class="pill pill-green mb-3">Just shipped</span>
-          <h4 class="mt-3 mb-4 text-base">Q2 2026 – Q1 2027</h4>
-          <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>✓ Step-by-step setup the first time you open the app</li>
-            <li>✓ Pull YouTube view counts back into the dashboard</li>
-            <li>✓ Edit thumbnails inside the app</li>
-            <li>✓ Save the source files (script, voice, scenes) as a ZIP</li>
-            <li>✓ TikTok direct upload</li>
-            <li>✓ Post to multiple platforms at once</li>
-            <li>✓ Drag-and-drop calendar for scheduling</li>
-            <li>✓ Upload your own music; it auto-quiets under speech</li>
-            <li>✓ Dashboard for usage and compute time</li>
-            <li>✓ A/B-test two titles and let the app pick the winner</li>
-            <li>✓ Rent cloud GPUs from RunPod, Vast.ai, or Lambda Labs</li>
-            <li>✓ Scripts and voices in many languages</li>
-            <li>✓ Team mode with owner / editor / viewer roles</li>
-            <li>✓ Single library for all your reference files (no duplicates)</li>
-            <li>✓ Drop in a long recording, the app picks the best 30–60 second clip</li>
-            <li>✓ Use a reference image to lock in a look per scene</li>
-            <li>✓ Title and thumbnail score before you upload, plus AI alternatives</li>
-            <li>✓ Tweak any scene's style, seed, or voice emotion</li>
-            <li>✓ Built-in video editor with timeline, trim, split, drag, undo</li>
-            <li>✓ Add text, shapes, and overlay images to your videos</li>
-            <li>✓ Edit captions word by word — color, size, emphasis</li>
-            <li>✓ See the audio waveform; draw volume up and down with your mouse</li>
-            <li>✓ Lightweight preview while editing, smooth scrubbing</li>
-            <li>✓ Lock a character's face and a show's look across all scenes</li>
-            <li>✓ ElevenLabs voice cloning — record 30 seconds, get your voice</li>
-          </ul>
-        </div>
-        <div class="card p-7">
-          <span class="pill pill-amber mb-3">Next up</span>
-          <h4 class="mt-3 mb-4 text-base">Q2 2027</h4>
-          <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>— <strong class="text-[var(--txt-primary)]">Easier asset picker</strong> when setting up your show — browse and preview instead of pasting IDs</li>
-            <li>— <strong class="text-[var(--txt-primary)]">Built-in face and style consistency</strong>: ready-made templates so locking a character's look just works</li>
-            <li>— <strong class="text-[var(--txt-primary)]">Smoother voice cloning</strong>: record straight from your mic, hear it instantly, redo in one click</li>
-            <li>— Animate scenes using a reference video clip</li>
-            <li>— Brush over part of a generated image to redraw just that section</li>
-          </ul>
-        </div>
-        <div class="card p-7">
-          <span class="pill pill-purple mb-3">Exploring</span>
-          <h4 class="mt-3 mb-4 text-base">Later</h4>
-          <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>— Public, documented connection for power users to plug into</li>
-            <li>— On-screen AI avatars that talk and lip-sync</li>
-            <li>— A version we host for you (nothing to install)</li>
-            <li>— Train your own voice on top of free local voices, automatically</li>
-          </ul>
-          <p class="small-muted mt-4">Want one of these sooner? Email <a href="mailto:support@drevalis.com?subject=Roadmap">support@drevalis.com</a>.</p>
         </div>
       </div>
     </div>
@@ -642,27 +316,23 @@
       <div class="card divide-y divide-white/[0.05] reveal">
         <details class="faq-item">
           <summary>What kind of computer do I need?</summary>
-          <p>The app itself is light — Windows 10/11, 8 GB RAM, any recent CPU. For image and video scenes you need either a local NVIDIA GPU with 12 GB+ VRAM, or a rented cloud GPU (Pro plan). Audiobooks and still-image Shorts run fine on a laptop without a graphics card. See <a href="#hardware">the hardware section</a> for the three paths.</p>
+          <p>Windows 10 (22H2+) or Windows 11, 8 GB RAM, any recent CPU. Image and video scenes want an NVIDIA GPU with 12 GB+ VRAM, or a rented cloud GPU (Pro plan). Audiobooks and still-image Shorts run fine without a GPU. See the <a href="/download">Download page</a> for full system requirements.</p>
         </details>
         <details class="faq-item">
-          <summary>Do I need to install other software too?</summary>
-          <p>For scenes, yes: <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank" rel="noopener">ComfyUI</a> (free, separate install). For scripts, either a local LLM (LM Studio / Ollama, free) or a cloud one (Claude, OpenAI — you bring the API key). FFmpeg and Redis come bundled inside the Drevalis installer — you don't install those separately.</p>
-        </details>
-        <details class="faq-item">
-          <summary>Can I upgrade or cancel later?</summary>
-          <p>Yes. Go to <a href="/account">drevalis.com/account</a> any time. From there you can change plans, switch your payment method, cancel, or download invoices.</p>
-        </details>
-        <details class="faq-item">
-          <summary>What happens if I stop paying?</summary>
-          <p>7-day grace period where everything keeps working. After that, you can't make new videos or get updates until you renew. Old videos stay on your computer forever — nothing is deleted, nothing is sent anywhere.</p>
+          <summary>Do I need to install other software?</summary>
+          <p>For scenes: <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank" rel="noopener">ComfyUI</a> (free, separate install). For scripts: a local LLM (LM Studio / Ollama, free) or a cloud one (Claude / OpenAI — you bring the API key). FFmpeg and Redis come bundled inside the installer.</p>
         </details>
         <details class="faq-item">
           <summary>Does any of my data get sent to you?</summary>
-          <p>No. Scripts, voices, videos, and your channel logins all stay on your computer. The only thing our servers do is check your subscription is active — once a day, just a yes/no. <a href="/privacy">Read the privacy policy</a>.</p>
+          <p>No. Scripts, voices, videos, and channel credentials stay on your computer. Our servers only check your subscription is active — once a day, just a yes/no. <a href="/privacy">Privacy policy →</a></p>
+        </details>
+        <details class="faq-item">
+          <summary>Can I cancel anytime?</summary>
+          <p>Yes. <a href="/account">drevalis.com/account</a> — change plans, switch payment method, cancel, or download invoices. After cancellation everything keeps working for 7 days, then stops issuing updates and new generations.</p>
         </details>
         <details class="faq-item">
           <summary>Is it legal to publish AI-generated videos?</summary>
-          <p>Depends on where you are, where you're posting, and what's in the video. YouTube and TikTok make you disclose AI content that might be mistaken for real. You're responsible for the disclosure and for not copying someone else's work or pretending to be a real person. See our <a href="/acceptable-use">Acceptable Use</a> page for the details.</p>
+          <p>Depends on jurisdiction, platform, and what's in the video. You're responsible for the disclosure and for not impersonating real people or copying others' work. <a href="/acceptable-use">Acceptable Use →</a></p>
         </details>
       </div>
     </div>
@@ -675,7 +345,7 @@
         <div class="bg-glow" style="background: var(--accent); top: -60px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; opacity: 0.25;"></div>
         <div class="relative z-10">
           <h2 class="display-section mb-4">Stop editing. Start publishing.</h2>
-          <p class="lead max-w-lg mx-auto mb-8">Cancel any time. We don't keep your card.</p>
+          <p class="lead max-w-lg mx-auto mb-8">Cancel any time. We don't store your card.</p>
           <div class="flex flex-wrap items-center justify-center gap-3">
             <a href="/pricing" class="btn btn-primary btn-lg">Pick a plan</a>
             <a href="/download" class="btn btn-secondary btn-lg">Download for Windows</a>
@@ -703,7 +373,6 @@
         <ul class="site-footer-list">
           <li><a href="/#features">Features</a></li>
           <li><a href="/#workflow">How it works</a></li>
-          <li><a href="/#hardware">Hardware</a></li>
           <li><a href="/pricing">Pricing</a></li>
           <li><a href="/download">Download</a></li>
         </ul>

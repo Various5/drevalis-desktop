@@ -56,19 +56,51 @@ export interface TauriUpdateInfo {
 }
 
 /**
+ * Resolve the running app's version via Tauri's app API. Lives separate
+ * from the updater check because the plugin only exposes ``currentVersion``
+ * on the ``Update`` object it returns when an update *is* available — when
+ * ``check()`` returns ``null`` (you're on or above the latest), we'd
+ * otherwise have no way to display the installed version, and the
+ * Settings → Updates UI showed a bare "-" for both Installed and Latest.
+ */
+async function _getRunningAppVersion(): Promise<string | undefined> {
+  if (!isTauri()) return undefined;
+  try {
+    const { getVersion } = await import('@tauri-apps/api/app');
+    return await getVersion();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Ask the Tauri updater plugin whether a newer signed release is on the
  * configured GitHub Releases endpoint. Returns ``{available: false}`` in
  * browser mode -- callers should keep their legacy code path for that.
+ *
+ * Always populates ``currentVersion`` (via the Tauri app API) regardless
+ * of whether an update is offered, so the Updates UI can always show
+ * the installed version. Without this, the plugin's ``null`` return
+ * (no update available) leaves the UI with "-" for the installed
+ * version even though the app obviously has one.
  */
 export async function checkTauriUpdate(): Promise<TauriUpdateInfo> {
   if (!isTauri()) return { available: false };
   const { check } = await import('@tauri-apps/plugin-updater');
-  const update = await check();
-  if (!update) return { available: false };
+  const [update, runningVersion] = await Promise.all([
+    check(),
+    _getRunningAppVersion(),
+  ]);
+  if (!update) {
+    return { available: false, currentVersion: runningVersion };
+  }
   return {
     available: true,
     version: update.version,
-    currentVersion: update.currentVersion,
+    // ``update.currentVersion`` should match runningVersion, but prefer
+    // the plugin's value when available since it was the one the
+    // manifest was compared against; fall back to the runtime version.
+    currentVersion: update.currentVersion ?? runningVersion,
     body: update.body ?? undefined,
     date: update.date ?? undefined,
   };

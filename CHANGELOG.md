@@ -12,6 +12,31 @@ Pre-1.0 releases are alpha-tagged.
 ## [Unreleased]
 
 ### Fixed
+- **Settings → Updates showed "-" for the Installed version and falsely
+  reported "you're on the latest" when no update was available.** The
+  Tauri updater plugin's ``check()`` returns ``null`` when the running
+  version is at-or-above the manifest's, and our wrapper was throwing
+  away the running version in that branch — the UI then had no
+  ``currentVersion`` to render. ``checkTauriUpdate`` now always
+  resolves the running version via ``@tauri-apps/api/app::getVersion``
+  alongside the manifest check, so the Installed field always shows
+  a real version regardless of whether an update is offered. (The
+  parallel root cause — alpha.9/10/11 being drafted but not promoted
+  to "Latest" on GitHub, so the manifest was still serving alpha.8 —
+  is fixed by promoting this release.)
+
+### Changed
+- **Marketing site (drevalis.com) overhauled.** Cut by half: removed
+  the 16-card "Plus the small things" grid, the dummy voice-library
+  preview, the full hardware breakdown (moved to /download), the
+  self-hosted card row, the 25-item roadmap, and the FAQ JSON-LD
+  keyword-stuff. Every fake ``<img src>`` swapped for a labeled
+  ``.img-slot`` placeholder so the next designer pass knows exactly
+  what shot belongs where. Real-output gallery kept (real MP4s
+  ship under ``/assets/examples/``). Pricing block, FAQ, and the
+  "what it doesn't do" honesty card trimmed and kept.
+
+### Fixed
 - **Backend console window appeared next to the Tauri webview on
   Windows, and closing it killed the app.** The PyInstaller bundle is a
   console-subsystem executable, so a vanilla ``Command::spawn`` from
