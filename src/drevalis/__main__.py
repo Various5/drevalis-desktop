@@ -301,11 +301,20 @@ def _run_migrations_inproc() -> int:
 
     from drevalis.core.binaries import resources_root
     from drevalis.core.config import Settings
+    from drevalis.core.paths import ensure_user_dirs
 
     # Import ``drevalis.models`` so every ORM class registers its table
     # on ``Base.metadata``. Done before the engine is created so the
     # heal step below has a complete picture.
     from drevalis import models as _models  # noqa: F401
+
+    # Create %LOCALAPPDATA%\Drevalis\ (and friends) before SQLite tries
+    # to open the DB. Both API and worker call this at startup, but the
+    # migrate subprocess runs *before* either of them, so on a fresh
+    # install the parent directory doesn't exist yet and alembic dies
+    # with ``OperationalError: unable to open database file``. Calling
+    # it here makes the migrate step self-contained.
+    ensure_user_dirs()
 
     settings = Settings()
     migrations_dir = resources_root() / "migrations"
