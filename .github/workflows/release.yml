@@ -44,11 +44,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up uv (Python ${{ env.PYTHON_VERSION }})
+      - name: Set up uv
         uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
+
+      - name: Install Python ${{ env.PYTHON_VERSION }} via uv
+        run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Set up Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -106,8 +108,15 @@ jobs:
 
       - name: Smoke-test backend bundle
         shell: pwsh
-        run: dist/drevalis/drevalis.exe healthcheck
-        continue-on-error: true # report-only -- ComfyUI/Piper not present in CI
+        # ``migrate`` exercises the full PyInstaller bundle (imports,
+        # bundled migrations/, alembic, SQLAlchemy, and the schema-heal
+        # pass in __main__.py) against a fresh SQLite DB under the
+        # runner's %LOCALAPPDATA%\Drevalis, then exits 0 on success.
+        # We deliberately don't run ``healthcheck`` here because it
+        # probes external services (Redis, ComfyUI, LM Studio) which
+        # are intentionally absent in CI -- the resulting FAILs were
+        # misleading noise.
+        run: dist/drevalis/drevalis.exe migrate
 
       - name: Verify frontend SPA bundled into backend
         shell: pwsh

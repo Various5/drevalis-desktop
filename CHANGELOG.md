@@ -11,6 +11,21 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed
+- **Fresh installs were starting with an empty SQLite database.**
+  Inside the PyInstaller bundle, `alembic upgrade head` raised before
+  any baseline table was created; the launcher's schema-heal pass was
+  positioned *after* the alembic call and therefore never ran, leaving
+  the worker and API to loop on `OperationalError: no such table:
+  comfyui_servers / license_state / …`. `_run_migrations_inproc` now
+  catches alembic failures, always runs the model-metadata heal, and
+  stamps `alembic_version` at head after a heal-only path so the
+  *next* tagged migration chains cleanly. The two-phase design is now
+  documented in the function's docstring as load-bearing rather than
+  defensive. *(Affected alpha.7 + alpha.8 fresh installs; upgrade
+  installs from alpha.5/6 were unaffected because alembic_version was
+  already stamped.)*
+
 ### Added
 - Root `README.md` covering install, build-from-source, repo layout,
   licensing model, and dev-mode `DREVALIS_LICENSE_BYPASS`.

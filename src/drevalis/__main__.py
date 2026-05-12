@@ -274,17 +274,27 @@ def _run_migrations_inproc() -> int:
     DATABASE_URL. The launcher invokes this once before spawning api +
     worker so neither child queries an unmigrated schema.
 
-    After alembic completes, runs a **schema heal** pass: imports every
-    ORM model so all tables register on ``Base.metadata``, reflects the
-    live database, and creates any table that the current models
-    expect but the DB is missing. This covers the case where an early
-    alpha install stamped ``alembic_version`` to a baseline revision
-    that has since been edited to include additional tables — alembic
-    sees "already at head" and skips them, so the API later 500s on
-    "no such table". ``create_all(checkfirst=True)`` is idempotent and
-    only touches tables that don't exist; it never modifies existing
-    schema (column drift still requires a real migration).
+    Two-phase design (alembic + schema-heal) for one reason: alembic
+    occasionally fails inside the PyInstaller bundle (env.py asyncio
+    path, frozen module resolution, or a stamped-but-edited baseline)
+    and any such failure used to leave the DB empty and the install
+    bricked. The heal pass now runs **unconditionally**:
+
+    1. Try alembic upgrade -> head. If it works, great.
+    2. Then (or instead) reflect the live DB, compare to
+       ``Base.metadata``, and ``create_all(checkfirst=True)`` any
+       missing tables. ``checkfirst=True`` only touches absent tables
+       and never modifies existing schema.
+    3. If alembic failed AND heal created tables, stamp the DB at head
+       so the next upgrade has a known revision to chain from.
+
+    This means a fresh install always boots with a complete schema,
+    even when alembic's own machinery breaks under PyInstaller.
+    Column drift inside an existing table still requires a real
+    migration -- the heal cannot diff column-level changes.
     """
+    import traceback
+
     from alembic import command
     from alembic.config import Config
     from sqlalchemy import create_engine, inspect
@@ -299,24 +309,38 @@ def _run_migrations_inproc() -> int:
 
     settings = Settings()
     migrations_dir = resources_root() / "migrations"
-    if not migrations_dir.is_dir():
-        print(
-            f"[drevalis migrate] migrations dir missing at {migrations_dir}",
-            file=sys.stderr,
-        )
-        return 1
 
-    print(
-        f"[drevalis migrate] applying {migrations_dir} -> {settings.database_url}",
-        flush=True,
-    )
     config = Config()
     config.set_main_option("script_location", str(migrations_dir))
     config.set_main_option("sqlalchemy.url", settings.database_url)
-    command.upgrade(config, "head")
-    print("[drevalis migrate] done", flush=True)
 
-    # ── Schema heal ─────────────────────────────────────────────────
+    alembic_ok = False
+    if migrations_dir.is_dir():
+        print(
+            f"[drevalis migrate] applying {migrations_dir} -> {settings.database_url}",
+            flush=True,
+        )
+        try:
+            command.upgrade(config, "head")
+            alembic_ok = True
+            print("[drevalis migrate] alembic upgrade done", flush=True)
+        except Exception as exc:
+            print(
+                f"[drevalis migrate] alembic upgrade FAILED ({type(exc).__name__}: {exc}); "
+                "schema-heal will create tables from model metadata instead",
+                file=sys.stderr,
+                flush=True,
+            )
+            traceback.print_exc()
+    else:
+        print(
+            f"[drevalis migrate] migrations dir missing at {migrations_dir}; "
+            "falling back to model-metadata heal only",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    # ── Schema heal (always runs) ───────────────────────────────────
     # Build a sync engine against the same URL (alembic + create_all
     # both want a sync driver; aiosqlite is async-only).
     sync_url = settings.database_url.replace("+aiosqlite", "")
@@ -327,13 +351,34 @@ def _run_migrations_inproc() -> int:
         missing = expected - existing
         if missing:
             print(
-                f"[drevalis migrate] schema-heal: alembic was at head but "
-                f"{len(missing)} expected table(s) absent — creating: "
-                f"{', '.join(sorted(missing))}",
+                f"[drevalis migrate] schema-heal: creating "
+                f"{len(missing)} missing table(s): {', '.join(sorted(missing))}",
                 flush=True,
             )
             _models.Base.metadata.create_all(engine, checkfirst=True)
             print("[drevalis migrate] schema-heal done", flush=True)
+
+            # If alembic failed and the heal had to create the schema
+            # from scratch, stamp the DB at head so the *next* tagged
+            # migration upgrades cleanly from a known revision instead
+            # of trying to replay the baseline against tables that
+            # already exist.
+            if not alembic_ok:
+                try:
+                    command.stamp(config, "head")
+                    print(
+                        "[drevalis migrate] stamped alembic_version at head "
+                        "after model-metadata heal",
+                        flush=True,
+                    )
+                except Exception as exc:
+                    print(
+                        f"[drevalis migrate] post-heal stamp failed "
+                        f"({type(exc).__name__}: {exc}); future alembic "
+                        "upgrades may need a manual ``alembic stamp head``",
+                        file=sys.stderr,
+                        flush=True,
+                    )
     finally:
         engine.dispose()
 
