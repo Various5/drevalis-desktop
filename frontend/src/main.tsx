@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { initTelemetry } from './lib/telemetry';
 import { installTauriBridges } from './lib/tauri';
 import './styles/globals.css';
 
@@ -11,6 +12,10 @@ import './styles/globals.css';
 // browser mode -- existing window.open / <a target="_blank"> sites
 // don't need to import anything.
 installTauriBridges();
+
+// Fire-and-forget; telemetry is best-effort and must never block the
+// SPA from rendering if the backend bootstrap fetch fails.
+void initTelemetry();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');

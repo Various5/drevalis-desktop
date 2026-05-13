@@ -1,6 +1,6 @@
 [package]
 name = "drevalis-shell"
-version = "0.1.0-alpha.22"
+version = "0.1.0-alpha.23"
 description = "Tauri shell for Drevalis Creator Studio."
 authors = ["Drevalis"]
 edition = "2021"
@@ -25,6 +25,20 @@ tauri-plugin-opener = "2"
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Crash telemetry. ``default-features = false`` drops the heavy
+# ``backtrace`` / ``contexts`` features we don't need; ``panic`` keeps
+# the panic-hook integration which is the entire reason this crate is
+# here — native Tauri panics now show up in the dashboard alongside
+# Python backend errors. DSN is read at *compile time* via the
+# ``DREVALIS_TELEMETRY_DSN`` env var so CI release builds embed the
+# production DSN while dev builds stay quiet.
+sentry = { version = "0.34", default-features = false, features = [
+    "backtrace",
+    "contexts",
+    "panic",
+    "reqwest",
+    "rustls",
+] }
 
 [features]
 # This feature is used to enable Tauri's custom protocol on Windows

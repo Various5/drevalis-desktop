@@ -153,7 +153,44 @@ fn kill_backend(state: &BackendProcess) {
     let _ = child.wait();
 }
 
+/// Initialise crash telemetry for the Tauri shell process.
+///
+/// DSN is read at compile time via ``option_env!`` so CI release
+/// builds bake in the production Glitchtip DSN while local dev builds
+/// stay quiet. Returns the ``ClientInitGuard`` which must be kept
+/// alive for the duration of the program — Sentry flushes pending
+/// events on drop, so binding to a top-level `let _guard = ...` is
+/// required (an `_` binding drops immediately and skips the flush).
+fn init_telemetry() -> Option<sentry::ClientInitGuard> {
+    let dsn = option_env!("DREVALIS_TELEMETRY_DSN")?;
+    if dsn.is_empty() {
+        return None;
+    }
+    let release = option_env!("CARGO_PKG_VERSION").map(|v| v.to_string());
+    let environment = option_env!("DREVALIS_ENVIRONMENT")
+        .unwrap_or("alpha")
+        .to_string();
+    Some(sentry::init((
+        dsn,
+        sentry::ClientOptions {
+            release: release.map(Into::into),
+            environment: Some(environment.into()),
+            // Hard PII off — desktop user is the data subject; the
+            // Python backend SDK uses the same posture.
+            send_default_pii: false,
+            // Capture native panics. Default panic-hook integration
+            // is wired by the ``panic`` feature in Cargo.toml.
+            attach_stacktrace: true,
+            ..Default::default()
+        },
+    )))
+}
+
 fn main() {
+    // Bind the guard at top-level main scope so it lives until program
+    // exit; Sentry's flush-on-drop only runs while the guard is held.
+    let _telemetry_guard = init_telemetry();
+
     let context = tauri::generate_context!();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())

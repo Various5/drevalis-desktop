@@ -38,6 +38,16 @@ async def startup(ctx: dict[str, Any]) -> None:
 
     settings = Settings()
 
+    # Telemetry first — capture worker crashes during own startup.
+    from drevalis.core.telemetry import init_telemetry
+
+    init_telemetry(
+        component="worker",
+        dsn=settings.telemetry_dsn,
+        enabled=settings.telemetry_enabled,
+        environment=settings.telemetry_environment,
+    )
+
     # Same OS-aware directories the FastAPI lifespan creates — idempotent
     # so it's safe to run from both processes.
     from drevalis.core.binaries import prepend_bundled_bin_to_path

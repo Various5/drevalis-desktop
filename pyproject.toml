@@ -50,6 +50,9 @@ dependencies = [
     "Pillow>=10.0.0",
     # ID3 metadata + chapter markers for audiobook MP3 output.
     "mutagen>=1.47.0",
+    # Crash + error telemetry. Speaks both Sentry SaaS and self-hosted
+    # Glitchtip; the DSN env var picks which backend events go to.
+    "sentry-sdk[fastapi]>=2.20.0",
 ]
 
 [project.optional-dependencies]

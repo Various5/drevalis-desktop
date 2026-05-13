@@ -26,6 +26,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan — startup and shutdown logic."""
     settings = Settings()
 
+    # ── Telemetry (first, so subsequent startup errors are captured) ─────
+    from drevalis.core.telemetry import init_telemetry
+
+    init_telemetry(
+        component="api",
+        dsn=settings.telemetry_dsn,
+        enabled=settings.telemetry_enabled,
+        environment=settings.telemetry_environment,
+    )
+
     # ── Startup ───────────────────────────────────────────────────────────
     # Create the OS-aware user directories before anything that writes to
     # them (logs, SQLite DB, storage). Idempotent.

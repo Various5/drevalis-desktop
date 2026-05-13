@@ -24,6 +24,7 @@ import { UpdatesSection } from '@/pages/Settings/sections/UpdatesSection';
 import { BackupSection } from '@/pages/Settings/sections/BackupSection';
 import { TeamSection } from '@/pages/Settings/sections/TeamSection';
 import { AppearanceSection } from '@/pages/Settings/sections/AppearanceSection';
+import { PrivacySection } from '@/pages/Settings/sections/PrivacySection';
 import { HealthSection } from '@/pages/Settings/sections/HealthSection';
 import { ComfyUISection } from '@/pages/Settings/sections/ComfyUISection';
 import { VoiceSection } from '@/pages/Settings/sections/VoiceSection';
@@ -58,6 +59,7 @@ type SectionId =
   | 'backup'
   | 'updates'
   | 'templates'
+  | 'privacy'
   | 'diagnostics';
 
 interface SectionDef {
@@ -87,6 +89,13 @@ const SECTION_GROUPS: SectionGroupDef[] = [
     id: 'appearance-group',
     label: 'Appearance',
     sections: [{ id: 'appearance', label: 'Theme', icon: Palette }],
+  },
+  {
+    id: 'privacy-group',
+    label: 'Privacy',
+    sections: [
+      { id: 'privacy', label: 'Crash reporting', icon: ShieldCheck },
+    ],
   },
   {
     id: 'integrations',
@@ -222,6 +231,7 @@ function Settings() {
         <div className="md:col-span-9">
           {activeSection === 'license' && <LicenseSection />}
           {activeSection === 'appearance' && <AppearanceSection />}
+          {activeSection === 'privacy' && <PrivacySection />}
           {activeSection === 'team' && <TeamSection />}
           {activeSection === 'updates' && <UpdatesSection />}
           {activeSection === 'backup' && <BackupSection />}

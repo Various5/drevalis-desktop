@@ -30,6 +30,7 @@ from drevalis.api.routes.schedule import router as schedule_router
 from drevalis.api.routes.series import router as series_router
 from drevalis.api.routes.settings import router as settings_router
 from drevalis.api.routes.social import router as social_router
+from drevalis.api.routes.telemetry import router as telemetry_router
 from drevalis.api.routes.updates import router as updates_router
 from drevalis.api.routes.video_ingest import router as video_ingest_router
 from drevalis.api.routes.video_templates import router as video_templates_router
@@ -78,6 +79,7 @@ if _os_updates.environ.get("DREVALIS_DESKTOP_MODE", "1") == "0":
     router.include_router(updates_router)
 router.include_router(metrics_router)
 router.include_router(settings_router)
+router.include_router(telemetry_router)
 router.include_router(api_keys_router)
 router.include_router(runpod_router)
 router.include_router(social_router)

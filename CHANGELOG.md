@@ -11,6 +11,51 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.23 — crash telemetry)
+- **Sentry/Glitchtip SDK wired in all three processes.** Now when
+  something goes wrong we find out before the user has to type it in.
+  - **Python backend** (``src/drevalis/core/telemetry.py``) — single
+    ``init_telemetry()`` entry point called from the FastAPI
+    ``lifespan`` (api child), the arq worker ``startup`` hook
+    (worker child), and the launcher ``main()`` (so crashes during
+    bootstrap before the API is up are still captured). Gated on
+    ``Settings.telemetry_enabled`` AND ``Settings.telemetry_dsn`` —
+    when no DSN is configured the SDK is never imported, no network
+    connections happen, no PII is read. ``before_send`` /
+    ``before_breadcrumb`` hooks scrub ``Authorization``,
+    ``X-Api-Key``, ``X-License-Key``, and ``Cookie`` headers
+    server-side as defense-in-depth.
+  - **Frontend** (``frontend/src/lib/telemetry.ts``,
+    ``@sentry/browser``) — bootstraps from
+    ``GET /api/v1/telemetry/bootstrap`` so the operator can flip the
+    destination without re-shipping the SPA bundle.
+    ``sendDefaultPii: false``, ``tracesSampleRate: 0``, breadcrumb
+    redaction mirrors the backend.
+  - **Tauri/Rust shell** (``sentry 0.34``) — DSN read at *compile*
+    time via ``option_env!("DREVALIS_TELEMETRY_DSN")`` so CI release
+    builds bake in the production DSN while dev builds stay quiet.
+    Captures native panics via the ``panic`` integration. Guard is
+    bound at top-level ``main()`` so the flush-on-drop fires on
+    program exit.
+- **Settings → Privacy → Crash reporting** section with a toggle that
+  persists to ``user.preferences["telemetry_opt_out"]``. The
+  bootstrap endpoint AND-s the opt-out flag with
+  ``Settings.telemetry_enabled``; opt-out takes effect immediately
+  for the frontend and on next launch for the backend SDK.
+- **``GET /api/v1/telemetry/bootstrap``** — single endpoint the
+  frontend hits on load to discover whether to initialise telemetry
+  and which DSN to use. Always returns 200 (including when disabled)
+  so the SPA has a deterministic call shape.
+- **New ``Settings`` fields** (env-loaded):
+  ``DREVALIS_TELEMETRY_DSN``, ``DREVALIS_TELEMETRY_ENABLED`` (default
+  ``True``), ``DREVALIS_TELEMETRY_ENVIRONMENT`` (default ``alpha``).
+  Works with any Sentry-compatible backend — Sentry SaaS, self-hosted
+  Sentry, or Glitchtip — since they all speak the same protocol.
+
+  **Follow-up:** self-hosted Glitchtip on the ``drevalis.com`` VPS
+  (subdomain ``errors.drevalis.com``) is queued as a separate task.
+  Until that lands users supply their own DSN.
+
 ### Security (alpha.22 — revert broken advanced CodeQL setup)
 - **alpha.21's CodeQL advanced workflow failed on push** with
   ``CodeQL analyses from advanced configurations cannot be processed

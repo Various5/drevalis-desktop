@@ -182,6 +182,21 @@ class Settings(BaseSettings):
     # send (and logs a warning) rather than emitting a broken link.
     app_base_url: str | None = None
 
+    # ── Telemetry (Sentry / Glitchtip) ───────────────────────────────────
+    # DSN of the Sentry-compatible error-tracking backend. When unset,
+    # the SDK is never initialised and no network traffic happens. The
+    # value can be a Sentry SaaS DSN or a self-hosted Glitchtip DSN —
+    # both speak the same protocol. Set via ``DREVALIS_TELEMETRY_DSN``.
+    telemetry_dsn: str | None = None
+    # User-facing kill switch surfaced in Settings → Privacy. When
+    # ``False``, telemetry stays off even if a DSN is configured.
+    # Defaults to ``True`` during alpha so we catch crashes by default;
+    # the onboarding wizard exposes the toggle prominently.
+    telemetry_enabled: bool = True
+    # Tag on every event. ``alpha`` / ``beta`` / ``production``. Falls
+    # back to ``DREVALIS_ENVIRONMENT`` env, then ``"alpha"``.
+    telemetry_environment: str = "alpha"
+
     # ── Demo mode ────────────────────────────────────────────────────────
     # When ``True`` the backend runs the public-facing demo shape:
     #   * ``generate_episode`` is replaced by a fake state machine that

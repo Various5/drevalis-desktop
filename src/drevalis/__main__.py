@@ -255,6 +255,21 @@ def main() -> NoReturn:
     _redirect_stdio_to_launcher_log_if_no_console()
     _force_utf8_stdio()
 
+    # Telemetry FIRST so a crash in startup wiring (path setup, binary
+    # detection, settings parsing) still surfaces in the dashboard.
+    # Gated on env vars — Settings isn't loaded yet at this point and
+    # we don't want to drag the full pydantic config in just for
+    # telemetry init.
+    from drevalis.core.telemetry import init_telemetry
+
+    init_telemetry(
+        component="launcher",
+        # ``DREVALIS_TELEMETRY_ENABLED=0`` lets the operator disable
+        # telemetry without editing the SQLite settings row (needed
+        # for diagnosing crashes the SDK itself might cause).
+        enabled=os.environ.get("DREVALIS_TELEMETRY_ENABLED", "1") != "0",
+    )
+
     # Prepend resources/bin/<platform>/ to $PATH so subprocess sites that
     # hardcode ``"ffmpeg"`` find the bundled binary. Child processes
     # (uvicorn, arq) inherit this via the default subprocess env.
