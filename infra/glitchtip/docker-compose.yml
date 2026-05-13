@@ -1,0 +1,134 @@
+# Self-hosted Glitchtip — Sentry-protocol-compatible error tracker for
+# the Drevalis Creator Studio alpha. Lives behind nginx-proxy-manager
+# at https://errors.drevalis.com.
+#
+# Why Glitchtip and not Sentry: Sentry's self-host requires Kafka,
+# ClickHouse, ZooKeeper, multiple Snuba services, ~6 GB RAM minimum.
+# Glitchtip implements the same wire protocol with Postgres + Redis
+# + Celery, runs in ~700 MB, and the desktop alpha doesn't need the
+# advanced analytics that justify Sentry's footprint.
+#
+# Deploy:
+#   1. Copy this directory to /srv/glitchtip on the VPS.
+#   2. Edit ``.env`` (random ``SECRET_KEY``, random ``GLITCHTIP_DB_PASSWORD``).
+#   3. ``docker compose up -d``
+#   4. ``docker compose exec web ./manage.py createsuperuser`` (one-time).
+#   5. In nginx-proxy-manager (http://138.199.204.240:81): add Proxy
+#      Host: errors.drevalis.com → http://glitchtip-web:8000, request
+#      Let's Encrypt cert, force SSL, enable WebSocket support.
+#   6. Browse https://errors.drevalis.com → log in → create a "Backend"
+#      project → copy the DSN.
+#   7. Paste the DSN into ``GLITCHTIP_DSN`` GitHub repo secret. CI's
+#      release.yml bakes it into every alpha build via
+#      ``DREVALIS_TELEMETRY_DSN`` at compile time.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: glitchtip-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD}
+    volumes:
+      - glitchtip-postgres-data:/var/lib/postgresql/data
+    networks:
+      - glitchtip-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: glitchtip-redis
+    restart: unless-stopped
+    volumes:
+      - glitchtip-redis-data:/data
+    networks:
+      - glitchtip-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    image: glitchtip/glitchtip:v4.2
+    container_name: glitchtip-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://glitchtip:${GLITCHTIP_DB_PASSWORD}@postgres:5432/glitchtip
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY}
+      PORT: "8000"
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      GLITCHTIP_DOMAIN: https://errors.drevalis.com
+      DEFAULT_FROM_EMAIL: noreply@drevalis.com
+      CELERY_WORKER_AUTOSCALE: "1,3"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "10000"
+      # Disable open registration — alpha is single-user; only the
+      # superuser we create via ``createsuperuser`` can sign in.
+      ENABLE_USER_REGISTRATION: "false"
+      # Hard cap on ingestion to avoid a runaway client filling the
+      # disk; events past this are dropped. 100 events / second / IP
+      # is plenty for a desktop alpha with a few thousand users.
+      EVENT_THROTTLE_RATE: "100/s"
+    # The web container also runs the migrate command on startup so
+    # schema changes during version bumps don't require a manual
+    # ``./manage.py migrate`` step.
+    networks:
+      - glitchtip-internal
+      - glitchtip-proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/0/health/ | grep -q ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    image: glitchtip/glitchtip:v4.2
+    container_name: glitchtip-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ./bin/run-celery-with-beat.sh
+    environment:
+      DATABASE_URL: postgres://glitchtip:${GLITCHTIP_DB_PASSWORD}@postgres:5432/glitchtip
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      GLITCHTIP_DOMAIN: https://errors.drevalis.com
+      DEFAULT_FROM_EMAIL: noreply@drevalis.com
+      CELERY_WORKER_AUTOSCALE: "1,3"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "10000"
+    networks:
+      - glitchtip-internal
+
+volumes:
+  glitchtip-postgres-data:
+  glitchtip-redis-data:
+
+networks:
+  # Internal-only network for db + redis traffic. Not exposed to NPM
+  # because nothing outside the Glitchtip stack should talk to
+  # Postgres or Redis directly.
+  glitchtip-internal:
+    name: glitchtip-internal
+  # Bridge network shared with nginx-proxy-manager so NPM can resolve
+  # ``glitchtip-web`` by name and proxy to it without exposing port
+  # 8000 to the public internet. NPM must also be a member of this
+  # network — see deploy step 5 above.
+  glitchtip-proxy:
+    name: glitchtip-proxy

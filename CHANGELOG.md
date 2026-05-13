@@ -11,6 +11,43 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.29 — Glitchtip self-host artifacts + CI DSN bake)
+- **``infra/glitchtip/``** — self-host stack ready to deploy on the
+  drevalis.com VPS. Three files:
+  - ``docker-compose.yml`` — Glitchtip v4.2 stack (web + worker +
+    Postgres 16 + Redis 7). Two networks: ``glitchtip-internal``
+    (db/redis traffic, not exposed) and ``glitchtip-proxy`` (shared
+    with the existing ``nginx-proxy-manager`` so NPM can resolve
+    ``glitchtip-web`` by name). Open registration disabled,
+    ingestion rate-limited to 100 events/s/IP.
+  - ``.env.example`` — template; operator generates random
+    ``SECRET_KEY`` + DB password before first boot.
+  - ``README.md`` — copy-pasteable deploy steps (scp, secrets,
+    ``docker compose up -d``, ``createsuperuser``, attach NPM to
+    the proxy network, configure the proxy host with Let's Encrypt
+    against ``errors.drevalis.com``, copy the project DSN).
+- **``.github/workflows/release.yml``** — Tauri build step now reads
+  ``GLITCHTIP_DSN`` GitHub secret and exports it as
+  ``DREVALIS_TELEMETRY_DSN`` for the build, baking it into the
+  Rust shell at compile time via ``option_env!`` and into the
+  bundled Python backend via env. When the secret is unset the SDK
+  stays inert in all three processes (zero network calls, no PII
+  reads) — so this change is safe to ship before the VPS deploy
+  lands.
+- **Single-command deploy flow** once you SSH in:
+  ```
+  scp -r infra/glitchtip drevalis@138.199.204.240:/srv/
+  ssh drevalis@138.199.204.240
+  cd /srv/glitchtip && cp .env.example .env
+  # …fill in secrets, see README.md
+  docker compose up -d
+  docker compose exec web ./manage.py createsuperuser
+  # Browser: http://138.199.204.240:81 → add proxy host → request cert
+  # Browser: https://errors.drevalis.com → log in → create project → copy DSN
+  gh secret set GLITCHTIP_DSN --body "<paste>"
+  ```
+  Next alpha tag picks up the DSN automatically.
+
 ### Changed (alpha.28 — episodes/_monolith.py split)
 - **``src/drevalis/api/routes/episodes/_monolith.py`` split from 2855
   → 1034 lines.** No route-path or response-shape changes (verified:

@@ -134,6 +134,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Bake the telemetry DSN into the Rust shell at compile time
+          # via ``option_env!``. The Python backend also reads it from
+          # env (``DREVALIS_TELEMETRY_DSN``) so the bundled binary
+          # auto-discovers it on first launch. When the secret is
+          # unset the SDK stays inert in all three processes — no
+          # network calls, no PII reads.
+          DREVALIS_TELEMETRY_DSN: ${{ secrets.GLITCHTIP_DSN }}
+          DREVALIS_ENVIRONMENT: alpha
         with:
           projectPath: tauri
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
