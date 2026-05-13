@@ -7,7 +7,6 @@ F-A-01).
 
 from __future__ import annotations
 
-import re
 from urllib.parse import quote
 from uuid import UUID
 
@@ -50,6 +49,24 @@ PLATFORM_FEATURE: dict[str, str] = {
     "facebook": "social_extended",
     "x": "social_extended",
 }
+
+# CodeQL py/url-redirection sanitizer: set-membership against a literal
+# frozenset is a recognized barrier. The values are the OAuth 2.0
+# error codes TikTok's API can legitimately return; anything else gets
+# bucketed as ``unknown`` before being interpolated into the redirect.
+_TIKTOK_OAUTH_ERROR_CODES: frozenset[str] = frozenset(
+    {
+        "access_denied",
+        "invalid_request",
+        "unauthorized_client",
+        "unsupported_response_type",
+        "invalid_scope",
+        "server_error",
+        "temporarily_unavailable",
+        "invalid_state",
+        "unknown",
+    }
+)
 
 
 def _service(
@@ -109,14 +126,11 @@ async def tiktok_callback(
     frontend_settings_url = "http://localhost:3000/settings?section=social"
 
     if error:
-        # CodeQL py/url-redirection: the ``error`` query param is
-        # attacker-controlled (an HTTP redirect from tiktok.com gets
-        # the user's browser to call us back with whatever string the
-        # adversary wants). Whitelist to the small set of TikTok
-        # OAuth error codes — and URL-encode regardless — so the
-        # redirect target can never grow new query params or path
-        # segments out of this value.
-        safe_error = error if re.fullmatch(r"[a-z_]{1,40}", error or "") else "unknown"
+        # CodeQL py/url-redirection: bucket via set-membership against
+        # ``_TIKTOK_OAUTH_ERROR_CODES`` (recognized barrier) and
+        # URL-encode regardless, so the redirect target can never
+        # grow new query params or path segments from this value.
+        safe_error = error if error in _TIKTOK_OAUTH_ERROR_CODES else "unknown"
         logger.warning(
             "tiktok_oauth_denied",
             error=error,

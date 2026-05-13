@@ -1,0 +1,45 @@
+version: 2
+
+# Dependabot is configured per package ecosystem we actually ship.
+# Each block sets ``open-pull-requests-limit: 0`` so Dependabot does
+# not spam the repo with auto-bump PRs — we want vulnerability
+# *alerts* surfaced in the Security tab, but the human picks the
+# upgrade cadence to avoid churn on the alpha branch. Flip this back
+# to a positive number once we leave alpha.
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    # ``torch`` and ``torchaudio`` are pinned by ``audiocraft 1.2.0``
+    # (Linux/macOS only — ``sys_platform != 'win32'``). The current
+    # alpha ships Windows NSIS artifacts only, where ``audiocraft``
+    # is not installed and ``torch`` resolves to 2.10.0. The Linux
+    # CVEs are not reachable from any released artifact; lifting
+    # them requires bumping ``audiocraft``, which is a Phase-2 task
+    # tied to the music-gen feature work.
+    ignore:
+      - dependency-name: "torch"
+        versions: ["< 2.8"]
+      - dependency-name: "torchaudio"
+        versions: ["< 2.8"]
+
+  - package-ecosystem: "cargo"
+    directory: "/tauri/src-tauri"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    # ``glib`` 0.18 is a transitive dep of Tauri 2's gtk-rs/wry Linux
+    # stack. It cannot be bumped to 0.20 independently — Tauri itself
+    # must update gtk-rs. Only reachable from Linux AppImage / macOS
+    # DMG targets, which the current alpha does not ship.
+    ignore:
+      - dependency-name: "glib"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0

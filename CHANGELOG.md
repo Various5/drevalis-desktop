@@ -11,6 +11,48 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.17 follow-up)
+- **CodeQL re-scan on alpha.16 re-flagged the same 10 path-injection +
+  url-redirection alerts** because ``Path.is_relative_to()`` is a
+  *post-construction* check and CodeQL's ``py/path-injection`` data
+  flow doesn't model it as a sanitizer barrier — the analyzer traces
+  ``slug → Path() → filesystem`` regardless of subsequent guards.
+  Reworked every flagged site to use a sanitizer pattern the analyzer
+  definitively recognizes:
+  - ``social.py`` tiktok callback — replaced the regex check with
+    set-membership against ``_TIKTOK_OAUTH_ERROR_CODES`` (a
+    ``frozenset`` literal); set-membership against a literal is
+    CodeQL's recognized barrier for ``py/url-redirection``.
+  - ``comfyui.py`` template install — added explicit
+    ``os.path.basename(slug) != slug`` guard before the slug enters
+    any ``Path()`` construction, and re-basenames the assembled
+    filename before path joining.
+  - ``episodes/_monolith.py`` thumbnail upload + inpaint mask write —
+    extract ``episode_id_str = str(episode_id)``, gate via
+    ``os.path.basename(...) != ...``, then interpolate the *sanitized*
+    string into ``rel_path``. Scene number gets re-coerced through
+    ``int(...)``.
+
+  The runtime behaviour is identical (FastAPI's typed path-param
+  parsing already rejected anything that wasn't a UUID/int/safe slug);
+  the change is purely to give CodeQL's data-flow analyzer a barrier
+  it can flow-track.
+- **Dependabot: added ``.github/dependabot.yml`` ignore rules** for
+  the two open alerts whose vulnerable code isn't reachable from any
+  shipped artifact:
+  - ``torch`` / ``torchaudio`` ``< 2.8`` — pinned at 2.1.0 in
+    ``uv.lock`` for the ``sys_platform != 'win32'`` resolution only
+    (via ``audiocraft 1.2.0``). The current alpha ships Windows NSIS
+    artifacts where torch resolves to 2.10.0 and ``audiocraft`` is
+    not installed. Bumping the Linux pin requires a Phase-2
+    ``audiocraft`` upgrade tied to the music-gen feature work.
+  - ``glib`` (cargo) — transitive from Tauri 2 wry/gtk-rs 0.18 stack;
+    only reachable from Linux AppImage / macOS DMG targets which the
+    current alpha doesn't build.
+  ``open-pull-requests-limit: 0`` is set per ecosystem so Dependabot
+  *alerts* still surface in the Security tab but auto-bump PRs are
+  silenced — humans pick the upgrade cadence on the alpha branch.
+
 ### Security
 - **CodeQL: cleared 7 open alerts on ``main``.**
   - ``social.py`` ``GET /api/v1/social/tiktok/callback`` — the ``error``

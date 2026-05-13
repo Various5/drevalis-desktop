@@ -1396,13 +1396,22 @@ async def upload_thumbnail(
             detail="episode_not_found",
         ) from exc
 
+    # CodeQL py/path-injection: sanitize before interpolation using
+    # ``os.path.basename`` equality — CodeQL's recognized barrier for
+    # path-component injection. ``episode_id`` is already a FastAPI-
+    # parsed ``uuid.UUID`` so the check is redundant at runtime, but
+    # this is the pattern the analyzer flow-tracks as a sanitizer.
+    import os.path as _osp
+
+    episode_id_str = str(episode_id)
+    if _osp.basename(episode_id_str) != episode_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid episode id",
+        )
     base = Path(settings.storage_base_path).resolve()
-    rel_path = f"episodes/{episode_id}/output/thumbnail.jpg"
+    rel_path = f"episodes/{episode_id_str}/output/thumbnail.jpg"
     abs_path = (base / rel_path).resolve()
-    # CodeQL py/path-injection: ``episode_id`` is a FastAPI-parsed
-    # UUID so it can't traverse, but assert containment so static
-    # analysis (and future refactors that loosen the type) can't
-    # escape ``storage_base_path``.
     if not abs_path.is_relative_to(base):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -2667,13 +2676,20 @@ async def inpaint_scene(
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"mask_png_base64 invalid: {exc}") from exc
 
+    # CodeQL py/path-injection: sanitize each interpolated component
+    # via ``os.path.basename`` equality (its recognized barrier).
+    # ``episode_id`` is already ``UUID`` and ``scene_number`` is an
+    # ``int``; this redundant guard exists so static analysis can
+    # flow-track the inputs as cleansed.
+    import os.path as _osp
+
+    episode_id_str = str(episode_id)
+    scene_number_safe = int(scene_number)
+    if _osp.basename(episode_id_str) != episode_id_str:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid episode id")
     storage_base = Path(settings.storage_base_path).resolve()
-    scenes_dir = (storage_base / "episodes" / str(episode_id) / "scenes").resolve()
-    mask_path = (scenes_dir / f"scene_{scene_number:02d}.mask.png").resolve()
-    # CodeQL py/path-injection: ``episode_id`` is a parsed UUID and
-    # ``scene_number`` is an int from the path, but assert containment
-    # so the analyzer sees the sanitizer and a future signature
-    # loosening can't quietly escape the storage root.
+    scenes_dir = (storage_base / "episodes" / episode_id_str / "scenes").resolve()
+    mask_path = (scenes_dir / f"scene_{scene_number_safe:02d}.mask.png").resolve()
     if not mask_path.is_relative_to(storage_base):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid scene path")
     scenes_dir.mkdir(parents=True, exist_ok=True)

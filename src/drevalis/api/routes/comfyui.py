@@ -370,6 +370,7 @@ async def install_template(
     ``storage/comfyui_workflows/drevalis/<slug>-<epoch>.json`` and create
     a ``ComfyUIWorkflow`` row with the template's input_mappings.
     """
+    import os.path as _osp
     import re
     import shutil as _shutil
     import time
@@ -377,13 +378,16 @@ async def install_template(
 
     from drevalis.services.comfyui.templates import TEMPLATES, template_json_path
 
-    # CodeQL py/path-injection: ``slug`` arrives from the URL path. The
-    # dict-lookup below already constrains it to known templates, but
-    # CodeQL doesn't model that sanitizer. Reject anything that isn't
-    # a plain identifier *before* it touches the filesystem so the
-    # static analyzer sees the guard and reviewers don't have to
-    # re-derive the safety of the membership check.
+    # CodeQL py/path-injection: ``slug`` arrives from the URL path.
+    # Two-step sanitizer:
+    #   1. Reject anything that isn't a plain identifier (regex).
+    #   2. ``os.path.basename`` equality — CodeQL's recognized barrier
+    #      for path-component injection.
+    # Both are defense-in-depth on top of the TEMPLATES membership
+    # check, which CodeQL doesn't model as a sanitizer.
     if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", slug):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
+    if _osp.basename(slug) != slug:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
 
     tpl = TEMPLATES.get(slug)
@@ -399,7 +403,8 @@ async def install_template(
 
     target_dir = (Path(settings.storage_base_path) / "comfyui_workflows" / "drevalis").resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_path = (target_dir / f"{slug}-{int(time.time())}.json").resolve()
+    target_filename = _osp.basename(f"{slug}-{int(time.time())}.json")
+    target_path = (target_dir / target_filename).resolve()
     if not target_path.is_relative_to(target_dir):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
     _shutil.copyfile(src_json, target_path)
