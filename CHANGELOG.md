@@ -11,6 +11,30 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.18 follow-up)
+- **CodeQL alpha.17 re-scan still flagged the same 10 sites.** Root
+  cause: I'd misread the analyzer's barrier model. The recognized
+  sanitizer for ``py/path-injection`` is the *return value* of
+  ``os.path.basename()`` used as the interpolated path component —
+  not an equality check ``basename(x) != x``. Likewise
+  ``py/url-redirection`` needs the safe value to come from a *lookup*
+  (e.g. ``dict.get``), not a conditional expression that returns the
+  original tainted variable on the truthy branch.
+  - ``episodes/_monolith.py`` thumbnail + inpaint mask now interpolate
+    ``_osp.basename(str(episode_id))`` directly — UUIDs have no
+    separators so it's a runtime no-op, but the analyzer flow-tracks
+    the result of ``basename`` as cleansed. ``scene_number`` is
+    re-coerced through ``int(...)`` and the whole filename is wrapped
+    in ``basename()`` for the same reason.
+  - ``comfyui.py`` template install — drops the post-construction
+    equality check; the assembled filename ``f"{slug}-...json"`` is
+    passed through ``_osp.basename(...)`` and the *result* is what's
+    joined onto ``target_dir``.
+  - ``social.py`` tiktok callback — ``frozenset`` membership check
+    replaced with ``dict.get(error, "unknown")`` against a literal
+    label dict. The returned string comes from the *value side* of
+    the dict, never from the user-supplied key.
+
 ### Security (alpha.17 follow-up)
 - **CodeQL re-scan on alpha.16 re-flagged the same 10 path-injection +
   url-redirection alerts** because ``Path.is_relative_to()`` is a

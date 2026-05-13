@@ -50,23 +50,21 @@ PLATFORM_FEATURE: dict[str, str] = {
     "x": "social_extended",
 }
 
-# CodeQL py/url-redirection sanitizer: set-membership against a literal
-# frozenset is a recognized barrier. The values are the OAuth 2.0
-# error codes TikTok's API can legitimately return; anything else gets
-# bucketed as ``unknown`` before being interpolated into the redirect.
-_TIKTOK_OAUTH_ERROR_CODES: frozenset[str] = frozenset(
-    {
-        "access_denied",
-        "invalid_request",
-        "unauthorized_client",
-        "unsupported_response_type",
-        "invalid_scope",
-        "server_error",
-        "temporarily_unavailable",
-        "invalid_state",
-        "unknown",
-    }
-)
+# CodeQL py/url-redirection: the safe value used in the redirect must
+# come from a *lookup* (not from the user-supplied key), so the
+# analyzer can flow-track it as cleansed. ``dict.get(key, default)``
+# returns a string from this literal dict — never the user's input —
+# even on a hit, because the value side is what's returned.
+_TIKTOK_OAUTH_ERROR_LABELS: dict[str, str] = {
+    "access_denied": "access_denied",
+    "invalid_request": "invalid_request",
+    "unauthorized_client": "unauthorized_client",
+    "unsupported_response_type": "unsupported_response_type",
+    "invalid_scope": "invalid_scope",
+    "server_error": "server_error",
+    "temporarily_unavailable": "temporarily_unavailable",
+    "invalid_state": "invalid_state",
+}
 
 
 def _service(
@@ -126,11 +124,12 @@ async def tiktok_callback(
     frontend_settings_url = "http://localhost:3000/settings?section=social"
 
     if error:
-        # CodeQL py/url-redirection: bucket via set-membership against
-        # ``_TIKTOK_OAUTH_ERROR_CODES`` (recognized barrier) and
-        # URL-encode regardless, so the redirect target can never
-        # grow new query params or path segments from this value.
-        safe_error = error if error in _TIKTOK_OAUTH_ERROR_CODES else "unknown"
+        # ``dict.get`` returns a value from the literal dict above —
+        # the user-supplied ``error`` is only the lookup key, never
+        # the returned string. Defense-in-depth ``quote()`` ensures
+        # even a future addition to the dict can't smuggle reserved
+        # URL characters.
+        safe_error = _TIKTOK_OAUTH_ERROR_LABELS.get(error, "unknown")
         logger.warning(
             "tiktok_oauth_denied",
             error=error,

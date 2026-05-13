@@ -378,16 +378,10 @@ async def install_template(
 
     from drevalis.services.comfyui.templates import TEMPLATES, template_json_path
 
-    # CodeQL py/path-injection: ``slug`` arrives from the URL path.
-    # Two-step sanitizer:
-    #   1. Reject anything that isn't a plain identifier (regex).
-    #   2. ``os.path.basename`` equality — CodeQL's recognized barrier
-    #      for path-component injection.
-    # Both are defense-in-depth on top of the TEMPLATES membership
-    # check, which CodeQL doesn't model as a sanitizer.
+    # Reject non-identifiers up-front. The TEMPLATES dict lookup below
+    # also gates against unknown slugs, but doing the regex first
+    # short-circuits before any filesystem call.
     if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", slug):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
-    if _osp.basename(slug) != slug:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
 
     tpl = TEMPLATES.get(slug)
@@ -401,10 +395,15 @@ async def install_template(
             f"template file missing on disk: {src_json.name}",
         )
 
+    # CodeQL py/path-injection: the path component is the *return
+    # value* of ``os.path.basename`` (recognized sanitizer barrier).
+    # The regex above guarantees no separators, so basename is a
+    # no-op at runtime; this just lets the static analyzer flow-
+    # track the value as cleansed.
     target_dir = (Path(settings.storage_base_path) / "comfyui_workflows" / "drevalis").resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_filename = _osp.basename(f"{slug}-{int(time.time())}.json")
-    target_path = (target_dir / target_filename).resolve()
+    safe_filename = _osp.basename(f"{slug}-{int(time.time())}.json")
+    target_path = (target_dir / safe_filename).resolve()
     if not target_path.is_relative_to(target_dir):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
     _shutil.copyfile(src_json, target_path)
