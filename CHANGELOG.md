@@ -11,6 +11,60 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security
+- **CodeQL: cleared 7 open alerts on ``main``.**
+  - ``social.py`` ``GET /api/v1/social/tiktok/callback`` — the ``error``
+    query param flowing into ``RedirectResponse`` is attacker-controlled
+    (TikTok bounces the user back to us with whatever it puts in the
+    URL). The handler now allow-lists to ``[a-z_]{1,40}`` *and*
+    URL-encodes via ``urllib.parse.quote`` before embedding into the
+    frontend redirect target — so the redirect URL can't grow new
+    query params or path segments out of the user-controlled value
+    (``py/url-redirection``).
+  - ``backup.py`` ``/api/v1/backup/storage-probe`` — ``str(OSError)``
+    embeds the raw filesystem path (``[Errno 13] Permission denied:
+    '/srv/secret/...'``), which the cached JSON response would echo
+    back to the client. Each ``except OSError`` branch in the storage
+    probe now surfaces only the exception class name, so the operator
+    still sees *what* failed but the absolute path that
+    confirmed-or-denied a filesystem secret never leaves the server
+    (``py/stack-trace-exposure``).
+  - ``comfyui.py`` ``POST /comfyui/templates/{slug}/install`` — the
+    ``slug`` path param is validated against ``TEMPLATES`` (a dict
+    lookup), but CodeQL doesn't model dict-membership as a sanitizer.
+    Added an explicit ``re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", slug)``
+    guard *before* the filesystem operation, plus
+    ``target_path.is_relative_to(target_dir)`` containment so a future
+    refactor that loosened the slug type couldn't escape
+    ``storage/comfyui_workflows/drevalis/`` (``py/path-injection``).
+  - ``episodes/_monolith.py`` thumbnail upload + scene-inpaint mask
+    write — both routes already constrain ``episode_id`` to
+    ``UUID`` and ``scene_number`` to ``int`` via FastAPI path-param
+    parsing, but the analyzer can't see those types as sanitizers.
+    Added explicit ``resolve() + is_relative_to(storage_base)``
+    containment checks at both filesystem entry points (4 alerts
+    closed: ``py/path-injection`` at L1402, L1428, L2662, L2664).
+- **Dependabot: cleared 5 PyTorch CVEs by bumping ``torch`` 2.1.0 →
+  2.10.0** (and ``torchaudio`` 2.1.0 → 2.11.0) via
+  ``uv lock --upgrade-package torch``. Closes:
+  - ``torch.load`` with ``weights_only=True`` RCE (critical, fixed in
+    2.6.0)
+  - PyTorch heap buffer overflow (high, fixed in 2.2.0)
+  - PyTorch use-after-free (high, fixed in 2.2.0)
+  - Improper Resource Shutdown / Release (moderate, fixed in 2.8.0)
+  - Local DoS (low, fixed in 2.7.1)
+
+  Note: torch is gated ``sys_platform != 'win32'`` in ``uv.lock``, so
+  the Windows desktop build never installed the vulnerable wheels —
+  the bump matters for Linux/macOS dev environments doing ``uv sync``.
+- **Known: ``glib`` Rust crate 0.18 unsoundness (Dependabot
+  ``glib::VariantStrIter``).** Transitive dep of Tauri 2 via
+  ``wry -> webkit2gtk -> gtk 0.18``. Cannot be bumped to 0.20
+  independently — the whole gtk-rs/wry stack would have to move.
+  Only affects Linux/macOS targets, which the current alpha
+  doesn't ship (NSIS-only Windows). Will revisit when Tauri moves
+  to gtk-rs 0.20 or when AppImage builds re-enter scope.
+
 ### Fixed
 - **YouTube "Connect channel" was a one-shot trap: after the first
   channel was connected, attempting a second left the user stranded on

@@ -620,10 +620,16 @@ async def _compute_storage_probe_report(db: AsyncSession, settings: Settings) ->
                     else:
                         info["kind"] = "other"
                 except OSError as exc:
-                    info["error"] = str(exc)[:120]
+                    # CodeQL py/stack-trace-exposure: ``str(OSError)``
+                    # embeds the raw filesystem path (``[Errno 13]
+                    # Permission denied: '/srv/secret/...'``). Surface
+                    # only the exception class so the operator sees
+                    # *what* failed, not the absolute path that
+                    # confirmed-or-denied a filesystem secret.
+                    info["error"] = type(exc).__name__
                 top_level_entries.append(info)
         except OSError as exc:
-            top_level_entries.append({"error": f"iterdir: {exc}"})
+            top_level_entries.append({"error": f"iterdir: {type(exc).__name__}"})
 
     report: dict[str, Any] = {
         "storage_base_path": str(storage_base),
@@ -689,13 +695,13 @@ async def _compute_storage_probe_report(db: AsyncSession, settings: Settings) ->
                 try:
                     entry["size_bytes"] = abs_p.stat().st_size
                 except OSError as exc:
-                    entry["error"] = f"stat: {exc}"
+                    entry["error"] = f"stat: {type(exc).__name__}"
                 try:
                     with abs_p.open("rb") as f:
                         _ = f.read(1)
                     entry["readable"] = True
                 except OSError as exc:
-                    entry["error"] = f"read: {exc}"
+                    entry["error"] = f"read: {type(exc).__name__}"
             samples.append(entry)
 
     report["samples"] = samples

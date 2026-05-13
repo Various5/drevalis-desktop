@@ -7,6 +7,8 @@ F-A-01).
 
 from __future__ import annotations
 
+import re
+from urllib.parse import quote
 from uuid import UUID
 
 import structlog
@@ -107,13 +109,21 @@ async def tiktok_callback(
     frontend_settings_url = "http://localhost:3000/settings?section=social"
 
     if error:
+        # CodeQL py/url-redirection: the ``error`` query param is
+        # attacker-controlled (an HTTP redirect from tiktok.com gets
+        # the user's browser to call us back with whatever string the
+        # adversary wants). Whitelist to the small set of TikTok
+        # OAuth error codes — and URL-encode regardless — so the
+        # redirect target can never grow new query params or path
+        # segments out of this value.
+        safe_error = error if re.fullmatch(r"[a-z_]{1,40}", error or "") else "unknown"
         logger.warning(
             "tiktok_oauth_denied",
             error=error,
             error_description=error_description,
         )
         return RedirectResponse(
-            url=f"{frontend_settings_url}&tiktok_error={error}",
+            url=f"{frontend_settings_url}&tiktok_error={quote(safe_error, safe='')}",
             status_code=status.HTTP_302_FOUND,
         )
 

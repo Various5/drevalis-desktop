@@ -1396,9 +1396,18 @@ async def upload_thumbnail(
             detail="episode_not_found",
         ) from exc
 
-    base = Path(settings.storage_base_path)
+    base = Path(settings.storage_base_path).resolve()
     rel_path = f"episodes/{episode_id}/output/thumbnail.jpg"
-    abs_path = base / rel_path
+    abs_path = (base / rel_path).resolve()
+    # CodeQL py/path-injection: ``episode_id`` is a FastAPI-parsed
+    # UUID so it can't traverse, but assert containment so static
+    # analysis (and future refactors that loosen the type) can't
+    # escape ``storage_base_path``.
+    if not abs_path.is_relative_to(base):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid episode path",
+        )
     abs_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 3. Re-encode to JPEG so YouTube (which caps thumbs at 2MB JPEG)
@@ -2658,9 +2667,16 @@ async def inpaint_scene(
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"mask_png_base64 invalid: {exc}") from exc
 
-    scenes_dir = Path(settings.storage_base_path) / "episodes" / str(episode_id) / "scenes"
+    storage_base = Path(settings.storage_base_path).resolve()
+    scenes_dir = (storage_base / "episodes" / str(episode_id) / "scenes").resolve()
+    mask_path = (scenes_dir / f"scene_{scene_number:02d}.mask.png").resolve()
+    # CodeQL py/path-injection: ``episode_id`` is a parsed UUID and
+    # ``scene_number`` is an int from the path, but assert containment
+    # so the analyzer sees the sanitizer and a future signature
+    # loosening can't quietly escape the storage root.
+    if not mask_path.is_relative_to(storage_base):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid scene path")
     scenes_dir.mkdir(parents=True, exist_ok=True)
-    mask_path = scenes_dir / f"scene_{scene_number:02d}.mask.png"
     mask_path.write_bytes(mask_bytes)
 
     # Surface the inpaint hint via Redis so the worker can pick it up
