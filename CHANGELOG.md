@@ -11,6 +11,21 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.22 — revert broken advanced CodeQL setup)
+- **alpha.21's CodeQL advanced workflow failed on push** with
+  ``CodeQL analyses from advanced configurations cannot be processed
+  when the default setup is enabled``. Disabling default setup
+  requires a repo Settings toggle (security posture change) that
+  needs explicit operator action; per user decision, reverted the
+  advanced workflow + config and dismissed the 5 path-injection
+  false-positives directly in the GitHub Code Scanning UI instead.
+- Removed: ``.github/workflows/codeql.yml`` and
+  ``.github/codeql/codeql-config.yml``. Default-setup CodeQL is
+  still scanning the repo as before. The 5 path-injection alerts
+  on ``episodes/_monolith.py`` (thumbnail upload, inpaint mask) and
+  ``comfyui.py`` (template install) are dismissed with rationale
+  preserved in the ``CHANGELOG.md`` history below (alpha.16-.20).
+
 ### Security (alpha.21 — CodeQL config migration)
 - **alpha.20 still left 5 path-injection alerts** on the same logical
   filesystem calls, despite the ``realpath`` + ``startswith``
