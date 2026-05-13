@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -244,12 +244,37 @@ export function SocialConnectWizard({
   const [authUrlError, setAuthUrlError] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  // Active poll interval handle so we can clear it when the dialog
+  // closes (or the wizard restarts) instead of leaking timers up to
+  // the 5-minute wall-clock cutoff.
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const clearPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
 
   // Reset state every time the wizard is reopened. If credentials are
   // already configured we skip the intro + credentials steps and jump
   // straight to authorize — useful when adding a second channel: the
   // user shouldn't be made to re-paste their Google client_id every
   // time they want to add another channel to the same install.
+  // Belt-and-suspenders: clear the poll interval the moment the
+  // dialog is closed for any reason (user cancels, wizard unmounts,
+  // SocialConnectWizard's parent navigates away). Without this the
+  // 2-second timer keeps firing until the 5-minute wall-clock cutoff
+  // even when the UI is gone.
+  useEffect(() => {
+    if (!open) {
+      clearPolling();
+      setPolling(false);
+    }
+    return () => {
+      clearPolling();
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -261,6 +286,7 @@ export function SocialConnectWizard({
       setAuthUrlError(null);
       setVerifyError(null);
       setPolling(false);
+      clearPolling();
 
       const alreadyConfigured = await spec.credentialsAlreadyConfigured();
       if (cancelled) return;
@@ -360,15 +386,19 @@ export function SocialConnectWizard({
     setStep('verify');
     setPolling(true);
     setVerifyError(null);
+    // Clear any prior poll before starting a new one (rapid clicks
+    // on Authorize would otherwise stack intervals).
+    clearPolling();
 
     // Poll every 2s for up to 5 minutes. Stop when:
     //   - a new connection appears (vs the pre-auth snapshot), or
-    //   - the timeout fires (user abandoned the flow).
+    //   - the timeout fires (user abandoned the flow), or
+    //   - the wizard is closed (cleanup effect below).
     const startedAt = Date.now();
-    const interval = setInterval(async () => {
+    pollIntervalRef.current = setInterval(async () => {
       const elapsed = Date.now() - startedAt;
       if (elapsed > 5 * 60_000) {
-        clearInterval(interval);
+        clearPolling();
         setPolling(false);
         setVerifyError(
           'Timed out waiting for the OAuth callback. Finish the consent in your browser, or click Try again.',
@@ -378,7 +408,7 @@ export function SocialConnectWizard({
       try {
         const fresh = await spec.hasNewConnection(snapshot);
         if (fresh) {
-          clearInterval(interval);
+          clearPolling();
           setPolling(false);
           toast.success(`${spec.label} connected`);
           onConnected?.();

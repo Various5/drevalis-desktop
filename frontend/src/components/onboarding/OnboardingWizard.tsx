@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Package,
   ExternalLink,
+  ShieldCheck,
 } from 'lucide-react';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -42,9 +43,12 @@ const LOCAL_HOST = isTauri() ? 'localhost' : 'host.docker.internal';
  * inert until `should_show` is true.
  */
 
-type StepKey = 'comfyui' | 'llm' | 'voice' | 'youtube';
+type StepKey = 'privacy' | 'comfyui' | 'llm' | 'voice' | 'youtube';
 
 const STEPS: { key: StepKey; label: string; icon: typeof Cpu; required: boolean }[] = [
+  // Consent first — the user gets to decide on telemetry before any
+  // step that might generate exception events worth reporting.
+  { key: 'privacy', label: 'Privacy', icon: ShieldCheck, required: false },
   { key: 'comfyui', label: 'ComfyUI', icon: Cpu, required: true },
   { key: 'llm', label: 'LLM endpoint', icon: Sparkles, required: true },
   { key: 'voice', label: 'Default voice', icon: Mic, required: true },
@@ -163,6 +167,9 @@ export function OnboardingWizard({ status, onRefresh, onDismiss }: Props) {
 
       {/* Step body */}
       <div className="min-h-[280px]">
+        {step.key === 'privacy' && (
+          <PrivacyStep onAdvance={advance} />
+        )}
         {step.key === 'comfyui' && (
           <ComfyUIStep
             done={status.comfyui_servers > 0}
@@ -236,6 +243,12 @@ export default OnboardingWizard;
 
 function isStepComplete(key: StepKey, s: OnboardingStatus): boolean {
   switch (key) {
+    case 'privacy':
+      // Privacy is informational — count it complete the moment the
+      // user lands on any later step. The wizard's stepIdx tracks
+      // that, so for the "bundled vs external" preface visibility
+      // we simply return false here.
+      return false;
     case 'comfyui':
       return s.comfyui_servers > 0;
     case 'llm':
@@ -245,6 +258,98 @@ function isStepComplete(key: StepKey, s: OnboardingStatus): boolean {
     case 'youtube':
       return s.youtube_channels > 0;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Privacy step — telemetry opt-in
+// ─────────────────────────────────────────────────────────────────
+
+function PrivacyStep({ onAdvance }: { onAdvance: () => void }) {
+  const { toast } = useToast();
+  const [optOut, setOptOut] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/v1/auth/preferences', { credentials: 'include' });
+        if (!res.ok) {
+          if (!cancelled) setOptOut(false);
+          return;
+        }
+        const prefs = (await res.json()) as { telemetry_opt_out?: boolean };
+        if (!cancelled) setOptOut(Boolean(prefs.telemetry_opt_out));
+      } catch {
+        if (!cancelled) setOptOut(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const save = async (next: boolean) => {
+    setSaving(true);
+    try {
+      await fetch('/api/v1/auth/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ telemetry_opt_out: next || null }),
+      });
+      setOptOut(next);
+    } catch (err) {
+      toast.error('Could not save preference', { description: formatError(err) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3">
+        <ShieldCheck className="w-8 h-8 text-accent shrink-0 mt-0.5" />
+        <div>
+          <h3 className="text-base font-display font-semibold text-txt-primary">
+            Help us catch bugs faster
+          </h3>
+          <p className="text-xs text-txt-secondary mt-1 leading-relaxed">
+            Drevalis can send anonymous crash reports — exception type,
+            stack trace, and app version. No content, file paths, or
+            credentials. You can change this anytime in Settings → Privacy.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-white/[0.08] bg-bg-elevated/40 p-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            className="w-4 h-4 rounded accent-accent mt-0.5"
+            checked={optOut === false}
+            disabled={optOut === null || saving}
+            onChange={(e) => void save(!e.target.checked)}
+          />
+          <div>
+            <div className="text-sm font-medium text-txt-primary">
+              Send anonymous crash reports
+            </div>
+            <div className="text-[11px] text-txt-tertiary mt-0.5">
+              Recommended for alpha — helps us ship fixes the same day a
+              bug appears.
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <Button onClick={onAdvance} disabled={optOut === null}>
+          Continue <ChevronRight size={14} className="ml-1" />
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────

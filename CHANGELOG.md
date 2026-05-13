@@ -11,6 +11,19 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.26 — onboarding privacy step + wizard leak fix)
+- **Onboarding wizard gains a "Privacy" step** (first in the flow).
+  Consent before any step that might generate exception events worth
+  reporting. Saves to ``user.preferences["telemetry_opt_out"]`` via
+  the existing ``/auth/preferences`` endpoint — same persistence the
+  Settings → Privacy section uses, so toggling either side stays in
+  sync. Default is opt-in (recommended for alpha).
+- **``SocialConnectWizard`` no longer leaks its OAuth poll interval.**
+  The 2-second poll used to keep firing for up to 5 minutes even
+  after the user closed the dialog (and re-stack on rapid Authorize
+  clicks). Now stored in a ``useRef``-tracked handle and cleared on
+  dialog close + on every re-start + on unmount.
+
 ### Added (alpha.25 — global "what's running" popover)
 - **Header active-jobs pill is now a click-to-expand popover.** Same
   pill in the same place, but clicking it opens a dropdown listing
