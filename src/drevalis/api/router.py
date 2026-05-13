@@ -14,6 +14,7 @@ from drevalis.api.routes.backup import router as backup_router
 from drevalis.api.routes.character_packs import router as character_packs_router
 from drevalis.api.routes.cloud_gpu import router as cloud_gpu_router
 from drevalis.api.routes.comfyui import router as comfyui_router
+from drevalis.api.routes.cost import router as cost_router
 from drevalis.api.routes.diagnostics import router as diagnostics_router
 from drevalis.api.routes.editor import router as editor_router
 from drevalis.api.routes.episodes import router as episodes_router
@@ -78,6 +79,7 @@ import os as _os_updates
 if _os_updates.environ.get("DREVALIS_DESKTOP_MODE", "1") == "0":
     router.include_router(updates_router)
 router.include_router(metrics_router)
+router.include_router(cost_router)
 router.include_router(settings_router)
 router.include_router(telemetry_router)
 router.include_router(api_keys_router)

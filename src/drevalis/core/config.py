@@ -182,6 +182,16 @@ class Settings(BaseSettings):
     # send (and logs a warning) rather than emitting a broken link.
     app_base_url: str | None = None
 
+    # ── Cost tracking ─────────────────────────────────────────────────────
+    # USD price the cost-tracker uses to convert ``tokens_prompt`` and
+    # ``tokens_completion`` into a $-equivalent. These are intentionally
+    # generic defaults — close to GPT-4o-mini at the time of writing
+    # — because the desktop install can route to any LLM provider. Set
+    # these to match your actual provider's pricing for accurate numbers
+    # (Settings → LLM → Pricing).
+    cost_per_1k_prompt_tokens_usd: float = 0.00015
+    cost_per_1k_completion_tokens_usd: float = 0.0006
+
     # ── Telemetry (Sentry / Glitchtip) ───────────────────────────────────
     # DSN of the Sentry-compatible error-tracking backend. When unset,
     # the SDK is never initialised and no network traffic happens. The

@@ -11,6 +11,25 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.24 — LLM cost tracker)
+- **``GET /api/v1/cost/summary``** — returns total tokens (prompt +
+  completion) and a $-equivalent over the last ``days`` window
+  (default 30, max 365). Numbers come from completed
+  ``generation_jobs.tokens_*`` columns × per-1k rates configured in
+  ``Settings``. Daily series included for sparkline / chart use.
+- **Dashboard widget ``LLMCostWidget``** — single-glance "$X
+  estimated, Y in / Z out" tile (hidden by default; toggle on via
+  Dashboard → Customize). Re-fetches on window focus.
+- **New ``Settings`` fields**:
+  ``cost_per_1k_prompt_tokens_usd`` (default ``0.00015``) and
+  ``cost_per_1k_completion_tokens_usd`` (default ``0.0006``) —
+  generic GPT-4o-mini-ish numbers; override via env to match your
+  provider's actual pricing.
+
+  **Follow-up:** per-provider / per-model breakdown ships once
+  ``generation_jobs`` gains ``llm_provider`` + ``llm_model``
+  columns. For now this is a flat $-equivalent across all calls.
+
 ### Added (alpha.23 — crash telemetry)
 - **Sentry/Glitchtip SDK wired in all three processes.** Now when
   something goes wrong we find out before the user has to type it in.

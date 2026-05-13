@@ -12,7 +12,8 @@ export type WidgetId =
   | 'active-jobs'
   | 'upcoming-posts'
   | 'top-series'
-  | 'quota-usage';
+  | 'quota-usage'
+  | 'llm-cost';
 
 export interface DashboardLayout {
   version: 1;
@@ -33,6 +34,7 @@ export const ALL_WIDGET_IDS: readonly WidgetId[] = [
   'upcoming-posts',
   'top-series',
   'quota-usage',
+  'llm-cost',
 ] as const;
 
 export const WIDGET_LABELS: Record<WidgetId, string> = {
@@ -46,6 +48,7 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
   'upcoming-posts': 'Upcoming Posts',
   'top-series': 'Top Series',
   'quota-usage': 'Today’s Generations',
+  'llm-cost': 'LLM Spend (30d)',
 };
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
@@ -60,5 +63,5 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
   ],
   // Off by default so the existing dashboard still renders the same on
   // first paint. Users discover the new widgets via "Customize → Add".
-  hidden: ['active-jobs', 'upcoming-posts', 'top-series', 'quota-usage'],
+  hidden: ['active-jobs', 'upcoming-posts', 'top-series', 'quota-usage', 'llm-cost'],
 };
