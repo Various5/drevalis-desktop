@@ -11,6 +11,15 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.19 follow-up)
+- **alpha.18 cleared the social.py url-redirection alert (``dict.get``
+  lookup worked) but the 9 path-injection alerts kept resurfacing.**
+  Switched to the textbook CodeQL ``py/path-injection`` sanitizer
+  pattern — pure-string ``os.path.realpath`` + ``str.startswith``
+  containment check *before* any pathlib touches user input. Applied
+  to ``episodes/_monolith.py`` thumbnail + inpaint mask, and
+  ``comfyui.py`` template install.
+
 ### Security (alpha.18 follow-up)
 - **CodeQL alpha.17 re-scan still flagged the same 10 sites.** Root
   cause: I'd misread the analyzer's barrier model. The recognized

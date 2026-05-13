@@ -395,17 +395,23 @@ async def install_template(
             f"template file missing on disk: {src_json.name}",
         )
 
-    # CodeQL py/path-injection: the path component is the *return
-    # value* of ``os.path.basename`` (recognized sanitizer barrier).
-    # The regex above guarantees no separators, so basename is a
-    # no-op at runtime; this just lets the static analyzer flow-
-    # track the value as cleansed.
-    target_dir = (Path(settings.storage_base_path) / "comfyui_workflows" / "drevalis").resolve()
-    target_dir.mkdir(parents=True, exist_ok=True)
+    # CodeQL py/path-injection: textbook ``realpath`` + ``startswith``
+    # sanitizer on strings before any pathlib touches user input.
+    import os as _os
+
     safe_filename = _osp.basename(f"{slug}-{int(time.time())}.json")
-    target_path = (target_dir / safe_filename).resolve()
-    if not target_path.is_relative_to(target_dir):
+    target_dir_str = _osp.realpath(
+        _osp.join(str(settings.storage_base_path), "comfyui_workflows", "drevalis")
+    )
+    target_path_str = _osp.realpath(_osp.join(target_dir_str, safe_filename))
+    if not (
+        target_path_str == target_dir_str
+        or target_path_str.startswith(target_dir_str + _os.sep)
+    ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
+    target_dir = Path(target_dir_str)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = Path(target_path_str)
     _shutil.copyfile(src_json, target_path)
 
     rel_path = target_path.relative_to(Path(settings.storage_base_path)).as_posix()

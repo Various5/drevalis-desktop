@@ -1396,22 +1396,28 @@ async def upload_thumbnail(
             detail="episode_not_found",
         ) from exc
 
-    # CodeQL py/path-injection: the value interpolated into the path
-    # is the *return value* of ``os.path.basename`` — that's the
-    # recognized sanitizer barrier (a comparison check is not).
-    # UUIDs have no path separators so basename is a runtime no-op,
-    # but the static analyzer now sees the data-flow as cleansed.
+    # CodeQL py/path-injection: textbook sanitizer pattern —
+    # ``os.path.realpath`` + ``str.startswith`` on string paths
+    # *before* any pathlib touches user input. The analyzer
+    # recognizes this exact shape as a barrier.
+    import os
     import os.path as _osp
 
     safe_episode_id = _osp.basename(str(episode_id))
-    base = Path(settings.storage_base_path).resolve()
-    rel_path = f"episodes/{safe_episode_id}/output/thumbnail.jpg"
-    abs_path = (base / rel_path).resolve()
-    if not abs_path.is_relative_to(base):
+    base_real = _osp.realpath(str(settings.storage_base_path))
+    candidate_real = _osp.realpath(
+        _osp.join(base_real, "episodes", safe_episode_id, "output", "thumbnail.jpg")
+    )
+    if not (
+        candidate_real == base_real
+        or candidate_real.startswith(base_real + os.sep)
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="invalid episode path",
         )
+    abs_path = Path(candidate_real)
+    rel_path = f"episodes/{safe_episode_id}/output/thumbnail.jpg"
     abs_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 3. Re-encode to JPEG so YouTube (which caps thumbs at 2MB JPEG)
@@ -2671,21 +2677,24 @@ async def inpaint_scene(
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"mask_png_base64 invalid: {exc}") from exc
 
-    # CodeQL py/path-injection: use the return value of
-    # ``os.path.basename`` as the interpolated path component
-    # (recognized sanitizer barrier). ``scene_number`` is re-coerced
-    # through ``int`` and formatted as fixed-width digits, so the
-    # path segment is provably from a constrained character set.
+    # CodeQL py/path-injection: same textbook ``realpath`` +
+    # ``startswith`` sanitizer pattern as the thumbnail handler.
+    import os
     import os.path as _osp
 
     safe_episode_id = _osp.basename(str(episode_id))
     safe_scene_segment = _osp.basename(f"scene_{int(scene_number):02d}.mask.png")
-    storage_base = Path(settings.storage_base_path).resolve()
-    scenes_dir = (storage_base / "episodes" / safe_episode_id / "scenes").resolve()
-    mask_path = (scenes_dir / safe_scene_segment).resolve()
-    if not mask_path.is_relative_to(storage_base):
+    base_real = _osp.realpath(str(settings.storage_base_path))
+    candidate_real = _osp.realpath(
+        _osp.join(base_real, "episodes", safe_episode_id, "scenes", safe_scene_segment)
+    )
+    if not (
+        candidate_real == base_real
+        or candidate_real.startswith(base_real + os.sep)
+    ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid scene path")
-    scenes_dir.mkdir(parents=True, exist_ok=True)
+    mask_path = Path(candidate_real)
+    mask_path.parent.mkdir(parents=True, exist_ok=True)
     mask_path.write_bytes(mask_bytes)
 
     # Surface the inpaint hint via Redis so the worker can pick it up
