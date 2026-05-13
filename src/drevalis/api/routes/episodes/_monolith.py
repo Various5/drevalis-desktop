@@ -1416,9 +1416,11 @@ async def upload_thumbnail(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="invalid episode path",
         )
-    abs_path = Path(candidate_real)
+    # Operate on the sanitized string path with pure ``os`` APIs;
+    # converting back to ``Path()`` would re-introduce taint in
+    # CodeQL's flow model.
     rel_path = f"episodes/{safe_episode_id}/output/thumbnail.jpg"
-    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(_osp.dirname(candidate_real), exist_ok=True)
 
     # 3. Re-encode to JPEG so YouTube (which caps thumbs at 2MB JPEG)
     #    always accepts it regardless of what the browser sent.
@@ -1436,7 +1438,7 @@ async def upload_thumbnail(
         img: Any = Image.open(BytesIO(bytes(data)))
         if img.mode in ("RGBA", "LA", "P"):
             img = img.convert("RGB")
-        img.save(abs_path, format="JPEG", quality=92, optimize=True)
+        img.save(candidate_real, format="JPEG", quality=92, optimize=True)
     except Exception as exc:
         logger.error("thumbnail_upload_decode_failed", error=str(exc), exc_info=True)
         raise HTTPException(
@@ -1444,7 +1446,7 @@ async def upload_thumbnail(
             detail="Could not decode uploaded image.",
         ) from exc
 
-    file_size = abs_path.stat().st_size
+    file_size = _osp.getsize(candidate_real)
 
     # 4. Point the MediaAsset + episode metadata at the new file.
     new_asset = await svc.replace_thumbnail_asset(
@@ -2693,9 +2695,12 @@ async def inpaint_scene(
         or candidate_real.startswith(base_real + os.sep)
     ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid scene path")
-    mask_path = Path(candidate_real)
-    mask_path.parent.mkdir(parents=True, exist_ok=True)
-    mask_path.write_bytes(mask_bytes)
+    # Pure ``os`` API on the sanitized string — wrapping in ``Path()``
+    # would re-introduce taint in CodeQL's flow model.
+    os.makedirs(_osp.dirname(candidate_real), exist_ok=True)
+    with open(candidate_real, "wb") as _mask_fh:
+        _mask_fh.write(mask_bytes)
+    mask_path_basename = _osp.basename(candidate_real)
 
     # Surface the inpaint hint via Redis so the worker can pick it up
     # without a schema change. Key expires with the typical gen window.
@@ -2718,7 +2723,7 @@ async def inpaint_scene(
         scene_number=scene_number,
         mask_bytes=len(mask_bytes),
     )
-    return {"status": "enqueued", "mask_path": str(mask_path.name)}
+    return {"status": "enqueued", "mask_path": mask_path_basename}
 
 
 # ── Continuity checker (Phase E) ────────────────────────────────────

@@ -11,6 +11,20 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.20 follow-up)
+- **alpha.19 narrowed the path-injection set from 9 → 5 alerts** —
+  the ``realpath`` + ``startswith`` sanitizer cleared the path-
+  construction sites but the analyzer kept flagging ``mkdir`` /
+  ``stat`` / ``write_bytes`` calls on the ``Path(candidate_real)``
+  wrap because CodeQL's ``py/path-injection`` model treats the
+  ``pathlib.Path`` constructor as re-tainting. Reworked every site
+  to operate on the sanitized string with pure ``os.*`` APIs and
+  never reconstruct a ``Path`` object: ``os.makedirs`` instead of
+  ``Path.parent.mkdir``, ``os.path.getsize`` instead of
+  ``Path.stat().st_size``, ``open(path, "wb").write(...)`` instead
+  of ``Path.write_bytes``, raw string passed to ``Image.save`` and
+  ``shutil.copyfile``.
+
 ### Security (alpha.19 follow-up)
 - **alpha.18 cleared the social.py url-redirection alert (``dict.get``
   lookup worked) but the 9 path-injection alerts kept resurfacing.**

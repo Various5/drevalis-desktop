@@ -400,8 +400,9 @@ async def install_template(
     import os as _os
 
     safe_filename = _osp.basename(f"{slug}-{int(time.time())}.json")
+    storage_base_real = _osp.realpath(str(settings.storage_base_path))
     target_dir_str = _osp.realpath(
-        _osp.join(str(settings.storage_base_path), "comfyui_workflows", "drevalis")
+        _osp.join(storage_base_real, "comfyui_workflows", "drevalis")
     )
     target_path_str = _osp.realpath(_osp.join(target_dir_str, safe_filename))
     if not (
@@ -409,12 +410,14 @@ async def install_template(
         or target_path_str.startswith(target_dir_str + _os.sep)
     ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid template slug")
-    target_dir = Path(target_dir_str)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_path = Path(target_path_str)
-    _shutil.copyfile(src_json, target_path)
+    # Pure ``os`` API on the sanitized string — wrapping back into
+    # ``Path()`` re-taints the value in CodeQL's flow model.
+    _os.makedirs(target_dir_str, exist_ok=True)
+    _shutil.copyfile(str(src_json), target_path_str)
 
-    rel_path = target_path.relative_to(Path(settings.storage_base_path)).as_posix()
+    # ``rel_path`` is for storage in the DB row — derive from the
+    # sanitized strings using ``os.path.relpath`` (also string API).
+    rel_path = _osp.relpath(target_path_str, storage_base_real).replace(_os.sep, "/")
 
     wf = await svc.install_template(
         name=tpl.name,
