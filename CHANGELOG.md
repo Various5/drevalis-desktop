@@ -11,6 +11,26 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.27 — backup auto-schedule UI)
+- **Settings → Backup → Schedule** is now a working UI rather than
+  a read-only env-var dump. Toggle "Nightly backup at 03:00 UTC" on
+  and the worker creates a backup tarball every night and prunes
+  beyond the retention count.
+- **Worker behaviour change:** ``scheduled_backup`` cron is now
+  registered unconditionally; the job itself short-circuits when
+  neither ``Settings.backup_auto_enabled`` (env) nor
+  ``user.preferences.backup_auto_enabled`` (UI toggle) is true. This
+  lets the user flip the toggle without restarting the worker —
+  takes effect at the next 03:00 UTC tick. Previously the cron was
+  not registered on desktop (SCOPE.md deferred to OS-native tooling);
+  the env-default stays the same (off), so behaviour is unchanged for
+  installs that don't flip the toggle.
+- Stripped Docker-era prose from ScheduleSection (``docker inspect
+  -f ...`` instructions, ``host.docker.internal`` references); now
+  shows directory + retention + status as plain text with
+  desktop-relevant guidance ("point at a synced folder for off-box
+  backups").
+
 ### Added (alpha.26 — onboarding privacy step + wizard leak fix)
 - **Onboarding wizard gains a "Privacy" step** (first in the flow).
   Consent before any step that might generate exception events worth

@@ -17,15 +17,27 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 async def scheduled_backup(ctx: dict[str, Any]) -> dict[str, Any]:
+    from sqlalchemy import select
+
     from drevalis.core.config import Settings
+    from drevalis.models.user import User
     from drevalis.services.updates import _resolve_current_version
 
     settings = Settings()
-    if not settings.backup_auto_enabled:
+    session_factory = ctx["session_factory"]
+
+    # Effective auto-enabled = env-level kill-switch AND (env-default OR
+    # per-user opt-in). The cron is registered unconditionally in
+    # ``WorkerSettings`` so the user can flip the toggle in Settings →
+    # Backup → Schedule without restarting the worker.
+    user_opted_in = False
+    async with session_factory() as session:
+        user = (await session.execute(select(User).limit(1))).scalars().first()
+        if user is not None:
+            user_opted_in = bool((user.preferences or {}).get("backup_auto_enabled"))
+    if not (settings.backup_auto_enabled or user_opted_in):
         logger.debug("scheduled_backup_disabled")
         return {"skipped": "disabled"}
-
-    session_factory = ctx["session_factory"]
 
     from drevalis.services.backup import BackupService
 

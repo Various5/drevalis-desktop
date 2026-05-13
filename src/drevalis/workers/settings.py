@@ -156,10 +156,13 @@ class WorkerSettings:
         # pairs where both episodes have been live on YouTube for 7+
         # days, so it's cheap (no-op until pairs mature).
         cron(compute_ab_test_winners, hour={4}, minute={31}),
-        # scheduled_backup cron is intentionally NOT registered on desktop:
-        # SCOPE.md defers full-install backups to OS-native tooling. The
-        # job + route remain in the codebase so a future SaaS tier can
-        # re-enable it by re-adding the cron line — no logic change needed.
+        # Nightly backup at 03:00 UTC. Always registered; the job itself
+        # short-circuits if neither ``Settings.backup_auto_enabled`` nor
+        # ``user.preferences["backup_auto_enabled"]`` is true, so the
+        # cron tick is a no-op when the user hasn't opted in. Registering
+        # unconditionally means the user can flip the toggle in
+        # Settings → Backup → Schedule without restarting the worker.
+        cron(scheduled_backup, hour={3}, minute={0}),
         # Drop scheduled_posts rows whose episode/audiobook was deleted.
         # 03:13 UTC — runs after the backup so the orphan rows are still
         # captured in the nightly snapshot in case rollback is needed.
