@@ -46,7 +46,7 @@ from drevalis.api.routes.auth import require_owner
 from drevalis.core.config import Settings
 from drevalis.core.deps import get_settings
 from drevalis.models.user import User
-from drevalis.services.event_log import LogEvent, read_recent_events
+from drevalis.services.event_log import LogEvent, clear_event_logs, read_recent_events
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -129,3 +129,33 @@ async def get_events(
         min_level=min_level,
     )
     return EventsResponse(events=events)
+
+
+class ClearEventsResponse(BaseModel):
+    """Envelope returned by ``DELETE /api/v1/events``."""
+
+    files_truncated: int
+
+
+@router.delete(
+    "",
+    response_model=ClearEventsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Clear all entries in the structured app-event log file(s)",
+    description=(
+        "Truncates every JSON log file that feeds ``GET /api/v1/events`` so "
+        "the App Events list goes back to empty. The structlog sink keeps "
+        "writing into the now-empty file(s) on its next emit — only existing "
+        "records are wiped. Generation-job / pipeline-event history is "
+        "untouched (those records live in the database, not the log file).\n\n"
+        "Requires owner role in team-mode installs."
+    ),
+)
+async def clear_events(
+    _owner: Annotated[User, Depends(require_owner)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ClearEventsResponse:
+    """Truncate the structured app-event log file(s)."""
+    n = await clear_event_logs(settings)
+    logger.info("events.cleared", files_truncated=n)
+    return ClearEventsResponse(files_truncated=n)

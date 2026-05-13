@@ -61,19 +61,11 @@ export function WorkerManagement() {
 
       <SubHeading id="worker-restart" title="Restarting the Worker" />
       <p className="text-sm text-txt-secondary leading-relaxed mb-3">
-        If the worker process becomes unresponsive or you need to apply configuration changes:
+        If the worker process becomes unresponsive or you need to apply configuration changes,
+        click <strong className="text-txt-primary">Restart worker</strong> on the Activity Monitor.
+        If that doesn't help, quit Drevalis from the system tray and relaunch &mdash; the launcher
+        starts a fresh worker process.
       </p>
-      <div className="space-y-2">
-        {[
-          { label: 'Docker (recommended)', cmd: 'docker compose restart worker' },
-          { label: 'Local dev', cmd: 'Ctrl+C to stop, then re-run: python -m arq src.drevalis.workers.settings.WorkerSettings' },
-        ].map(item => (
-          <div key={item.label} className="surface p-3 rounded-lg">
-            <p className="text-xs font-semibold text-txt-primary mb-1">{item.label}</p>
-            <code className="text-xs font-mono text-accent">{item.cmd}</code>
-          </div>
-        ))}
-      </div>
       <Warning>
         Restarting the worker will kill any currently running jobs. Those jobs will remain in "generating" state until you run Cleanup Stuck Jobs, after which they can be retried. Completed pipeline steps are preserved — the retry resumes from the failed step.
       </Warning>

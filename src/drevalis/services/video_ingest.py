@@ -113,6 +113,38 @@ class VideoIngestService:
             updated_at=datetime.now(tz=UTC),
         )
 
+    async def start_from_asset(self, asset_id: UUID) -> VideoIngestJob:
+        """Kick off an ingest pipeline on an already-uploaded video Asset.
+
+        Skips the upload + dedup step entirely — the caller already
+        picked an existing row from the asset library. Validates that
+        the asset is a video; everything else mirrors ``upload_and_enqueue``.
+        """
+        asset = await self._assets.get_by_id(asset_id)
+        if asset is None:
+            raise NotFoundError("Asset", asset_id)
+        if asset.kind != "video":
+            raise ValidationError("asset must be a video to run ingest on it")
+
+        job = await self._jobs.create(
+            asset_id=asset.id,
+            status="queued",
+            stage=None,
+            progress_pct=0,
+        )
+        await self._db.commit()
+
+        from drevalis.core.redis import get_arq_pool
+
+        arq = get_arq_pool()
+        await arq.enqueue_job("analyze_video_ingest", str(job.id))
+        logger.info(
+            "video_ingest_enqueued_from_asset",
+            job_id=str(job.id),
+            asset_id=str(asset.id),
+        )
+        return job
+
     async def get_job(self, job_id: UUID) -> VideoIngestJob:
         job = await self._jobs.get_by_id(job_id)
         if job is None:

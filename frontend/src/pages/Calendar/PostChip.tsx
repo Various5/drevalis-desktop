@@ -35,21 +35,37 @@ export function PostChip({
 
   const isFailed = post.status === 'failed';
   const isPublished = post.status === 'published' || post.status === 'done';
-  const surfaceClass = isFailed
-    ? 'bg-error/10 border border-error/30 text-error'
+  // Full-variant surface — modern card with shadow + colored left-rail by status.
+  const fullSurfaceClass = isFailed
+    ? 'bg-error/10 ring-1 ring-error/30 text-error'
     : isPublished
-      ? 'bg-accent/10 border border-accent/30 text-accent'
-      : 'bg-bg-elevated border border-border text-txt-primary';
+      ? 'bg-accent/10 ring-1 ring-accent/40 text-accent'
+      : 'bg-bg-surface ring-1 ring-border text-txt-primary shadow-sm';
+  // Compact-variant surface — denser pill suitable for month cells. The
+  // colored dot + status colour already do the visual heavy lifting, so
+  // we keep the background nearly neutral with a soft accent rail.
+  const compactSurfaceClass = isFailed
+    ? 'bg-error/10 ring-1 ring-error/25 text-error'
+    : isPublished
+      ? 'bg-accent/10 ring-1 ring-accent/30 text-accent'
+      : 'bg-bg-elevated/80 ring-1 ring-border/60 text-txt-primary hover:bg-bg-elevated';
 
   if (variant === 'full') {
     return (
       <div
         className={[
-          'group rounded-lg px-2.5 py-2 flex flex-col gap-0.5 min-w-0',
-          surfaceClass,
+          'group relative rounded-lg pl-3 pr-2.5 py-2 flex flex-col gap-0.5 min-w-0 overflow-hidden',
+          fullSurfaceClass,
         ].join(' ')}
         title={`${post.title} — ${formatTime(post.scheduled_at)} · ${platformLabel(post.platform)}`}
       >
+        {/* Coloured platform rail along the left edge — anchors the card
+            visually to its platform without stealing the central title's
+            colour. */}
+        <span
+          className={`absolute left-0 top-0 bottom-0 w-1 ${dotColor}`}
+          aria-hidden="true"
+        />
         <div className="flex items-center justify-between gap-1">
           <span className="text-[11px] font-semibold tabular-nums">
             {formatHHMM(post.scheduled_at)}
@@ -67,15 +83,9 @@ export function PostChip({
           </button>
         </div>
         <span className="text-xs font-medium truncate leading-tight">{post.title}</span>
-        <div className="flex items-center gap-1 mt-0.5">
-          <span
-            className={`shrink-0 w-1.5 h-1.5 rounded-full ${dotColor}`}
-            aria-hidden="true"
-          />
-          <span className="text-[10px] text-txt-tertiary truncate">
-            {platformLabel(post.platform)}
-          </span>
-        </div>
+        <span className="text-[10px] text-txt-tertiary truncate">
+          {platformLabel(post.platform)}
+        </span>
       </div>
     );
   }
@@ -94,10 +104,10 @@ export function PostChip({
         onDragEnd?.(e);
       }}
       className={[
-        'group flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
-        'truncate max-w-full',
+        'group relative flex items-center gap-1.5 rounded-md pl-2 pr-1.5 py-1 text-[11px] font-medium',
+        'truncate max-w-full transition-colors',
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
-        surfaceClass,
+        compactSurfaceClass,
       ].join(' ')}
       title={
         draggable
@@ -109,11 +119,10 @@ export function PostChip({
         className={`shrink-0 w-1.5 h-1.5 rounded-full ${dotColor}`}
         aria-hidden="true"
       />
-      {/* Time before title in compact mode */}
-      <span className="shrink-0 tabular-nums text-txt-tertiary text-[10px]">
+      <span className="shrink-0 tabular-nums text-txt-tertiary text-[10px] font-semibold">
         {formatHHMM(post.scheduled_at)}
       </span>
-      <span className="truncate flex-1">{post.title}</span>
+      <span className="truncate flex-1 leading-tight">{post.title}</span>
       <button
         type="button"
         onClick={(e) => {

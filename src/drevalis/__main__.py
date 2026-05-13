@@ -452,6 +452,31 @@ def _run_migrations_inproc() -> int:
                         file=sys.stderr,
                         flush=True,
                     )
+
+        # ── Demo content seed ──────────────────────────────────────────
+        # Idempotent — only inserts named rows that don't already exist,
+        # so users who deleted a demo pack will not see it re-spawn. Kept
+        # inside the migrate path because it needs a synchronous engine
+        # and runs exactly once per startup, same as the heal pass.
+        try:
+            from drevalis.services.demo_seed import seed_demo_content
+
+            inserted = seed_demo_content(engine)
+            if any(inserted.values()):
+                print(
+                    f"[drevalis migrate] demo-seed inserted "
+                    f"{inserted['character_packs']} character pack(s) + "
+                    f"{inserted['video_templates']} video template(s)",
+                    flush=True,
+                )
+        except Exception as exc:
+            print(
+                f"[drevalis migrate] demo seed FAILED "
+                f"({type(exc).__name__}: {exc}); continuing anyway",
+                file=sys.stderr,
+                flush=True,
+            )
+            traceback.print_exc()
     finally:
         engine.dispose()
 

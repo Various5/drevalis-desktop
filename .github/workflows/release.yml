@@ -138,7 +138,13 @@ jobs:
           projectPath: tauri
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: 'Drevalis Creator Studio ${{ github.event.inputs.tag || github.ref_name }}'
-          releaseDraft: true
+          # Publish immediately (was draft=true) so each tag lands as a real
+          # release. GitHub auto-marks the newest non-draft, non-prerelease
+          # release as "Latest", which is the manifest source of truth for
+          # the in-app updater (releases/latest/download/latest.json). Was
+          # the cause of the alpha.9/10/11 "you're on the latest" bug where
+          # drafted releases didn't take the Latest slot.
+          releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
           # Generate latest.json with the right structure -- tauri-action

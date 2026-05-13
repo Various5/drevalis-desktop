@@ -65,6 +65,10 @@ class VideoIngestJobResponse(BaseModel):
     error_message: str | None
 
 
+class FromAssetRequest(BaseModel):
+    asset_id: UUID
+
+
 class PickRequest(BaseModel):
     clip_index: int
     series_id: UUID
@@ -96,6 +100,40 @@ async def start_video_ingest(
             description=description,
             probe_media=_probe_media,
         )
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, exc.detail) from exc
+    return VideoIngestJobResponse(
+        id=job.id,
+        asset_id=job.asset_id,
+        status=job.status,
+        stage=job.stage,
+        progress_pct=job.progress_pct,
+        candidate_clips=None,
+        selected_clip_index=None,
+        resulting_episode_id=None,
+        error_message=None,
+    )
+
+
+@router.post(
+    "/api/v1/video-ingest/from-asset",
+    response_model=VideoIngestJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_video_ingest_from_asset(
+    body: FromAssetRequest,
+    svc: VideoIngestService = Depends(_service),
+) -> VideoIngestJobResponse:
+    """Kick off an ingest pipeline on a video Asset already in the library.
+
+    No new upload happens — the existing on-disk file is reused. Useful
+    when the user already has the source video saved as an asset (e.g.
+    from a previous upload, or a manual drop into the Assets page).
+    """
+    try:
+        job = await svc.start_from_asset(body.asset_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "asset not found") from exc
     except ValidationError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, exc.detail) from exc
     return VideoIngestJobResponse(

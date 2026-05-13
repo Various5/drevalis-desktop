@@ -47,25 +47,25 @@ export function GettingStarted() {
           {
             icon: Server,
             name: 'ComfyUI',
-            desc: 'Required for scene image and video generation. Run locally on GPU or connect to a remote server.',
-            status: 'Required for image/video',
+            desc: 'Required only for scene image/video generation. Runs locally on GPU or you can point Drevalis at a remote ComfyUI server.',
+            status: 'For image/video',
           },
           {
             icon: Monitor,
             name: 'FFmpeg',
-            desc: 'Required for all video assembly, caption burning, and audio mixing. Must be on your system PATH.',
-            status: 'Required',
+            desc: 'Bundled with the installer for video assembly, caption burning, and audio mixing. Nothing to install separately.',
+            status: 'Bundled',
           },
           {
             icon: HardDrive,
-            name: 'PostgreSQL 16',
-            desc: 'Stores series, episodes, voice profiles, and job state. Run via Docker or install locally.',
-            status: 'Required',
+            name: 'SQLite + Redis',
+            desc: 'SQLite is built in; a Redis sidecar ships inside the installer for the job queue. No external database to set up.',
+            status: 'Bundled',
           },
           {
             icon: Zap,
-            name: 'Redis',
-            desc: 'Powers the arq job queue and real-time progress via pub/sub. Run via Docker or install locally.',
+            name: 'LLM endpoint',
+            desc: 'Local (LM Studio, Ollama) or cloud (OpenAI-compatible, Anthropic). Configured in Settings → LLM after first launch.',
             status: 'Required',
           },
         ].map(item => (
@@ -80,19 +80,17 @@ export function GettingStarted() {
         ))}
       </div>
       <InfoBox>
-        The fastest way to start all infrastructure is <code className="font-mono text-accent">docker compose up -d</code>. This starts PostgreSQL, Redis, the backend API, the arq worker, and the frontend in one command.
+        Drevalis is a desktop install &mdash; one NSIS installer on Windows, a notarised DMG on macOS, an AppImage on Linux. The launcher starts the backend, the bundled Redis, and the webview for you. No Docker, no PostgreSQL, no manual ports.
       </InfoBox>
 
       <SubHeading id="setup-checklist" title="First-Time Setup Checklist" />
       <div className="space-y-2 mb-4">
         {[
-          'Docker running — start infrastructure with docker compose up -d',
-          'Open http://localhost:5173 in your browser',
-          'Go to Settings → ComfyUI — add your ComfyUI server URL and test the connection',
-          'Go to Settings → LLM — configure your LM Studio or OpenAI-compatible endpoint',
-          'Go to Settings → Voice Profiles — create at least one voice profile (Edge TTS has 17+ free voices)',
-          'Optional: Settings → YouTube — connect your Google account for direct uploads',
-          'Optional: Configure ElevenLabs API key in a voice profile for premium voices',
+          'Install Drevalis Creator Studio and launch it — the backend starts automatically',
+          'Go to Settings → LLM and pick a provider (LM Studio, Ollama, OpenAI, Anthropic)',
+          'Optional: Settings → ComfyUI — point at your ComfyUI server if you want image/video',
+          'Optional: Settings → Voice Profiles — Edge TTS ships free voices; ElevenLabs and Piper are configurable',
+          'Optional: Settings → YouTube — connect a Google account for direct uploads',
           'Create your first Series and generate an episode',
         ].map((item, i) => (
           <div key={i} className="flex items-start gap-3 text-sm text-txt-secondary">

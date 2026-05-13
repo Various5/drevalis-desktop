@@ -118,18 +118,23 @@ export function MonthView({
     await onReschedule(post.id, nextDate);
   };
 
+  // Max chips shown per cell before collapsing into "+N more". Higher than
+  // the previous 3 because we also enlarged the cell — the user's main
+  // complaint was that visible chips fought for space and overflowed.
+  const MAX_VISIBLE_CHIPS = 4;
+
   return (
-    <div className="overflow-hidden rounded-xl">
+    <div className="overflow-hidden rounded-xl border border-border bg-bg-surface/60 shadow-sm">
       {/* Day-of-week headers */}
       <div
-        className="grid grid-cols-7 border-b border-border"
+        className="grid grid-cols-7 border-b border-border bg-bg-elevated/40"
         role="row"
         aria-label="Days of week"
       >
         {DAY_NAMES_SHORT.map((day) => (
           <div
             key={day}
-            className="py-2 text-center text-xs font-semibold uppercase tracking-wider text-txt-tertiary"
+            className="py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.15em] text-txt-secondary"
             role="columnheader"
           >
             {day}
@@ -171,24 +176,35 @@ export function MonthView({
               onDragLeave={(e) => handleDayDragLeave(e, day)}
               onDrop={(e) => void handleDayDrop(e, day)}
               className={[
-                'min-h-[100px] p-1.5 border-border flex flex-col gap-1 transition-colors',
+                'relative min-h-[128px] p-2 border-border flex flex-col gap-1 transition-colors',
                 !isLastInRow && 'border-r',
                 !isLastRow && 'border-b',
                 inMonth
-                  ? 'cursor-pointer hover:bg-bg-hover'
-                  : 'bg-bg-elevated/30 cursor-default',
+                  ? 'cursor-pointer hover:bg-bg-hover/60'
+                  : 'bg-bg-elevated/20 cursor-default',
+                todayFlag
+                  ? 'bg-accent/[0.04] ring-1 ring-inset ring-accent/30'
+                  : '',
                 isDropTarget
-                  ? 'bg-accent/10 outline outline-2 outline-accent/40 -outline-offset-2'
+                  ? 'bg-accent/10 outline outline-2 outline-accent/50 -outline-offset-2'
                   : '',
               ].join(' ')}
             >
               {/* Day number */}
-              <div className="flex items-center justify-end mb-0.5">
+              <div className="flex items-center justify-between mb-1">
                 <span
                   className={[
-                    'text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full',
+                    'text-[10px] uppercase tracking-wider font-medium',
+                    todayFlag ? 'text-accent' : 'text-txt-tertiary',
+                  ].join(' ')}
+                >
+                  {todayFlag ? 'Today' : ''}
+                </span>
+                <span
+                  className={[
+                    'text-sm font-display font-semibold w-7 h-7 flex items-center justify-center rounded-full tabular-nums',
                     todayFlag
-                      ? 'bg-accent text-white'
+                      ? 'bg-accent text-white shadow-[0_0_0_3px_rgba(0,212,170,0.15)]'
                       : inMonth
                         ? 'text-txt-primary'
                         : 'text-txt-tertiary',
@@ -199,9 +215,9 @@ export function MonthView({
                 </span>
               </div>
 
-              {/* Post chips — up to 3 then overflow */}
-              <div className="space-y-0.5 flex-1">
-                {dayPosts.slice(0, 3).map((post) => (
+              {/* Post chips */}
+              <div className="space-y-1 flex-1">
+                {dayPosts.slice(0, MAX_VISIBLE_CHIPS).map((post) => (
                   <PostChip
                     key={post.id}
                     post={post}
@@ -211,17 +227,17 @@ export function MonthView({
                     onDragEnd={handleDragEnd}
                   />
                 ))}
-                {dayPosts.length > 3 && (
+                {dayPosts.length > MAX_VISIBLE_CHIPS && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setExpandedDay(dayKey);
                     }}
-                    className="text-[10px] text-accent hover:underline px-1 self-start"
+                    className="text-[10px] font-medium text-accent hover:text-accent/80 hover:underline px-1.5 py-0.5 rounded self-start"
                     aria-label={`Show all ${dayPosts.length} posts on ${day.toLocaleDateString()}`}
                   >
-                    +{dayPosts.length - 3} more
+                    +{dayPosts.length - MAX_VISIBLE_CHIPS} more
                   </button>
                 )}
               </div>

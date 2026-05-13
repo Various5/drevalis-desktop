@@ -1,5 +1,5 @@
 import { HardDrive, ChevronRight } from 'lucide-react';
-import { SectionHeading, SubHeading, Warning, CodeBlock } from './_shared';
+import { SectionHeading, SubHeading, Warning } from './_shared';
 
 export function BackupRestore() {
   return (
@@ -19,9 +19,10 @@ export function BackupRestore() {
 
       <SubHeading id="br-auto" title="Auto-Backup Schedule" />
       <p className="text-sm text-txt-secondary mb-3">
-        Set <code className="font-mono text-xs">BACKUP_AUTO_ENABLED=true</code> in <code className="font-mono text-xs">.env</code> (via Docker Compose). The worker creates a backup every night at 03:00 UTC, pruning to the most recent <code className="font-mono text-xs">BACKUP_RETENTION</code> (default 7).
+        Enable auto-backup in <strong className="text-txt-primary">Settings &rarr; Backup</strong>. The worker
+        runs a backup every night at 03:00 UTC and prunes to the most recent N archives
+        (default 7, configurable on the same page).
       </p>
-      <CodeBlock>{`# .env\nBACKUP_AUTO_ENABLED=true\nBACKUP_RETENTION=14\nBACKUP_DIRECTORY=/app/storage/backups`}</CodeBlock>
 
       <SubHeading id="br-restore" title="Restoring an Archive" />
       <Warning>Restore is destructive. It truncates every user table (series, episodes, audiobooks, tokens) and overwrites storage files.</Warning>
@@ -32,20 +33,24 @@ export function BackupRestore() {
         <li>Click Restore. The app will refresh once the server-side restore completes.</li>
       </ol>
 
-      <SubHeading id="br-smb" title="Off-Box: SMB / NFS Mount" />
+      <SubHeading id="br-location" title="Where Backups Live" />
       <p className="text-sm text-txt-secondary mb-3">
-        To send backups to a NAS or network share, mount the share into the app container at <code className="font-mono text-xs">/app/storage/backups</code>:
+        Archives are written under your user-data dir &mdash;
+        <code className="font-mono text-xs">%LOCALAPPDATA%\Drevalis\storage\backups\</code> on Windows,
+        <code className="font-mono text-xs">~/Library/Application Support/Drevalis/storage/backups/</code> on macOS,
+        <code className="font-mono text-xs">~/.local/share/Drevalis/storage/backups/</code> on Linux. Copy the
+        <code className="font-mono text-xs">.tar.gz</code> off-box to a NAS / cloud storage as part of your
+        own backup hygiene.
       </p>
-      <CodeBlock>{`# docker-compose.override.yml\nservices:\n  app:\n    volumes:\n      - type: bind\n        source: /mnt/nas/drevalis-backups\n        target: /app/storage/backups`}</CodeBlock>
 
       <SubHeading id="br-encryption" title="Encryption Keys & Cross-Install Migration" />
       <p className="text-sm text-txt-secondary mb-3">
-        Archive manifests include a hash of the install's ENCRYPTION_KEY. Restoring into a machine with a different key is refused by default (OAuth tokens + API keys would be un-decryptable).
+        Archive manifests include a hash of the install's encryption key (stored in your OS keychain). Restoring into a machine with a different key is refused by default &mdash; OAuth tokens and API keys would be un-decryptable.
       </p>
       <ul className="space-y-2 text-sm text-txt-secondary ml-4 mb-4">
-        <li className="flex gap-2"><ChevronRight size={13} className="text-accent shrink-0 mt-0.5" /><strong className="text-txt-primary">Migrating a full install</strong> - copy the source install's <code className="font-mono text-xs">.env</code> (or at least <code className="font-mono text-xs">ENCRYPTION_KEY</code>) to the target before running restore.</li>
-        <li className="flex gap-2"><ChevronRight size={13} className="text-accent shrink-0 mt-0.5" /><strong className="text-txt-primary">Partial restore (new install, keep only content)</strong> - tick <strong className="text-txt-primary">Allow different ENCRYPTION_KEY</strong>; you will need to re-enter YouTube OAuth, ElevenLabs API key, etc.</li>
-        <li className="flex gap-2"><ChevronRight size={13} className="text-accent shrink-0 mt-0.5" /><strong className="text-txt-primary">Never lose your ENCRYPTION_KEY</strong> - without it, backups are effectively encrypted-at-rest data you can't read.</li>
+        <li className="flex gap-2"><ChevronRight size={13} className="text-accent shrink-0 mt-0.5" /><strong className="text-txt-primary">Migrating a full install</strong> &mdash; export the encryption key from Settings &rarr; Backup on the source machine and import it on the target before restoring.</li>
+        <li className="flex gap-2"><ChevronRight size={13} className="text-accent shrink-0 mt-0.5" /><strong className="text-txt-primary">Partial restore (new install, keep only content)</strong> &mdash; tick <strong className="text-txt-primary">Allow different encryption key</strong> at restore time; you will need to re-enter YouTube OAuth, ElevenLabs API key, etc.</li>
+        <li className="flex gap-2"><ChevronRight size={13} className="text-accent shrink-0 mt-0.5" /><strong className="text-txt-primary">Never lose the encryption key</strong> &mdash; without it, backups are effectively encrypted-at-rest data you can't read.</li>
       </ul>
     </section>
   );

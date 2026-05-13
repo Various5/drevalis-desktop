@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Terminal, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Terminal, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatCard } from '@/components/ui/StatCard';
-import { metricsApi, eventsApi } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
+import { metricsApi, eventsApi, formatError } from '@/lib/api';
 import type { AppLogEvent, AppEventLevel } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
@@ -89,7 +90,7 @@ const LEVEL_OPTIONS: { value: AppEventLevel; label: string }[] = [
   { value: 'critical', label: 'Critical only' },
 ];
 
-function AppEventsSection({ autoRefresh }: { autoRefresh: boolean }) {
+function AppEventsSection({ autoRefresh, reloadTick = 0 }: { autoRefresh: boolean; reloadTick?: number }) {
   const [appEvents, setAppEvents] = useState<AppLogEvent[]>([]);
   const [minLevel, setMinLevel] = useState<AppEventLevel>('warning');
   const [loading, setLoading] = useState(true);
@@ -111,7 +112,9 @@ function AppEventsSection({ autoRefresh }: { autoRefresh: boolean }) {
   useEffect(() => {
     setLoading(true);
     fetchAppEvents().finally(() => setLoading(false));
-  }, [fetchAppEvents]);
+    // reloadTick is bumped by the parent's "Clear logs" action so we refetch
+    // the now-empty file instead of showing the cached pre-clear entries.
+  }, [fetchAppEvents, reloadTick]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -206,9 +209,12 @@ function AppEventsSection({ autoRefresh }: { autoRefresh: boolean }) {
 // ---------------------------------------------------------------------------
 
 function Logs() {
+  const { toast } = useToast();
   const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [clearTick, setClearTick] = useState(0);
+  const [clearing, setClearing] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -218,6 +224,31 @@ function Logs() {
       // ignore
     }
   }, []);
+
+  const handleClear = useCallback(async () => {
+    if (clearing) return;
+    const ok = window.confirm(
+      'Clear every entry in the App Events log file?\n\n' +
+      'Pipeline / generation history is NOT affected — only the structured ' +
+      'warning/error log file is wiped.',
+    );
+    if (!ok) return;
+    setClearing(true);
+    try {
+      const res = await eventsApi.clear();
+      toast.success(
+        res.files_truncated > 0
+          ? `Cleared ${res.files_truncated} log file${res.files_truncated === 1 ? '' : 's'}.`
+          : 'No log files to clear.',
+      );
+      // Force AppEventsSection to refetch.
+      setClearTick((n) => n + 1);
+    } catch (e) {
+      toast.error('Failed to clear logs', { description: formatError(e) });
+    } finally {
+      setClearing(false);
+    }
+  }, [clearing, toast]);
 
   // Initial load
   useEffect(() => {
@@ -275,12 +306,22 @@ function Logs() {
               <RefreshCw size={14} />
               Refresh
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              disabled={clearing}
+              aria-label="Clear all app event log entries"
+            >
+              <Trash2 size={14} />
+              {clearing ? 'Clearing…' : 'Clear logs'}
+            </Button>
           </div>
         }
       />
 
       {/* ── App events (structured log file) ─────────────────────────── */}
-      <AppEventsSection autoRefresh={autoRefresh} />
+      <AppEventsSection autoRefresh={autoRefresh} reloadTick={clearTick} />
 
       {/* Stats summary — uses the shared StatCard so the visual
           treatment matches the Dashboard tiles. */}

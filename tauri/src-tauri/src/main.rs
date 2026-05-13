@@ -124,10 +124,33 @@ fn kill_backend(state: &BackendProcess) {
         Ok(g) => g,
         Err(poisoned) => poisoned.into_inner(),
     };
-    if let Some(mut child) = guard.take() {
-        let _ = child.kill();
-        let _ = child.wait();
+    let Some(mut child) = guard.take() else {
+        return;
+    };
+
+    // On Windows, `child.kill()` calls `TerminateProcess` which kills only
+    // the immediate child (`drevalis.exe`). The Python launcher's
+    // grandchildren — `redis-server.exe`, the arq worker, and uvicorn —
+    // survive and keep file handles open on `_internal/_asyncio.pyd` and
+    // `resources/bin/win/redis-server.exe`. NSIS auto-updates then bomb
+    // out with "Error opening file for writing".
+    //
+    // Tree-kill via `taskkill /F /T /PID <pid>` so the whole subtree dies
+    // before this function returns. `/T` walks the descendant tree, `/F`
+    // forces termination on each. We still call `child.kill()` afterwards
+    // as a fallback for non-Windows builds and as a cleanup if taskkill
+    // raced our child exiting.
+    #[cfg(windows)]
+    {
+        let pid = child.id();
+        let _ = Command::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .creation_flags(CREATE_NO_WINDOW)
+            .status();
     }
+
+    let _ = child.kill();
+    let _ = child.wait();
 }
 
 fn main() {

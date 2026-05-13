@@ -868,6 +868,7 @@ export const eventsApi = {
     get<AppEventsResponse>(
       `/api/v1/events?limit=${limit}&min_level=${minLevel}`,
     ),
+  clear: () => del<{ files_truncated: number }>(`/api/v1/events`),
 };
 
 // ---------------------------------------------------------------------------
@@ -1668,6 +1669,10 @@ export const videoIngest = {
     if (description) form.append('description', description);
     return uploadMultipart<VideoIngestJob>('/api/v1/video-ingest', form);
   },
+  startFromAsset: (assetId: string) =>
+    post<VideoIngestJob>('/api/v1/video-ingest/from-asset', {
+      asset_id: assetId,
+    }),
   get: (jobId: string) => get<VideoIngestJob>(`/api/v1/video-ingest/${jobId}`),
   pick: (jobId: string, clipIndex: number, seriesId: string) =>
     post<{ status: string }>(`/api/v1/video-ingest/${jobId}/pick`, {

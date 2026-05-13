@@ -250,51 +250,111 @@ function UploadZone({
 
 function AssetTile({ asset, onDelete }: { asset: Asset; onDelete: () => void }) {
   const url = `/api/v1/assets/${asset.id}/file`;
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const canPreview = asset.kind === 'image' || asset.kind === 'video' || asset.kind === 'audio';
+
   return (
-    <Card className="overflow-hidden group relative">
-      <div className="aspect-square bg-bg-elevated flex items-center justify-center">
-        {asset.kind === 'image' && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={url}
-            alt={asset.filename}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        )}
-        {asset.kind === 'video' && (
-          <video src={url} muted className="w-full h-full object-cover" preload="metadata" />
-        )}
-        {asset.kind === 'audio' && <Music2 size={40} className="text-txt-muted" />}
-        {asset.kind === 'other' && <FileBox size={40} className="text-txt-muted" />}
-      </div>
-      <div className="p-2 text-xs">
-        <div className="truncate font-medium text-txt-primary" title={asset.filename}>
-          {asset.filename}
-        </div>
-        <div className="text-txt-muted flex items-center justify-between">
-          <span>{formatBytes(asset.file_size_bytes)}</span>
-          {asset.duration_seconds != null && (
-            <span>{formatDuration(asset.duration_seconds)}</span>
-          )}
-          {asset.width && asset.height && !asset.duration_seconds && (
-            <span>
-              {asset.width}×{asset.height}
-            </span>
-          )}
-        </div>
-      </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-bg-base/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-error hover:bg-error/20"
-        title="Delete"
+    <>
+      <Card
+        className={[
+          'overflow-hidden group relative',
+          canPreview ? 'cursor-pointer' : '',
+        ].join(' ')}
+        onClick={canPreview ? () => setPreviewOpen(true) : undefined}
       >
-        <Trash2 size={12} />
-      </button>
-    </Card>
+        <div className="aspect-square bg-bg-elevated flex items-center justify-center">
+          {asset.kind === 'image' && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={url}
+              alt={asset.filename}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
+          {asset.kind === 'video' && (
+            <video
+              src={url}
+              muted
+              className="w-full h-full object-cover"
+              preload="metadata"
+            />
+          )}
+          {asset.kind === 'audio' && <Music2 size={40} className="text-txt-muted" />}
+          {asset.kind === 'other' && <FileBox size={40} className="text-txt-muted" />}
+        </div>
+        <div className="p-2 text-xs">
+          <div className="truncate font-medium text-txt-primary" title={asset.filename}>
+            {asset.filename}
+          </div>
+          <div className="text-txt-muted flex items-center justify-between">
+            <span>{formatBytes(asset.file_size_bytes)}</span>
+            {asset.duration_seconds != null && (
+              <span>{formatDuration(asset.duration_seconds)}</span>
+            )}
+            {asset.width && asset.height && !asset.duration_seconds && (
+              <span>
+                {asset.width}×{asset.height}
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-bg-base/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-error hover:bg-error/20"
+          title="Delete"
+        >
+          <Trash2 size={12} />
+        </button>
+      </Card>
+
+      {canPreview && (
+        <Dialog
+          open={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          title={asset.filename}
+          maxWidth="xl"
+        >
+          <div className="flex items-center justify-center bg-black rounded-md overflow-hidden">
+            {asset.kind === 'image' && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={url}
+                alt={asset.filename}
+                className="max-h-[70vh] w-auto object-contain"
+              />
+            )}
+            {asset.kind === 'video' && (
+              <video
+                src={url}
+                controls
+                autoPlay
+                className="max-h-[70vh] w-full"
+              />
+            )}
+            {asset.kind === 'audio' && (
+              <div className="w-full p-6">
+                <audio src={url} controls autoPlay className="w-full" />
+              </div>
+            )}
+          </div>
+          <div className="mt-3 text-xs text-txt-muted flex items-center justify-between">
+            <span>{formatBytes(asset.file_size_bytes)}</span>
+            {asset.duration_seconds != null && <span>{formatDuration(asset.duration_seconds)}</span>}
+            {asset.width && asset.height && (
+              <span>
+                {asset.width}×{asset.height}
+              </span>
+            )}
+            <span>{asset.mime_type ?? asset.kind}</span>
+          </div>
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -302,7 +362,11 @@ function AssetTile({ asset, onDelete }: { asset: Asset; onDelete: () => void }) 
 
 function IngestDialog({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
+  const [source, setSource] = useState<'upload' | 'library'>('upload');
   const [file, setFile] = useState<File | null>(null);
+  const [libraryVideos, setLibraryVideos] = useState<Asset[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [pickedAssetId, setPickedAssetId] = useState<string | null>(null);
   const [job, setJob] = useState<VideoIngestJob | null>(null);
   const [selectedClip, setSelectedClip] = useState<number | null>(null);
   const [seriesList, setSeriesList] = useState<Array<{ id: string; title: string }>>([]);
@@ -314,6 +378,16 @@ function IngestDialog({ onClose }: { onClose: () => void }) {
       setSeriesList(rows.map((r) => ({ id: r.id, title: r.name }))),
     );
   }, []);
+
+  useEffect(() => {
+    if (source !== 'library' || job) return;
+    setLibraryLoading(true);
+    void assetsApi
+      .list({ kind: 'video' })
+      .then(setLibraryVideos)
+      .catch(() => setLibraryVideos([]))
+      .finally(() => setLibraryLoading(false));
+  }, [source, job]);
 
   useEffect(() => {
     if (!job || job.status === 'done' || job.status === 'failed') return;
@@ -337,6 +411,17 @@ function IngestDialog({ onClose }: { onClose: () => void }) {
       toast.success('Upload accepted — analyzing…');
     } catch (err) {
       toast.error('Upload failed', { description: formatError(err) });
+    }
+  };
+
+  const startFromLibrary = async () => {
+    if (!pickedAssetId) return;
+    try {
+      const j = await ingestApi.startFromAsset(pickedAssetId);
+      setJob(j);
+      toast.success('Re-using existing asset — analyzing…');
+    } catch (err) {
+      toast.error('Ingest failed', { description: formatError(err) });
     }
   };
 
@@ -364,19 +449,108 @@ function IngestDialog({ onClose }: { onClose: () => void }) {
             Drop a raw clip (podcast recording, webinar, vlog) — we transcribe it and pick the
             best 30–60 second moments for you. Then you pick one and land in the editor.
           </p>
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="block w-full text-sm text-txt-primary file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-bg-elevated file:text-txt-primary hover:file:bg-bg-hover"
-          />
+
+          {/* Source switch */}
+          <div className="flex gap-2 border-b border-white/[0.08] -mx-6 px-6">
+            {([
+              { id: 'upload', label: 'Upload new' },
+              { id: 'library', label: 'Pick from library' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSource(tab.id)}
+                className={[
+                  'px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
+                  source === tab.id
+                    ? 'border-accent text-txt-primary'
+                    : 'border-transparent text-txt-secondary hover:text-txt-primary',
+                ].join(' ')}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {source === 'upload' ? (
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="block w-full text-sm text-txt-primary file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-bg-elevated file:text-txt-primary hover:file:bg-bg-hover"
+            />
+          ) : (
+            <div className="max-h-80 overflow-y-auto rounded-md border border-white/[0.06]">
+              {libraryLoading ? (
+                <div className="flex justify-center py-8">
+                  <Spinner />
+                </div>
+              ) : libraryVideos.length === 0 ? (
+                <div className="p-8 text-center text-sm text-txt-secondary">
+                  No video assets yet. Upload one on the Assets page first, or switch to the
+                  Upload tab.
+                </div>
+              ) : (
+                <div className="divide-y divide-white/[0.04]">
+                  {libraryVideos.map((a) => {
+                    const on = pickedAssetId === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => setPickedAssetId(a.id)}
+                        className={[
+                          'w-full text-left p-3 flex items-center gap-3 transition-colors',
+                          on ? 'bg-accent/10' : 'hover:bg-white/[0.03]',
+                        ].join(' ')}
+                      >
+                        <video
+                          src={`/api/v1/assets/${a.id}/file`}
+                          muted
+                          preload="metadata"
+                          className="w-20 h-12 rounded object-cover bg-black flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate text-sm font-medium text-txt-primary">
+                            {a.filename}
+                          </div>
+                          <div className="text-xs text-txt-muted flex gap-2">
+                            <span>{formatBytes(a.file_size_bytes)}</span>
+                            {a.duration_seconds != null && (
+                              <span>{formatDuration(a.duration_seconds)}</span>
+                            )}
+                            {a.width && a.height && (
+                              <span>
+                                {a.width}×{a.height}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={() => void startUpload()} disabled={!file}>
-              Analyze
-            </Button>
+            {source === 'upload' ? (
+              <Button variant="primary" onClick={() => void startUpload()} disabled={!file}>
+                Analyze
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => void startFromLibrary()}
+                disabled={!pickedAssetId}
+              >
+                Analyze
+              </Button>
+            )}
           </DialogFooter>
         </div>
       )}

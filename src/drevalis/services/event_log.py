@@ -250,3 +250,28 @@ def _resolve_log_paths(primary: Path) -> list[Path]:
                 return [p for p in siblings if p.is_file()]
         return [primary]
     return []
+
+
+async def clear_event_logs(settings: Settings) -> int:
+    """Truncate every JSON log file that feeds the events endpoint.
+
+    Returns the count of files that were truncated. Files are *truncated*,
+    not deleted, so the structlog file handle on the process side stays
+    valid — the next write reopens cleanly without the logger losing its
+    sink. Missing files / unconfigured ``LOG_FILE`` is a no-op (0).
+    """
+    log_path = _resolve_log_path(settings)
+    if log_path is None:
+        return 0
+
+    paths = _resolve_log_paths(log_path)
+    truncated = 0
+    for path in paths:
+        try:
+            async with aiofiles.open(path, mode="w", encoding="utf-8") as fh:
+                await fh.write("")
+            truncated += 1
+        except OSError as exc:
+            logger.warning("event_log.clear_failed", path=str(path), error=str(exc))
+            continue
+    return truncated

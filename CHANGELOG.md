@@ -12,6 +12,28 @@ Pre-1.0 releases are alpha-tagged.
 ## [Unreleased]
 
 ### Fixed
+- **Auto-update install bombed with "Error opening file for writing" on
+  ``_asyncio.pyd`` and ``redis-server.exe`` — users had to Task-Manager-
+  kill Drevalis before the installer could overwrite anything.** Rust's
+  ``child.kill()`` on Windows only terminates the immediate child
+  (``drevalis.exe``); the Python launcher's grandchildren (arq worker,
+  uvicorn, bundled ``redis-server.exe``) survived and kept file handles
+  open. Two belt-and-suspenders fixes: ``kill_backend`` in the Tauri
+  shell now ``taskkill /F /T /PID`` the entire backend subtree before
+  returning, and a new ``installer-hooks.nsh`` ``NSIS_HOOK_PREINSTALL``
+  taskkills any straggler ``drevalis-shell.exe`` / ``drevalis.exe`` /
+  ``redis-server.exe`` processes before NSIS starts writing files (covers
+  the manual-reinstall path too).
+- **Dashboard "Customize" — drag-and-drop occasionally didn't fire and
+  hidden tiles couldn't be brought back.** Two separate bugs. (1) The
+  HTML5 drag handler didn't seed ``dataTransfer`` with anything; WebView2
+  / Firefox treat that as a no-op drag and refuse to dispatch ``drop``.
+  ``onDragStart`` now sets ``effectAllowed='move'`` and a tiny ``setData``
+  payload, ``onDragOver`` sets ``dropEffect='move'`` for the right cursor
+  feedback. (2) The hidden-widgets tray was gated on ``editMode`` — hide
+  a tile, exit customize, and the only path back disappeared. Tray now
+  renders whenever any tile is hidden, with a hint copy outside edit mode
+  so the affordance is discoverable.
 - **Restoring a backup crashed on the first table with rows with
   `'str' object has no attribute 'hex'`.** `BackupService` JSON-dumps
   UUIDs as plain strings, but the restore-side `_build_type_coercers`
@@ -37,7 +59,54 @@ Pre-1.0 releases are alpha-tagged.
   to "Latest" on GitHub, so the manifest was still serving alpha.8 —
   is fixed by promoting this release.)
 
+### Added
+- **In-app "Clear logs" button on the Event Logs page.** Wipes every
+  entry in the structured app-event log file(s) (``%LOCALAPPDATA%\Drevalis\Logs\``)
+  on demand. Pipeline / generation history is *not* affected — that's
+  real domain data, not noise. Backend route: ``DELETE /api/v1/events``;
+  the truncate keeps the structlog file descriptor valid so the next
+  emit reopens cleanly.
+- **Assets → Pick from library at video-ingest time.** ``IngestDialog``
+  now has Upload-new / Pick-from-library tabs. New backend route
+  ``POST /api/v1/video-ingest/from-asset`` re-uses an existing video
+  Asset (no second upload, no second on-disk copy) and kicks off the
+  same analyze pipeline. Asset tiles on the Assets page are now
+  click-to-preview: images open in a lightbox, videos play with
+  controls, audio plays with controls — so you can actually tell what
+  a row is without opening it elsewhere.
+- **Demo character packs + video templates on fresh install.** Three
+  starter packs (Cinematic Noir, Cozy Cottagecore, Cyberpunk Neon) and
+  three video templates (Viral Shorts default, Long-form Narrator,
+  Audiobook voice-only) are seeded after schema-heal on first launch.
+  Idempotent — rows are matched by name, so a user who deletes a demo
+  pack will not see it return on next boot.
+
 ### Changed
+- **Help section rewritten for desktop reality.** Updates, Troubleshooting,
+  BackupRestore, GettingStarted, and WorkerManagement all dropped their
+  Docker-era prose (``docker compose pull``, ``host.docker.internal``,
+  ``.env`` editing, ghcr.io image pins, ``/app/storage/backups`` bind
+  mounts, "PostgreSQL via Docker") and now describe the actual install
+  flow: NSIS / DMG / AppImage, bundled Redis, SQLite under
+  ``%LOCALAPPDATA%\Drevalis\``, in-app updater. Lower word count
+  across the section, fewer paragraphs the user has to skim.
+- **Calendar visual refresh.** Month cells grew (``min-h-[100px]`` →
+  ``min-h-[128px]``) and now show four chips before collapsing to
+  "+N more" instead of three. Today's cell gets an accent ring and an
+  inline "Today" label; the day number sits in a glow ring. ``PostChip``
+  got modern card surfaces — coloured platform rail on the left edge in
+  full variant, soft elevated background + ring on the compact variant,
+  tighter type hierarchy. The week / day timeline view's existing
+  Google-Calendar-style lane algorithm already handled time overlaps;
+  the visual changes just stop the chips themselves from looking
+  cramped at default density.
+- **Every release now publishes as GitHub "Latest" automatically.** The
+  ``tauri-action`` step in ``release.yml`` flipped ``releaseDraft: true``
+  → ``false``. Drafted releases don't take the Latest slot, which is
+  what the in-app updater's manifest URL
+  (``releases/latest/download/latest.json``) resolves to — that mismatch
+  was the parallel root cause behind the alpha.9/10/11 "you're on the
+  latest" lie.
 - **Marketing site (drevalis.com) overhauled.** Cut by half: removed
   the 16-card "Plus the small things" grid, the dummy voice-library
   preview, the full hardware breakdown (moved to /download), the

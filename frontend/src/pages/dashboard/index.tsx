@@ -294,15 +294,25 @@ function Dashboard() {
         })}
       </div>
 
-      {/* Hidden widgets tray — only visible in edit mode */}
-      {editMode && hiddenWidgets.length > 0 && (
+      {/* Hidden widgets tray — visible whenever any widget is hidden, NOT gated
+          on edit mode. Users who hid a widget and then exited customise mode
+          previously had no path back; they'd see "Hide" work and then never
+          see the unhide button again. */}
+      {hiddenWidgets.length > 0 && (
         <div
-          className="border border-dashed border-white/[0.08] rounded-xl p-4"
+          className="border border-dashed border-white/15 rounded-xl p-4 bg-bg-elevated/30"
           aria-label="Hidden widgets"
         >
-          <p className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em] mb-3">
-            Hidden
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-display font-semibold text-txt-secondary uppercase tracking-[0.15em]">
+              Hidden widgets ({hiddenWidgets.length})
+            </p>
+            {!editMode && (
+              <span className="text-[11px] text-txt-tertiary">
+                Click a tile to bring it back
+              </span>
+            )}
+          </div>
           <div className="space-y-2">
             {hiddenWidgets.map((id) => (
               <div

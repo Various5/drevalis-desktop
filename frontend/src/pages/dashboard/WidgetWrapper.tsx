@@ -51,9 +51,24 @@ export function WidgetWrapper({
       // hide the grip handle below md and still set draggable=true but
       // the visual affordance is absent on small screens.
       draggable
-      onDragStart={() => onDragStart(index)}
+      onDragStart={(e) => {
+        // Firefox refuses to fire `drop` if no data is set on `dataTransfer`,
+        // and WebView2 in some Tauri builds matches that behaviour. Setting
+        // effectAllowed + a payload guarantees the drag actually completes.
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          try {
+            e.dataTransfer.setData('text/plain', String(index));
+          } catch {
+            // setData throws in some odd contexts (e.g. iframe sandboxing).
+            // The dragstart still proceeds — we just lose the payload.
+          }
+        }
+        onDragStart(index);
+      }}
       onDragOver={(e) => {
         e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
         onDragOver(e, index);
       }}
       onDrop={(e) => {
