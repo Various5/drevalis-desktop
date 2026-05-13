@@ -12,6 +12,18 @@ Pre-1.0 releases are alpha-tagged.
 ## [Unreleased]
 
 ### Fixed
+- **Restoring a backup crashed on the first table with rows with
+  `'str' object has no attribute 'hex'`.** `BackupService` JSON-dumps
+  UUIDs as plain strings, but the restore-side `_build_type_coercers`
+  only rehydrated datetimes/dates/times — UUID columns were left as
+  strings, which SQLAlchemy's `Uuid` bind processor blows up on
+  (`value.hex` is a `uuid.UUID` method). Coercer table now includes
+  `Uuid` columns and rehydrates strings via `uuid.UUID(s)`, so all
+  PK and FK columns round-trip cleanly. Affects both the
+  PostgreSQL→SQLite Docker-era restore path AND every SQLite→SQLite
+  restore on desktop. *(The earlier alpha.11 fix for
+  `SET session_replication_role` only addressed one of two bugs
+  blocking the user's Docker-era restore — this is the second.)*
 - **Settings → Updates showed "-" for the Installed version and falsely
   reported "you're on the latest" when no update was available.** The
   Tauri updater plugin's ``check()`` returns ``null`` when the running

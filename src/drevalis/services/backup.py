@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING, Any
 
 import sqlalchemy as sa
 import structlog
-from sqlalchemy import Date, DateTime, Time, delete, select
+from sqlalchemy import Date, DateTime, Time, Uuid, delete, select
 
 from drevalis.models.api_key_store import ApiKeyStore
 from drevalis.models.audiobook import Audiobook
@@ -164,13 +164,24 @@ def _coerce_time(v: Any) -> Any:
     return v
 
 
+def _coerce_uuid(v: Any) -> Any:
+    if v is None or isinstance(v, uuid.UUID):
+        return v
+    if isinstance(v, str):
+        return uuid.UUID(v)
+    return v
+
+
 def _build_type_coercers(model: type[Any]) -> dict[str, Callable[[Any], Any]]:
     """Column-name → coercer for types JSON round-tripping mangled.
 
-    ``json.dumps`` writes datetimes/dates/times as ISO strings; asyncpg
-    rejects those for TIMESTAMP / DATE / TIME columns. We inspect each
-    model's columns and hand back a plain callable per affected field so
-    the restore loop can fix up rows without per-row type checks.
+    ``json.dumps`` writes datetimes/dates/times as ISO strings and UUIDs
+    as plain strings; asyncpg rejects ISO strings for TIMESTAMP/DATE/TIME
+    columns, and SQLAlchemy's ``Uuid`` bind processor calls ``.hex`` on the
+    value (works for ``uuid.UUID`` instances, ``AttributeError`` on a str).
+    We inspect each model's columns and hand back a plain callable per
+    affected field so the restore loop can fix up rows without per-row
+    type checks.
     """
     coercers: dict[str, Callable[[Any], Any]] = {}
     for col in model.__table__.columns:
@@ -181,6 +192,8 @@ def _build_type_coercers(model: type[Any]) -> dict[str, Callable[[Any], Any]]:
             coercers[col.name] = _coerce_date
         elif isinstance(t, Time):
             coercers[col.name] = _coerce_time
+        elif isinstance(t, Uuid):
+            coercers[col.name] = _coerce_uuid
     return coercers
 
 
