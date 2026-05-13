@@ -1,19 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Activity, ChevronDown, LogOut, User as UserIcon, Search, Command } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { ChevronDown, LogOut, User as UserIcon, Search, Command } from 'lucide-react';
 import { useAuth } from '@/lib/useAuth';
 import { auth } from '@/lib/api';
 import { useCommandPalette } from '@/components/layout/Layout';
 import { getRouteTitle } from '@/routes/routeMeta';
 import { useActiveJobsProgress } from '@/lib/websocket';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { ActiveJobsPopover } from '@/components/layout/ActiveJobsPopover';
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
 interface HeaderProps {
-  activeJobCount: number;
+  // ``activeJobCount`` is no longer consumed by Header — the
+  // ``ActiveJobsPopover`` owns its own data subscription via
+  // ``useActiveJobs`` + ``useActiveJobsProgress`` — but keeping
+  // the prop avoids a wide refactor at Layout's call site. Drop
+  // the next time Layout's signature is touched.
+  activeJobCount?: number;
   sidebarCollapsed: boolean;
 }
 
@@ -21,7 +27,7 @@ interface HeaderProps {
 // Component
 // ---------------------------------------------------------------------------
 
-function Header({ activeJobCount, sidebarCollapsed }: HeaderProps) {
+function Header({ sidebarCollapsed }: HeaderProps) {
   const location = useLocation();
   const title = getRouteTitle(location.pathname);
   const { user } = useAuth();
@@ -111,21 +117,11 @@ function Header({ activeJobCount, sidebarCollapsed }: HeaderProps) {
           </span>
         </button>
 
-        {/* Active jobs indicator — Link, not <a>, so we don't trigger
-            a full-page reload that wipes the SPA state on click. */}
-        {activeJobCount > 0 && (
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-accent bg-accent/[0.08] border border-accent/20 hover:bg-accent/[0.12] transition-all duration-normal"
-            title="Active generation jobs"
-          >
-            <Activity size={14} className="animate-pulse" />
-            <span className="text-xs font-medium">{activeJobCount}</span>
-            <span className="text-xs text-accent/70">
-              {activeJobCount === 1 ? 'job' : 'jobs'}
-            </span>
-          </Link>
-        )}
+        {/* Active jobs popover — click to see every running step
+            across workers with live progress. Self-subscribes to
+            ``useActiveJobs`` + ``useActiveJobsProgress`` so callers
+            don't have to plumb the count through. */}
+        <ActiveJobsPopover />
 
         {/* User dropdown — only rendered in team mode (signed-in user) */}
         {user && (

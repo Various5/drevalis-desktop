@@ -11,6 +11,16 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.25 — global "what's running" popover)
+- **Header active-jobs pill is now a click-to-expand popover.** Same
+  pill in the same place, but clicking it opens a dropdown listing
+  every running generation job grouped by episode, each with a live
+  ``JobProgressBar``. Click any row to jump to the episode detail
+  page. ``View all`` returns to the dashboard for the full picture.
+- ``ActiveJobsPopover`` self-subscribes to ``useActiveJobs`` +
+  ``useActiveJobsProgress`` so Layout no longer has to plumb the
+  count down to Header — fewer props, real-time count.
+
 ### Added (alpha.24 — LLM cost tracker)
 - **``GET /api/v1/cost/summary``** — returns total tokens (prompt +
   completion) and a $-equivalent over the last ``days`` window
