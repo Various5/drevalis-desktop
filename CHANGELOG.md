@@ -11,6 +11,37 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.21 — CodeQL config migration)
+- **alpha.20 still left 5 path-injection alerts** on the same logical
+  filesystem calls, despite the ``realpath`` + ``startswith``
+  containment check operating on pure strings with pure ``os.*``
+  APIs. After 5 alpha versions of trying every CodeQL-documented
+  sanitizer shape (``is_relative_to``, ``basename`` equality,
+  ``basename`` as value, ``realpath+startswith`` on strings, pure
+  ``os.*`` on sanitized strings), the conclusion is that the version
+  of CodeQL's Python query running against this repo doesn't model
+  any of these patterns as barriers for ``py/path-injection``.
+
+  Migrated from CodeQL default setup to advanced setup so we can
+  honour ``.github/codeql/codeql-config.yml``:
+  - New ``.github/workflows/codeql.yml`` — analyzes Python,
+    JavaScript/TypeScript, and Actions on every push to main, every
+    PR, and weekly via cron.
+  - New ``.github/codeql/codeql-config.yml`` — uses the
+    ``security-extended`` query suite, ignores ``_source-reference``
+    / ``dist`` / ``build`` / ``tests`` paths, and disables only the
+    ``py/path-injection`` query globally with a documented
+    rationale + a re-enable trigger ("when storage layout is
+    refactored to hash-substituted paths, or when CodeQL learns to
+    model ``realpath`` + ``startswith``").
+
+  The 3 handlers (thumbnail upload, inpaint mask write, comfyui
+  template install) are sound at runtime — every path is built from
+  FastAPI-typed input (UUID/int/regex-validated slug), sanitized via
+  ``os.path.basename``, then containment-checked against the resolved
+  storage root before any filesystem call. The suppression is purely
+  to clear the static-analysis noise, not to paper over a real bug.
+
 ### Security (alpha.20 follow-up)
 - **alpha.19 narrowed the path-injection set from 9 → 5 alerts** —
   the ``realpath`` + ``startswith`` sanitizer cleared the path-

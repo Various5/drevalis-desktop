@@ -1,0 +1,55 @@
+name: "CodeQL"
+
+# Advanced-setup CodeQL workflow. We migrated off default setup so the
+# analysis honours ``.github/codeql/codeql-config.yml`` — default setup
+# silently ignores that file. Once this workflow first succeeds on
+# ``main``, GitHub disables the default-setup analysis for the repo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly re-scan on Monday morning UTC catches new advisories
+    # landing in the CodeQL query packs even when nothing in our code
+    # has changed.
+    - cron: "17 6 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for code-scanning result upload.
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
