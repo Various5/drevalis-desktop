@@ -11,6 +11,30 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.30 — Glitchtip live, telemetry pipe end-to-end)
+- **``errors.drevalis.com`` is live.** Self-hosted Glitchtip running
+  on the drevalis.com VPS (single-node docker-compose stack, behind
+  the existing nginx-proxy-manager with a fresh Let's Encrypt cert).
+  Project ``drevalis-creator-studio`` created; DSN saved to GitHub
+  Actions as ``GLITCHTIP_DSN``. CI's ``release.yml`` (added in
+  alpha.29) consumes the secret and bakes it into the Rust shell at
+  compile time + exposes it to the bundled Python backend, so this
+  alpha is the first one where exceptions in any of the three
+  processes (Rust shell, FastAPI api, arq worker) actually land in
+  the dashboard.
+- **What the stack looks like on the VPS:** ``/home/drevalis/glitchtip/``
+  with the docker-compose + .env from ``infra/glitchtip/``;
+  superuser ``varous555@gmail.com`` (password at
+  ``~/glitchtip/.admin-password`` mode 600); ``glitchtip-web``,
+  ``glitchtip-worker``, ``glitchtip-postgres``, ``glitchtip-redis``
+  on the internal network; ``glitchtip-web`` also on the
+  ``glitchtip-proxy`` bridge shared with ``nginx-proxy-manager`` for
+  the public-facing HTTPS termination.
+- Users who'd rather opt out: Settings → Privacy → Crash reporting
+  → uncheck. The frontend SDK stops sending immediately; the backend
+  honours the toggle on next launch. See alpha.23 for the SDK wiring
+  details.
+
 ### Added (alpha.29 — Glitchtip self-host artifacts + CI DSN bake)
 - **``infra/glitchtip/``** — self-host stack ready to deploy on the
   drevalis.com VPS. Three files:
