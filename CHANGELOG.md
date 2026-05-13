@@ -11,6 +11,37 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Changed (alpha.28 — episodes/_monolith.py split)
+- **``src/drevalis/api/routes/episodes/_monolith.py`` split from 2855
+  → 1034 lines.** No route-path or response-shape changes (verified:
+  42 unique paths register identically before and after the split,
+  same prefix, same response models). The split is purely
+  organisational so the file is navigable when adding routes:
+  - ``_helpers.py``  — shared ``_episode_service`` DI provider,
+                       ``logger``, and the ``_episode_to_response`` /
+                       ``_episode_to_list`` converters.
+  - ``music.py``     — ``/music/*`` (moods, list, generate, select) +
+                       ``/set-music``. ``_ffprobe_duration`` lives
+                       here because nothing else uses it.
+  - ``exports.py``   — ``/export/*`` (video, thumbnail, description,
+                       bundle, raw-assets), ``/thumbnail`` upload,
+                       ``/edit/*``. ``_sanitize_filename``,
+                       ``_load_episode_with_series``, and
+                       ``_build_description`` move with it.
+  - ``seo.py``       — ``/seo-score``, ``/seo``, ``/seo-preflight``,
+                       ``/seo-variants``, ``/publish-all``,
+                       ``/continuity``, ``/quality-report``. Inline
+                       Pydantic response models + ``_grade_for`` move
+                       with it.
+  - ``_monolith.py`` (slimmed) — lifecycle, pipeline control, script +
+                       scene editing, regenerate-* operations, and
+                       inpaint. Inpaint stays here because it shares
+                       the regenerate codepath conceptually.
+
+  ``episodes/__init__.py`` aggregates the four sub-routers via
+  ``include_router`` so the public import shape (``from
+  drevalis.api.routes.episodes import router``) stays identical.
+
 ### Added (alpha.27 — backup auto-schedule UI)
 - **Settings → Backup → Schedule** is now a working UI rather than
   a read-only env-var dump. Toggle "Nightly backup at 03:00 UTC" on
