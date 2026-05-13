@@ -2185,26 +2185,13 @@ function YouTubePage() {
 
   // ---- Connect OAuth ----
 
-  const handleConnect = useCallback(async () => {
-    setConnecting(true);
-    try {
-      const { auth_url } = await youtubeApi.getAuthUrl();
-      window.location.href = auth_url;
-    } catch (err: unknown) {
-      // 503 / 400 from /auth-url means credentials aren't configured
-      // yet — fall through to the wizard so the user can paste them
-      // in without having to context-switch into Settings.
-      const status = (err as { status?: number })?.status;
-      if (status === 503 || status === 400) {
-        setWizardOpen(true);
-      } else {
-        toast.error('Failed to start YouTube OAuth', {
-          description: String(err),
-        });
-      }
-      setConnecting(false);
-    }
-  }, [toast]);
+  const handleConnect = useCallback(() => {
+    // Always go through the wizard. The legacy ``window.location.href =
+    // auth_url`` path stranded the user on the backend's JSON callback
+    // response — see SocialConnectWizard.tsx for the system-browser
+    // OAuth flow that replaced it.
+    setWizardOpen(true);
+  }, []);
 
   // ---- Render loading ----
 

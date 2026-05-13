@@ -23,6 +23,7 @@ import {
   youtube as youtubeApi,
   social as socialApi,
 } from '@/lib/api';
+import { openExternal } from '@/lib/tauri';
 
 // SocialConnectWizard
 //
@@ -67,8 +68,17 @@ interface PlatformSpec {
   scopes: string[];
   // Endpoint to call to mint the consent URL after credentials saved.
   fetchAuthUrl: () => Promise<{ auth_url: string }>;
-  // Endpoint to poll for connection success after the OAuth round-trip.
-  checkConnected: () => Promise<boolean>;
+  // Snapshot the current connected-channel "fingerprint" before kicking
+  // off auth. Used to detect *new* connections — boolean "connected"
+  // alone is unreliable for second-channel onboarding because the
+  // platform already reports connected=true from a previous channel.
+  snapshotConnections: () => Promise<string>;
+  // Returns true if connections have grown / changed vs the snapshot.
+  hasNewConnection: (snapshot: string) => Promise<boolean>;
+  // Returns true if at least one credential is already saved server-side.
+  // When true the wizard skips the "intro" + "credentials" steps and
+  // goes straight to authorize.
+  credentialsAlreadyConfigured: () => Promise<boolean>;
 }
 
 const SPECS: Record<SocialPlatform, PlatformSpec> = {
@@ -111,9 +121,30 @@ const SPECS: Record<SocialPlatform, PlatformSpec> = {
       'youtube.readonly — read your channel + analytics',
     ],
     fetchAuthUrl: () => youtubeApi.getAuthUrl(),
-    checkConnected: async () => {
-      const status = await youtubeApi.getStatus();
-      return Boolean(status.connected);
+    snapshotConnections: async () => {
+      try {
+        const channels = await youtubeApi.listChannels();
+        return channels.map((c) => c.id).sort().join(',');
+      } catch {
+        return '';
+      }
+    },
+    hasNewConnection: async (snapshot: string) => {
+      try {
+        const channels = await youtubeApi.listChannels();
+        const current = channels.map((c) => c.id).sort().join(',');
+        return current !== snapshot && channels.length > 0;
+      } catch {
+        return false;
+      }
+    },
+    credentialsAlreadyConfigured: async () => {
+      try {
+        const integrations = await apiKeysApi.integrations();
+        return Boolean(integrations.youtube?.configured);
+      } catch {
+        return false;
+      }
     },
   },
   tiktok: {
@@ -159,9 +190,30 @@ const SPECS: Record<SocialPlatform, PlatformSpec> = {
       const r = await socialApi.tiktokAuthUrl();
       return { auth_url: r.auth_url };
     },
-    checkConnected: async () => {
-      const r = await socialApi.tiktokStatus();
-      return Boolean(r.connected);
+    snapshotConnections: async () => {
+      try {
+        const r = await socialApi.tiktokStatus();
+        return JSON.stringify({ connected: Boolean(r.connected) });
+      } catch {
+        return '';
+      }
+    },
+    hasNewConnection: async (snapshot: string) => {
+      try {
+        const r = await socialApi.tiktokStatus();
+        const current = JSON.stringify({ connected: Boolean(r.connected) });
+        return Boolean(r.connected) && current !== snapshot;
+      } catch {
+        return false;
+      }
+    },
+    credentialsAlreadyConfigured: async () => {
+      try {
+        const integrations = await apiKeysApi.integrations();
+        return Boolean(integrations.tiktok?.configured);
+      } catch {
+        return false;
+      }
     },
   },
 };
@@ -193,10 +245,15 @@ export function SocialConnectWizard({
   const [polling, setPolling] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  // Reset state every time the wizard is reopened so a previous
-  // half-finished run doesn't leak forward.
+  // Reset state every time the wizard is reopened. If credentials are
+  // already configured we skip the intro + credentials steps and jump
+  // straight to authorize — useful when adding a second channel: the
+  // user shouldn't be made to re-paste their Google client_id every
+  // time they want to add another channel to the same install.
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
       setStep('intro');
       setCreds({});
       setRevealed({});
@@ -204,8 +261,31 @@ export function SocialConnectWizard({
       setAuthUrlError(null);
       setVerifyError(null);
       setPolling(false);
-    }
-  }, [open, platform]);
+
+      const alreadyConfigured = await spec.credentialsAlreadyConfigured();
+      if (cancelled) return;
+      if (!alreadyConfigured) return;
+
+      // Mint the auth URL straight away so the authorize step is ready.
+      try {
+        const r = await spec.fetchAuthUrl();
+        if (cancelled) return;
+        setAuthUrl(r.auth_url);
+        setStep('authorize');
+      } catch (err) {
+        if (cancelled) return;
+        const detail =
+          (err as { detail?: unknown })?.detail ??
+          (err as { message?: string })?.message ??
+          'Could not request a new authorization URL.';
+        setAuthUrlError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+        setStep('credentials');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, platform, spec]);
 
   const copyRedirect = async () => {
     try {
@@ -250,29 +330,40 @@ export function SocialConnectWizard({
     }
   };
 
-  const handleAuthorize = () => {
+  const handleAuthorize = async () => {
     if (!authUrl) return;
-    // Open in a popup so the wizard doesn't lose its state on
-    // navigation. We poll for the connected status while it's open.
-    const popup = window.open(
-      authUrl,
-      `${spec.id}_oauth`,
-      'width=520,height=720,menubar=no,toolbar=no',
-    );
-    if (!popup) {
-      // Popup blocked — fall back to top-level redirect notice.
-      toast.error('Popup blocked', {
-        description: 'Allow popups for this site, or open the link below in a new tab.',
+
+    // Snapshot the *current* connection state so the polling loop can
+    // tell "second channel just landed" apart from "first channel was
+    // already there before we started". Without this delta the wizard
+    // would fire onConnected immediately whenever any previous channel
+    // existed, looking like it succeeded without the user signing in.
+    const snapshot = await spec.snapshotConnections();
+
+    // Open the OAuth URL in the system's default browser via Tauri's
+    // opener plugin. Inside the Tauri webview, ``window.open`` is
+    // unreliable (it sometimes routes back into the same view, killing
+    // the SPA), and the previous "window.location.href =" pattern took
+    // the whole webview to Google and stranded the user on the JSON
+    // response page afterwards. The system browser handles the entire
+    // OAuth dance while Drevalis stays alive in the background.
+    try {
+      await openExternal(authUrl);
+    } catch (err) {
+      toast.error('Could not open browser', {
+        description: 'Open the authorize URL manually below to continue.',
       });
+      // Fall through — user can click the link rendered in the step.
       return;
     }
+
     setStep('verify');
     setPolling(true);
     setVerifyError(null);
 
-    // Poll every 2s for up to 5 minutes. We stop when the backend
-    // reports the platform connected, when the popup closes without
-    // success, or when we time out.
+    // Poll every 2s for up to 5 minutes. Stop when:
+    //   - a new connection appears (vs the pre-auth snapshot), or
+    //   - the timeout fires (user abandoned the flow).
     const startedAt = Date.now();
     const interval = setInterval(async () => {
       const elapsed = Date.now() - startedAt;
@@ -280,53 +371,20 @@ export function SocialConnectWizard({
         clearInterval(interval);
         setPolling(false);
         setVerifyError(
-          'Timed out waiting for the OAuth callback. Try again, or finish the consent in the popup if it is still open.',
+          'Timed out waiting for the OAuth callback. Finish the consent in your browser, or click Try again.',
         );
         return;
       }
       try {
-        const ok = await spec.checkConnected();
-        if (ok) {
+        const fresh = await spec.hasNewConnection(snapshot);
+        if (fresh) {
           clearInterval(interval);
           setPolling(false);
-          if (popup && !popup.closed) {
-            try {
-              popup.close();
-            } catch {
-              /* cross-origin close may fail */
-            }
-          }
           toast.success(`${spec.label} connected`);
           onConnected?.();
         }
       } catch {
         /* keep polling — transient errors are fine */
-      }
-      // If the user closes the popup without consenting, stop polling
-      // so the wizard doesn't loop forever in the background.
-      if (popup.closed && !polling) {
-        // Already handled above.
-      }
-      if (popup.closed) {
-        // Give one more check after the popup closed in case the
-        // callback raced ahead of the close event.
-        try {
-          const ok = await spec.checkConnected();
-          if (ok) {
-            clearInterval(interval);
-            setPolling(false);
-            toast.success(`${spec.label} connected`);
-            onConnected?.();
-            return;
-          }
-        } catch {
-          /* ignore */
-        }
-        clearInterval(interval);
-        setPolling(false);
-        setVerifyError(
-          'The popup closed before we saw a successful callback. Either consent was denied or it failed silently — try again.',
-        );
       }
     }, 2000);
   };
@@ -460,35 +518,41 @@ export function SocialConnectWizard({
       <div className="flex items-start gap-3">
         <CheckCircle2 size={18} className="text-success shrink-0 mt-0.5" />
         <div>
-          <p className="text-txt-primary font-medium">Credentials look valid.</p>
+          <p className="text-txt-primary font-medium">Ready to connect.</p>
           <p className="text-txt-secondary mt-0.5">
-            Next, we&rsquo;ll open a popup so you can sign in to {spec.label} and
-            grant the permissions listed earlier. Once you finish, the wizard
-            will detect the connection automatically.
+            We&rsquo;ll open {spec.label} in your default web browser so you can
+            sign in and grant the permissions listed earlier. Leave Drevalis
+            open in the background &mdash; the wizard polls every two seconds
+            and closes itself the moment a new connection appears.
           </p>
         </div>
+      </div>
+
+      <div className="rounded-md border border-accent/20 bg-accent/[0.04] p-3 text-[12px] text-txt-secondary">
+        Adding more than one {spec.label} account / channel? Sign out of any
+        other {spec.label} session in your browser first, or use a private
+        window for this one &mdash; otherwise Google may auto-select the
+        previous account and reconnect that one instead of the new one.
       </div>
 
       {authUrl && (
         <div className="rounded-md border border-border bg-bg-elevated p-3 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-txt-tertiary">
-            Authorize URL (will open in a popup)
+            If your browser doesn&rsquo;t open
+          </p>
+          <p className="text-[11px] text-txt-tertiary">
+            Copy this URL into a browser yourself:
           </p>
           <code className="block text-[11px] font-mono text-txt-tertiary bg-bg-base rounded px-2 py-1.5 overflow-x-auto break-all">
             {authUrl}
           </code>
-          <p className="text-[11px] text-txt-tertiary">
-            If your browser blocks the popup, you can{' '}
-            <a
-              href={authUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent hover:underline"
-            >
-              open it manually
-            </a>
-            .
-          </p>
+        </div>
+      )}
+
+      {authUrlError && (
+        <div className="rounded-md border border-error/30 bg-error/5 p-3 text-[12px] text-error flex items-start gap-2">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>{authUrlError}</span>
         </div>
       )}
     </div>
@@ -502,8 +566,9 @@ export function SocialConnectWizard({
           <div>
             <p className="text-txt-primary font-medium">Waiting for {spec.label}&hellip;</p>
             <p className="text-txt-secondary mt-0.5">
-              Finish the consent screen in the popup. We&rsquo;re polling every
-              two seconds and will close this dialog once we see the connection.
+              Finish the consent screen in your browser. We&rsquo;re polling
+              every two seconds and will close this dialog the moment the new
+              connection lands.
             </p>
           </div>
         </div>

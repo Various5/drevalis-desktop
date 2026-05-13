@@ -64,25 +64,14 @@ export function PlatformCard({
 
   const handleConnect = async () => {
     if (platform.oauth) {
-      setConnecting(true);
-      setConnectError(null);
-      try {
-        if (platform.id === 'tiktok') {
-          const data = await socialApi.tiktokAuthUrl();
-          window.location.href = data.auth_url;
-        }
-      } catch (err: unknown) {
-        const status = (err as { status?: number })?.status;
-        if (
-          platform.id === 'tiktok' &&
-          (status === 400 || status === 503)
-        ) {
-          setWizardOpen(true);
-          setConnecting(false);
-          return;
-        }
-        setConnectError(err instanceof Error ? err.message : 'Failed to start OAuth flow.');
-        setConnecting(false);
+      // Always go through the wizard for OAuth platforms — same fix as
+      // YouTubeSection. Sending the whole webview to the provider via
+      // ``window.location.href`` strands the user on the backend's JSON
+      // callback response and breaks the "add another account" flow.
+      // The wizard opens the OAuth URL in the system browser and polls
+      // for the new connection instead.
+      if (platform.id === 'tiktok') {
+        setWizardOpen(true);
       }
       return;
     }

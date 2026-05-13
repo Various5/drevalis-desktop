@@ -12,6 +12,30 @@ Pre-1.0 releases are alpha-tagged.
 ## [Unreleased]
 
 ### Fixed
+- **YouTube "Connect channel" was a one-shot trap: after the first
+  channel was connected, attempting a second left the user stranded on
+  a raw JSON response page and they had to quit + relaunch Drevalis to
+  recover.** Two root causes, both fixed:
+  1. ``window.location.href = data.auth_url`` redirected the *Tauri
+     webview itself* to Google. Google's redirect_uri pointed at the
+     backend REST endpoint, which returned ``YouTubeChannelResponse``
+     JSON — the webview rendered the JSON and there was no way back.
+     ``Connect channel`` (and ``Reconnect``, plus the TikTok platform
+     card, plus the legacy YouTube monolith page) now all route through
+     ``SocialConnectWizard`` instead.
+  2. The wizard itself used ``window.open`` for the OAuth popup, which
+     is unreliable inside a Tauri webview. It now sends the auth URL to
+     the *system browser* via the existing ``openExternal`` (Tauri
+     opener plugin) so the SPA stays alive in the background while the
+     user signs in. Poll-for-connection logic was rewritten to detect a
+     *new* channel relative to a pre-auth snapshot — the previous
+     ``status.connected`` boolean check fired immediately on second
+     channel because an existing channel was already connected.
+  Backend ``GET /api/v1/youtube/callback`` also now returns a small
+  HTML success / error page instead of JSON, so the browser tab the
+  user just authenticated in shows ``✓ Connected <ChannelName>`` with
+  instructions to return to Drevalis (and self-closes after a moment
+  where allowed).
 - **Auto-update install bombed with "Error opening file for writing" on
   ``_asyncio.pyd`` and ``redis-server.exe`` — users had to Task-Manager-
   kill Drevalis before the installer could overwrite anything.** Rust's
@@ -58,6 +82,17 @@ Pre-1.0 releases are alpha-tagged.
   parallel root cause — alpha.9/10/11 being drafted but not promoted
   to "Latest" on GitHub, so the manifest was still serving alpha.8 —
   is fixed by promoting this release.)
+
+### Changed
+- **``SocialConnectWizard`` skips the credentials step when the
+  integration is already configured.** Previously, every time you
+  re-opened the wizard to add another YouTube channel you had to scroll
+  past the "Step 1: get your Google client_id" prose, even though the
+  client_id was already saved server-side from your first run.
+  ``credentialsAlreadyConfigured()`` (checks
+  ``GET /api/v1/settings/integrations``) now decides between starting
+  at "intro" (fresh install) and jumping straight to "authorize"
+  (returning user adding another account).
 
 ### Added
 - **In-app "Clear logs" button on the Event Logs page.** Wipes every

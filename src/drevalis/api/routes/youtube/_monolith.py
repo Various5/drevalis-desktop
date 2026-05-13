@@ -14,8 +14,11 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import html as _html
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -148,10 +151,73 @@ async def get_auth_url(
     return YouTubeAuthURLResponse(auth_url=url)
 
 
+_OAUTH_CALLBACK_HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{title} — Drevalis Creator Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {{ color-scheme: dark light; }}
+  body {{
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: #0e1116; color: #e6e6e6;
+    font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }}
+  .card {{
+    max-width: 480px; padding: 32px 36px; border-radius: 14px;
+    background: #161b22; border: 1px solid #2a2f37;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+    text-align: center;
+  }}
+  .icon {{ font-size: 44px; line-height: 1; margin-bottom: 10px; }}
+  h1 {{ margin: 0 0 8px; font-size: 20px; font-weight: 600; }}
+  p {{ margin: 0 0 6px; color: #aab2c0; }}
+  code {{
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    background: #0b0e13; color: #d7dde5; font-size: 13px;
+  }}
+  .ok {{ color: #34d399; }}
+  .err {{ color: #f87171; }}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">{icon}</div>
+    <h1 class="{status_class}">{title}</h1>
+    <p>{body}</p>
+    <p style="margin-top:14px;color:#6b7280;font-size:13px;">
+      You can close this tab and return to Drevalis Creator Studio.
+    </p>
+  </div>
+  <script>
+    // Try to close ourselves shortly — works only when this tab was
+    // script-opened by something we control; otherwise the close call
+    // is silently ignored and the message above guides the user.
+    setTimeout(function () {{ try {{ window.close(); }} catch (_) {{ }} }}, 800);
+  </script>
+</body>
+</html>
+"""
+
+
+def _oauth_html(*, ok: bool, title: str, body: str) -> HTMLResponse:
+    return HTMLResponse(
+        _OAUTH_CALLBACK_HTML_TEMPLATE.format(
+            title=_html.escape(title),
+            body=_html.escape(body),
+            icon="✓" if ok else "✕",
+            status_class="ok" if ok else "err",
+        ),
+        status_code=status.HTTP_200_OK if ok else status.HTTP_400_BAD_REQUEST,
+    )
+
+
 @router.get(
     "/callback",
-    response_model=YouTubeChannelResponse,
-    status_code=status.HTTP_200_OK,
+    response_class=HTMLResponse,
     summary="Handle YouTube OAuth callback",
 )
 async def oauth_callback(
@@ -161,51 +227,82 @@ async def oauth_callback(
     settings: Settings = Depends(get_settings),
     redis: Redis = Depends(get_redis),
     admin: YouTubeAdminService = Depends(_service),
-) -> YouTubeChannelResponse:
-    """Exchange the OAuth authorization code for tokens, store channel info."""
+) -> HTMLResponse:
+    """Exchange the OAuth authorization code for tokens, store channel info.
+
+    Returns a small HTML success/failure page instead of a JSON payload
+    because the user lands here in an *external* browser window — the
+    Drevalis SPA polls its own backend separately. JSON would just dump
+    raw text on the user's screen with no instruction on what to do next.
+    """
     if not state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing OAuth state parameter.",
+        return _oauth_html(
+            ok=False,
+            title="Missing OAuth state",
+            body=(
+                "The authorization response was missing the state parameter. "
+                "Return to Drevalis and try the Connect channel flow again."
+            ),
         )
     state_key = f"youtube_oauth_state:{state}"
     try:
         stored = await redis.getdel(state_key)
-    except Exception as exc:
+    except Exception:
         logger.error("youtube_oauth_state_lookup_failed", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="OAuth state store unavailable.",
-        ) from exc
+        return _oauth_html(
+            ok=False,
+            title="OAuth state store unreachable",
+            body=(
+                "Drevalis couldn't verify the OAuth state — the local Redis "
+                "sidecar may be down. Return to Drevalis and try again."
+            ),
+        )
     if not stored:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OAuth state; retry the connect flow.",
+        return _oauth_html(
+            ok=False,
+            title="Authorization expired",
+            body=(
+                "The authorization link expired or was already used. Return to "
+                "Drevalis and start the Connect channel flow again."
+            ),
         )
 
     yt_service = await build_youtube_service(settings, db)
     try:
         channel_info = await yt_service.handle_callback(code, state=state)
-    except Exception as exc:
+    except Exception:
         logger.error("youtube_oauth_callback_failed", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OAuth callback failed. Check server logs for details.",
-        ) from exc
+        return _oauth_html(
+            ok=False,
+            title="Couldn't finish the YouTube connection",
+            body=(
+                "Google returned a successful consent but Drevalis couldn't "
+                "exchange the code for tokens. Check the in-app event log "
+                "for details, then retry."
+            ),
+        )
 
     try:
         channel = await admin.upsert_oauth_channel(channel_info)
     except ChannelCapExceededError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={
-                "error": "channel_cap_exceeded",
-                "tier": exc.tier,
-                "limit": exc.limit,
-                "hint": "Upgrade tier to connect more YouTube channels.",
-            },
-        ) from exc
-    return YouTubeChannelResponse.model_validate(channel)
+        return _oauth_html(
+            ok=False,
+            title="Channel limit reached",
+            body=(
+                f"Your current tier ({exc.tier}) allows up to {exc.limit} "
+                "channels. Upgrade or remove an existing channel in "
+                "Settings → YouTube before connecting another."
+            ),
+        )
+
+    return _oauth_html(
+        ok=True,
+        title=f"Connected {channel.channel_name}",
+        body=(
+            "Drevalis is already polling for the new channel and will update "
+            "the YouTube section in a few seconds."
+        ),
+    )
 
 
 # ── Connection status / channels ─────────────────────────────────────────

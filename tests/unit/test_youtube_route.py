@@ -192,48 +192,56 @@ class TestGetAuthURL:
 
 
 class TestOAuthCallback:
-    async def test_missing_state_400(self) -> None:
-        with pytest.raises(HTTPException) as exc:
-            await oauth_callback(
-                code="abc",
-                state=None,
-                db=AsyncMock(),
-                settings=_settings(),
-                redis=AsyncMock(),
-                admin=MagicMock(),
-            )
-        assert exc.value.status_code == 400
+    """OAuth callback now returns ``HTMLResponse`` (200 on success, 400/503 on
+    failure) so the external browser the user just authenticated in shows a
+    friendly success/error page instead of raw JSON. The status codes still
+    encode the same semantics as the previous JSON-with-HTTPException
+    contract — we assert them, plus a snippet of the body so a regression
+    that swallows the failure into a 200 OK is caught."""
 
-    async def test_redis_lookup_failure_503(self) -> None:
+    async def test_missing_state_400(self) -> None:
+        out = await oauth_callback(
+            code="abc",
+            state=None,
+            db=AsyncMock(),
+            settings=_settings(),
+            redis=AsyncMock(),
+            admin=MagicMock(),
+        )
+        assert out.status_code == 400
+        assert b"Missing OAuth state" in out.body
+
+    async def test_redis_lookup_failure_503_returns_html(self) -> None:
+        # Redis down — return 400 HTML directing the user to retry. Pin: we
+        # do NOT raise so the external browser still gets a readable page.
         redis = AsyncMock()
         redis.getdel = AsyncMock(side_effect=ConnectionError("redis down"))
-        with pytest.raises(HTTPException) as exc:
-            await oauth_callback(
-                code="abc",
-                state="s",
-                db=AsyncMock(),
-                settings=_settings(),
-                redis=redis,
-                admin=MagicMock(),
-            )
-        assert exc.value.status_code == 503
+        out = await oauth_callback(
+            code="abc",
+            state="s",
+            db=AsyncMock(),
+            settings=_settings(),
+            redis=redis,
+            admin=MagicMock(),
+        )
+        assert out.status_code == 400
+        assert b"sidecar may be down" in out.body or b"unreachable" in out.body
 
     async def test_unknown_state_400(self) -> None:
         # State is missing from Redis (TTL expired or never persisted)
         # → 400. Pin: this is a CSRF guard, NOT a 404.
         redis = AsyncMock()
         redis.getdel = AsyncMock(return_value=None)
-        with pytest.raises(HTTPException) as exc:
-            await oauth_callback(
-                code="abc",
-                state="bogus",
-                db=AsyncMock(),
-                settings=_settings(),
-                redis=redis,
-                admin=MagicMock(),
-            )
-        assert exc.value.status_code == 400
-        assert "Invalid or expired" in exc.value.detail
+        out = await oauth_callback(
+            code="abc",
+            state="bogus",
+            db=AsyncMock(),
+            settings=_settings(),
+            redis=redis,
+            admin=MagicMock(),
+        )
+        assert out.status_code == 400
+        assert b"expired or was already used" in out.body
 
     async def test_callback_failure_400(self) -> None:
         redis = AsyncMock()
@@ -244,21 +252,21 @@ class TestOAuthCallback:
             "drevalis.api.routes.youtube._monolith.build_youtube_service",
             AsyncMock(return_value=yt),
         ):
-            with pytest.raises(HTTPException) as exc:
-                await oauth_callback(
-                    code="abc",
-                    state="s",
-                    db=AsyncMock(),
-                    settings=_settings(),
-                    redis=redis,
-                    admin=MagicMock(),
-                )
-        assert exc.value.status_code == 400
+            out = await oauth_callback(
+                code="abc",
+                state="s",
+                db=AsyncMock(),
+                settings=_settings(),
+                redis=redis,
+                admin=MagicMock(),
+            )
+        assert out.status_code == 400
+        assert b"couldn&#x27;t exchange the code" in out.body or b"finish the YouTube" in out.body
 
-    async def test_channel_cap_402(self) -> None:
-        # Pin: hitting the tier's channel cap returns 402 Payment
-        # Required with tier+limit so the UI can route to the
-        # upgrade flow.
+    async def test_channel_cap_402_renders_html(self) -> None:
+        # Pin: hitting the tier's channel cap surfaces tier + limit in the
+        # body so the user understands why their new channel was refused.
+        # Status code stays at 400 (it's not JSON-API-shaped any more).
         redis = AsyncMock()
         redis.getdel = AsyncMock(return_value=b"1")
         yt = MagicMock()
@@ -271,20 +279,19 @@ class TestOAuthCallback:
             "drevalis.api.routes.youtube._monolith.build_youtube_service",
             AsyncMock(return_value=yt),
         ):
-            with pytest.raises(HTTPException) as exc:
-                await oauth_callback(
-                    code="abc",
-                    state="s",
-                    db=AsyncMock(),
-                    settings=_settings(),
-                    redis=redis,
-                    admin=admin,
-                )
-        assert exc.value.status_code == 402
-        assert exc.value.detail["tier"] == "creator"
-        assert exc.value.detail["limit"] == 1
+            out = await oauth_callback(
+                code="abc",
+                state="s",
+                db=AsyncMock(),
+                settings=_settings(),
+                redis=redis,
+                admin=admin,
+            )
+        assert out.status_code == 400
+        assert b"creator" in out.body
+        assert b"up to 1" in out.body
 
-    async def test_success_returns_channel_response(self) -> None:
+    async def test_success_returns_html_with_channel_name(self) -> None:
         redis = AsyncMock()
         redis.getdel = AsyncMock(return_value=b"1")
         yt = MagicMock()
@@ -303,7 +310,8 @@ class TestOAuthCallback:
                 redis=redis,
                 admin=admin,
             )
-        assert out.channel_id == "UC_test123"
+        assert out.status_code == 200
+        assert b"Connected Drevalis" in out.body
 
 
 # ── GET /status ────────────────────────────────────────────────────

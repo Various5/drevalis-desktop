@@ -39,18 +39,15 @@ export function YouTubeSection() {
 
   useEffect(() => { void fetchChannels(); }, []);
 
-  const handleConnect = async () => {
-    try {
-      const data = await youtube.getAuthUrl();
-      window.location.href = data.auth_url;
-    } catch (err: unknown) {
-      const status = (err as { status?: number })?.status;
-      if (status === 503 || status === 400) {
-        setWizardOpen(true);
-        return;
-      }
-      toast.error('Failed to start YouTube connection', { description: String(err) });
-    }
+  const handleConnect = () => {
+    // Always go through the wizard. The previous "redirect the whole
+    // webview to Google" path stranded the user on a JSON response
+    // page after the second connect because Google's callback resolves
+    // to the backend REST endpoint, not the SPA — there was no way
+    // back without restarting the app. The wizard opens the OAuth URL
+    // in the system browser instead, leaving the SPA alive to detect
+    // the new channel by polling.
+    setWizardOpen(true);
   };
 
   const handleDisconnect = async (channelId: string) => {
@@ -63,18 +60,15 @@ export function YouTubeSection() {
     }
   };
 
-  const handleReconnect = async (channelId: string) => {
+  const handleReconnect = (channelId: string) => {
+    // Same flow as a fresh connect — opens the wizard, which sends the
+    // OAuth URL to the system browser instead of nuking the SPA.
     try {
-      const data = await youtube.getAuthUrl();
-      try {
-        sessionStorage.setItem('youtube_reconnect_target', channelId);
-      } catch { /* ignore */ }
-      window.location.href = data.auth_url;
-    } catch (err) {
-      toast.error('Failed to start YouTube reconnection', {
-        description: String(err),
-      });
+      sessionStorage.setItem('youtube_reconnect_target', channelId);
+    } catch {
+      /* sessionStorage unavailable in some embed contexts */
     }
+    setWizardOpen(true);
   };
 
   const handleRemove = async (channelId: string, name: string) => {
@@ -121,8 +115,8 @@ export function YouTubeSection() {
           <Button variant="ghost" size="sm" onClick={() => setWizardOpen(true)}>
             Setup wizard
           </Button>
-          <Button variant="primary" size="sm" onClick={() => void handleConnect()}>
-            <Youtube size={14} /> Connect Channel
+          <Button variant="primary" size="sm" onClick={handleConnect}>
+            <Youtube size={14} /> Connect channel
           </Button>
         </div>
       </div>
