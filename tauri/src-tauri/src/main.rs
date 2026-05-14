@@ -115,6 +115,37 @@ fn spawn_backend(app: &tauri::AppHandle) -> io::Result<Option<Child>> {
     cmd.arg("run");
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
+
+    // Forward the compile-baked telemetry DSN + environment + release
+    // to the spawned backend so the Python api + arq worker can
+    // initialise their Sentry SDK with the same destination as the
+    // Rust shell. Without this the backend sees an empty
+    // ``DREVALIS_TELEMETRY_DSN`` env at runtime and stays inert,
+    // which means only crashes IN THE TAURI SHELL ITSELF reach
+    // Glitchtip — the bulk of the app's exception surface (backend
+    // routes, worker jobs) never reports. Bug discovered in alpha.30
+    // when no events showed up in the dashboard after install.
+    //
+    // ``option_env!`` returns the value the CI runner had at compile
+    // time; the env var on the END USER'S machine is irrelevant.
+    // Empty / unset DSN means we don't propagate anything, so a
+    // dev-built binary stays quiet.
+    if let Some(dsn) = option_env!("DREVALIS_TELEMETRY_DSN") {
+        if !dsn.is_empty() {
+            cmd.env("DREVALIS_TELEMETRY_DSN", dsn);
+        }
+    }
+    if let Some(env_name) = option_env!("DREVALIS_ENVIRONMENT") {
+        if !env_name.is_empty() {
+            cmd.env("DREVALIS_ENVIRONMENT", env_name);
+        }
+    }
+    // Carry the app version as ``DREVALIS_RELEASE`` so the backend's
+    // ``init_telemetry()`` can tag events with it. Sentry/Glitchtip
+    // groups events by release for "first seen" / regression
+    // detection.
+    cmd.env("DREVALIS_RELEASE", env!("CARGO_PKG_VERSION"));
+
     let child = cmd.spawn()?;
     Ok(Some(child))
 }

@@ -11,6 +11,27 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.31 — telemetry: shell wasn't passing DSN to backend)
+- **alpha.30 baked the DSN into the Rust shell at compile time but
+  didn't forward it to the spawned Python backend.** Result: only
+  crashes IN THE TAURI SHELL ITSELF reached Glitchtip — the bulk of
+  the app's exception surface (backend routes, worker jobs) never
+  reported. Frontend also got nothing because it fetches the DSN
+  from ``/api/v1/telemetry/bootstrap``, which reads
+  ``Settings.telemetry_dsn`` from env on the user's machine (unset
+  there — only present at CI build time).
+- ``spawn_backend()`` in the Rust shell now forwards three env vars
+  to the child process: ``DREVALIS_TELEMETRY_DSN`` (compile-baked
+  via ``option_env!``), ``DREVALIS_ENVIRONMENT`` (defaults to
+  ``alpha``), and ``DREVALIS_RELEASE`` (carries
+  ``CARGO_PKG_VERSION`` so events are tagged with the right version
+  for grouping in the dashboard). The Python backend inherits these
+  on startup → its ``init_telemetry()`` initialises the SDK → the
+  frontend's bootstrap call returns the DSN → all three processes
+  now report.
+- Empty / unset compile-time DSN still propagates as no env var, so
+  dev builds stay quiet.
+
 ### Added (alpha.30 — Glitchtip live, telemetry pipe end-to-end)
 - **``errors.drevalis.com`` is live.** Self-hosted Glitchtip running
   on the drevalis.com VPS (single-node docker-compose stack, behind
