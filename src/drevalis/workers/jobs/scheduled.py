@@ -56,7 +56,10 @@ async def _publish_scheduled_posts_locked(
         YouTubeChannelRepository,
         YouTubeUploadRepository,
     )
-    from drevalis.services.youtube import YouTubeService
+    from drevalis.services.youtube import (
+        YouTubeService,
+        YouTubeTokenDecryptError,
+    )
 
     log = logger.bind(job="publish_scheduled_posts")
     log.info("job_start")
@@ -412,6 +415,37 @@ async def _publish_scheduled_posts_locked(
                     await session.commit()
                     failed += 1
 
+            except YouTubeTokenDecryptError as exc:
+                # Encryption-key mismatch: the YouTube tokens stored in
+                # the DB were encrypted with a key the worker no longer
+                # has. Every scheduled post against this channel will
+                # fail at the same step until the user reconnects, so
+                # surface it ONCE with a fixed message (so Glitchtip
+                # groups events into a single issue regardless of
+                # post_id) and downgrade severity to warning — this is
+                # actionable user state, not a backend bug.
+                log.warning(
+                    "youtube_tokens_undecryptable",
+                    hint="Settings → YouTube → Disconnect + Reconnect to refresh encryption.",
+                )
+                try:
+                    await repo.update(
+                        post.id,
+                        status="failed",
+                        error_message=(
+                            "YouTube tokens unreadable on this install (encryption-key "
+                            "mismatch). Reconnect the channel in Settings → YouTube."
+                        ),
+                    )
+                    await session.commit()
+                except Exception as nested:
+                    log.exception(
+                        "post_fail_record_failed",
+                        post_id=str(post.id),
+                        nested_error=str(nested)[:200],
+                    )
+                failed += 1
+                _ = exc  # silenced via the fixed log message above
             except Exception as exc:
                 log.error("post_publish_failed", post_id=str(post.id), error=str(exc)[:200])
                 try:

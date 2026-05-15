@@ -11,6 +11,36 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.33 — YouTube token decryption noise in Glitchtip)
+- **alpha.30-.32 surfaced a recurring class of Glitchtip event:**
+  ``cryptography.fernet.InvalidToken`` ("Signature did not match
+  digest") deep inside ``YouTubeService.refresh_tokens_if_needed``
+  during the every-5-min ``publish_scheduled_posts`` cron, with
+  each unique ``post_id`` becoming a *separate* Glitchtip issue
+  (the post_id was in the log message that became the issue title).
+  After ~24 h that produced 6 distinct issues per day for the same
+  underlying problem. Root cause: the YouTube tokens in the DB were
+  encrypted with one ``ENCRYPTION_KEY`` and the worker now has a
+  different one — usually because the OS keychain was cleared, the
+  install migrated to a new Windows user account, or a manual env
+  override shadowed the keychain value.
+- **Code change** (no fix for the underlying data; that needs the
+  user to reconnect):
+  - ``YouTubeService._decrypt`` now catches ``InvalidToken`` and
+    raises ``YouTubeTokenDecryptError`` with a concrete recovery
+    hint instead of letting the bare cryptography exception bubble
+    up.
+  - ``publish_scheduled_posts`` worker catches
+    ``YouTubeTokenDecryptError`` *before* the generic ``except
+    Exception``, logs a fixed-message ``youtube_tokens_undecryptable``
+    warning (so all affected posts collapse to ONE Glitchtip issue
+    regardless of post_id), and writes a user-friendly
+    ``error_message`` on the scheduled-post row pointing at
+    "Settings → YouTube → Disconnect + Reconnect".
+- **User-facing recovery:** open Settings → YouTube, disconnect the
+  affected channel, then reconnect it. The new tokens are encrypted
+  with the current key and scheduled posts start working again.
+
 ### Added (alpha.32 — startup splash screen)
 - **Splash window appears immediately on launch while the backend
   spawns + warms up.** Previously the first 10-20 seconds of a cold

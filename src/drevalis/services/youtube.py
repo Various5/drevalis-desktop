@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from cryptography.fernet import InvalidToken
 
 from drevalis.core.security import decrypt_value, decrypt_value_multi, encrypt_value
 
@@ -25,6 +26,27 @@ class YouTubeTokenExpiredError(Exception):
     Distinct from a generic network error - it means the stored grant is
     dead and the user must re-auth through the OAuth flow. The frontend
     maps this to a "Reconnect YouTube" CTA.
+    """
+
+
+class YouTubeTokenDecryptError(Exception):
+    """Raised when the encrypted YouTube tokens stored in the DB can't be
+    decrypted with the current ``ENCRYPTION_KEY``.
+
+    Symptom: ``cryptography.fernet.InvalidToken`` ("Signature did not
+    match digest") deep inside ``refresh_tokens_if_needed``. Cause:
+    the tokens were encrypted with a key that differs from the one
+    the keychain hands the worker now — usually because the OS
+    keychain was cleared, the install was migrated between Windows
+    user accounts, or a manual ``ENCRYPTION_KEY`` env override
+    shadowed the keychain value.
+
+    The worker maps this to the same "Reconnect YouTube" CTA as
+    ``YouTubeTokenExpiredError`` so the user gets one consistent
+    recovery path. We keep it as a separate exception type so log
+    aggregation and Glitchtip grouping can distinguish "tokens are
+    expired" (normal-ish) from "tokens are unreadable" (the
+    encryption-key invariant broke).
     """
 
 
@@ -61,10 +83,22 @@ class YouTubeService:
         self._pending_states: dict[str, str | None] = {}
 
     def _decrypt(self, ciphertext: str) -> str:
-        if len(self._encryption_keys) > 1:
-            plaintext, _ = decrypt_value_multi(ciphertext, self._encryption_keys)
-            return plaintext
-        return decrypt_value(ciphertext, self.encryption_key)
+        try:
+            if len(self._encryption_keys) > 1:
+                plaintext, _ = decrypt_value_multi(ciphertext, self._encryption_keys)
+                return plaintext
+            return decrypt_value(ciphertext, self.encryption_key)
+        except InvalidToken as exc:
+            # The stored ciphertext was encrypted with a different key
+            # than the worker currently has. Raise a typed error so
+            # callers (esp. the scheduled-posts worker) can mark the
+            # channel as needing reconnect and surface a single,
+            # deduplicated Glitchtip issue instead of one per affected
+            # post.
+            raise YouTubeTokenDecryptError(
+                "Stored YouTube tokens can't be decrypted — reconnect the "
+                "channel in Settings → YouTube to refresh the encryption."
+            ) from exc
 
     def _encrypt(self, plaintext: str) -> tuple[str, int]:
         return encrypt_value(
