@@ -246,7 +246,18 @@ async def oauth_callback(
         )
     state_key = f"youtube_oauth_state:{state}"
     try:
-        stored = await redis.getdel(state_key)
+        # Atomic get-and-delete via Lua EVAL. We can't use ``redis.getdel``
+        # directly because the bundled tporadowski/redis sidecar pins
+        # Windows builds to Redis 5.0.14.1, and ``GETDEL`` only landed in
+        # Redis 6.2. EVAL has been stable since 2.6 so this works on
+        # every supported Redis version (bundled or system-installed).
+        stored = await redis.eval(
+            "local v = redis.call('GET', KEYS[1]); "
+            "if v then redis.call('DEL', KEYS[1]) end; "
+            "return v",
+            1,
+            state_key,
+        )
     except Exception:
         logger.error("youtube_oauth_state_lookup_failed", exc_info=True)
         return _oauth_html(

@@ -11,6 +11,21 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.34 — OAuth callback failed on bundled Redis 5)
+- **OAuth callback for YouTube and TikTok crashed with
+  ``ResponseError: unknown command 'GETDEL'``** because the bundled
+  Win-Redis (tporadowski 5.0.14.1) predates Redis 6.2 where GETDEL
+  landed. The error surfaced as "OAuth state store unreachable" in
+  the browser tab — misleading, since Redis was actually up and
+  reachable.
+- Both ``youtube/oauth_callback`` and ``services/social.py``
+  TikTok callback now use a Lua ``EVAL`` script for atomic
+  get-and-delete (``local v = GET; if v then DEL end; return v``).
+  Works on Redis 2.6+ so the bundled 5.0.14.1, a system Redis 7,
+  or Memurai/Dragonfly all behave the same.
+- No data migration needed — the change is wire-protocol-compatible
+  with any existing OAuth state already in Redis.
+
 ### Fixed (alpha.33 — YouTube token decryption noise in Glitchtip)
 - **alpha.30-.32 surfaced a recurring class of Glitchtip event:**
   ``cryptography.fernet.InvalidToken`` ("Signature did not match

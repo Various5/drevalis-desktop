@@ -163,7 +163,17 @@ class SocialService:
 
         rc: Redis = Redis(connection_pool=get_pool())
         try:
-            raw = await rc.getdel(f"tiktok_pkce:{state}")
+            # Atomic get-and-delete via Lua EVAL. We can't use
+            # ``rc.getdel`` directly because the bundled tporadowski/
+            # redis sidecar pins Windows builds to Redis 5.0.14.1, and
+            # ``GETDEL`` only landed in Redis 6.2. EVAL works on 2.6+.
+            raw = await rc.eval(
+                "local v = redis.call('GET', KEYS[1]); "
+                "if v then redis.call('DEL', KEYS[1]) end; "
+                "return v",
+                1,
+                f"tiktok_pkce:{state}",
+            )
         finally:
             await rc.aclose()
 
