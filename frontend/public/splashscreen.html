@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Drevalis Creator Studio</title>
+    <style>
+      /* Splash screen for the Tauri shell.
+         Self-contained — no external assets, no fetches, so it
+         renders instantly even when the bundled backend is still
+         spawning. The Rust shell closes this window once the
+         backend's TCP port is reachable. */
+      :root {
+        --brand-from: #7c5cff;
+        --brand-to: #4f46e5;
+        --bg: #0c0d12;
+        --text: #f5f6fa;
+        --muted: #9ba3b4;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                     Roboto, Oxygen, Ubuntu, "Helvetica Neue", sans-serif;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: default;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        /* Subtle radial vignette so the brand mark feels lit, not
+           pasted onto a flat black square. */
+        background:
+          radial-gradient(circle at 50% 35%, rgba(124, 92, 255, 0.18), transparent 60%),
+          var(--bg);
+      }
+      .logo {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 12px 40px -8px rgba(124, 92, 255, 0.55),
+          0 0 0 1px rgba(255, 255, 255, 0.06);
+        animation: logo-breathe 2.4s ease-in-out infinite;
+      }
+      .logo svg {
+        width: 40px;
+        height: 40px;
+        fill: #fff;
+        margin-left: 4px; /* optical centering for the play triangle */
+      }
+      @keyframes logo-breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.04); }
+      }
+
+      .title {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: -16px;
+        min-height: 1.2em;
+      }
+
+      .spinner {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2.5px solid rgba(255, 255, 255, 0.08);
+        border-top-color: var(--brand-from);
+        animation: spin 0.85s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Footer hint sits below the spinner so it doesn't draw the
+         eye unless the user lingers. Useful when boots take longer
+         than usual (cold disk, antivirus scan, schema-heal). */
+      .hint {
+        position: absolute;
+        bottom: 18px;
+        font-size: 11px;
+        color: var(--muted);
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 8 L24 16 L11 24 Z" />
+      </svg>
+    </div>
+    <div class="title">Drevalis Creator Studio</div>
+    <div class="subtitle" id="status">Starting backend…</div>
+    <div class="spinner" role="status" aria-label="Loading"></div>
+    <div class="hint">First launch warms caches — usually 10-20 seconds.</div>
+
+    <script>
+      // Cycle through a couple of friendly status lines so a slow
+      // boot doesn't look frozen. The Rust shell will close this
+      // window as soon as the backend's TCP port is reachable.
+      const status = document.getElementById('status');
+      const lines = [
+        'Starting backend…',
+        'Spawning worker…',
+        'Warming up…',
+        'Almost there…',
+      ];
+      let i = 0;
+      setInterval(() => {
+        i = (i + 1) % lines.length;
+        status.textContent = lines[i];
+      }, 2500);
+    </script>
+  </body>
+</html>

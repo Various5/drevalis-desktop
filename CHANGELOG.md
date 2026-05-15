@@ -11,6 +11,24 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.32 — startup splash screen)
+- **Splash window appears immediately on launch while the backend
+  spawns + warms up.** Previously the first 10-20 seconds of a cold
+  boot looked frozen — the main window wasn't visible yet but the
+  taskbar entry was, and clicking anywhere greyed the title bar
+  ("Not Responding"). Now:
+  - ``splashscreen`` window — 480×360 undecorated, centered, loads
+    a self-contained ``splashscreen.html`` (inline CSS, SVG logo,
+    spinner). Visible at startup.
+  - ``main`` window — starts hidden (``visible: false``), shown
+    only after ``wait_for_port`` confirms the backend's TCP port is
+    reachable (or the 20 s deadline expires).
+  - Status line cycles through ``Starting backend… → Spawning
+    worker… → Warming up… → Almost there…`` so a slow boot looks
+    intentional, not stuck.
+  - Brand colours match the favicon: purple gradient
+    (#7c5cff → #4f46e5) with the play-triangle mark.
+
 ### Fixed (alpha.31 — telemetry: shell wasn't passing DSN to backend)
 - **alpha.30 baked the DSN into the Rust shell at compile time but
   didn't forward it to the spawned Python backend.** Result: only

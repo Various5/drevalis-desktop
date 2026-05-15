@@ -247,7 +247,9 @@ fn main() {
             }
 
             // Wait for the API port to come up so the webview doesn't show
-            // a connection-refused page on cold boot.
+            // a connection-refused page on cold boot. While we wait, the
+            // splashscreen window stays visible (configured ``visible:
+            // true`` + main ``visible: false`` in tauri.conf.json).
             let ready = wait_for_port("127.0.0.1", 8000, BACKEND_READY_TIMEOUT);
             if !ready {
                 eprintln!(
@@ -272,6 +274,26 @@ fn main() {
                     }
                 } else {
                     eprintln!("[drevalis-shell] main window not found");
+                }
+            }
+
+            // Swap splashscreen → main now that the backend is up
+            // (or the deadline hit). Done in this order so the user
+            // never sees a window-less moment between the two: show
+            // first, then close. Either operation failing is logged
+            // but not fatal — a stuck splashscreen is recoverable
+            // (right-click tray → Quit), a missing main window would
+            // mean we can't render at all so the user can see the
+            // error.
+            if let Some(main) = app.get_webview_window("main") {
+                if let Err(err) = main.show() {
+                    eprintln!("[drevalis-shell] failed to show main window: {err}");
+                }
+                let _ = main.set_focus();
+            }
+            if let Some(splash) = app.get_webview_window("splashscreen") {
+                if let Err(err) = splash.close() {
+                    eprintln!("[drevalis-shell] failed to close splashscreen: {err}");
                 }
             }
 
