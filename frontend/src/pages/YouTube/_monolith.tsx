@@ -256,6 +256,193 @@ interface DashboardTabProps {
   socialStatsLoading: boolean;
 }
 
+// Channel-wide aggregates from the synced ``youtube_channel_videos``
+// table, fetched via ``/youtube/channels/stats-overview``. Shows
+// everything on the user's channels — including videos Drevalis
+// didn't upload — so the dashboard reflects the actual channel size
+// after a sync.
+interface ChannelStatsRow {
+  channel_id: string;
+  channel_name: string;
+  total_videos: number;
+  shorts: number;
+  longform: number;
+  total_views: number;
+  total_likes: number;
+  total_comments: number;
+  last_synced_at: string | null;
+  top_video: {
+    youtube_video_id: string;
+    title: string;
+    thumbnail_url: string | null;
+    view_count: number;
+    is_short: boolean;
+    url: string;
+  } | null;
+}
+
+function ChannelStatsOverview() {
+  const [rows, setRows] = useState<ChannelStatsRow[]>([]);
+  const [totals, setTotals] = useState<{
+    channels: number;
+    total_videos: number;
+    total_views: number;
+    total_likes: number;
+    total_comments: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/v1/youtube/channels/stats-overview', {
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (!cancelled) {
+          setRows(j.channels ?? []);
+          setTotals(j.totals ?? null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    const onFocus = () => void load();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <Card padding="md">
+        <div className="flex items-center justify-center py-4">
+          <Spinner size="sm" />
+        </div>
+      </Card>
+    );
+  }
+  if (!totals || totals.channels === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Channel Videos"
+          value={formatNumber(totals.total_videos)}
+          icon={<ListVideo size={20} />}
+          color="#FB7185"
+        />
+        <StatCard
+          label="Channel Views"
+          value={formatNumber(totals.total_views)}
+          icon={<Eye size={20} />}
+          color="#F87171"
+        />
+        <StatCard
+          label="Channel Likes"
+          value={formatNumber(totals.total_likes)}
+          icon={<ThumbsUp size={20} />}
+          color="#F472B6"
+        />
+        <StatCard
+          label="Channel Comments"
+          value={formatNumber(totals.total_comments)}
+          icon={<MessageSquare size={20} />}
+          color="#C084FC"
+        />
+      </div>
+
+      {/* Per-channel breakdown — same data, one card per channel.
+          Helps the user spot which of their channels is actually
+          performing vs which is dormant. */}
+      <Card padding="md">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Per-Channel Roll-up (synced)</CardTitle>
+            <span className="text-[11px] text-txt-tertiary">
+              from ``youtube_channel_videos`` (sync table)
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {rows.map((r) => {
+              const hasContent = r.total_videos > 0;
+              return (
+                <div
+                  key={r.channel_id}
+                  className="rounded-md border border-border p-3 hover:border-border-hover transition-colors"
+                >
+                  <div className="text-sm font-medium text-txt-primary truncate mb-1">
+                    {r.channel_name}
+                  </div>
+                  {hasContent ? (
+                    <>
+                      <div className="text-xs text-txt-secondary flex items-center gap-2 flex-wrap">
+                        <span>{formatNumber(r.total_videos)} videos</span>
+                        <span className="text-txt-tertiary">·</span>
+                        <span>{r.longform} long</span>
+                        <span className="text-txt-tertiary">·</span>
+                        <span>{r.shorts} shorts</span>
+                      </div>
+                      <div className="text-xs text-txt-secondary mt-1">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye size={11} className="text-txt-tertiary" />
+                          {formatNumber(r.total_views)}
+                        </span>
+                        <span className="mx-2 text-txt-tertiary">·</span>
+                        <span className="inline-flex items-center gap-1">
+                          <ThumbsUp size={11} className="text-txt-tertiary" />
+                          {formatNumber(r.total_likes)}
+                        </span>
+                      </div>
+                      {r.top_video && (
+                        <a
+                          href={r.top_video.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 flex items-center gap-2 text-[11px] text-txt-tertiary hover:text-accent group"
+                          title={r.top_video.title}
+                        >
+                          {r.top_video.thumbnail_url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={r.top_video.thumbnail_url}
+                              alt=""
+                              className="w-10 h-6 object-cover rounded shrink-0"
+                              loading="lazy"
+                            />
+                          )}
+                          <span className="truncate">
+                            Top: {r.top_video.title} ·{' '}
+                            {formatNumber(r.top_video.view_count)} views
+                          </span>
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-txt-tertiary italic">
+                      {r.last_synced_at
+                        ? '✓ Synced — channel has no videos yet'
+                        : 'Not synced yet'}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function DashboardTab({
   channel,
   allChannels,
@@ -451,23 +638,27 @@ function DashboardTab({
         })}
       </div>
 
-      {/* YouTube aggregate stats — shared StatCard for visual parity
-          with Dashboard / Logs / Settings. */}
+      {/* Channel-wide aggregates from the synced YouTubeChannelVideo
+          rows — counts everything on the channel, not just Drevalis
+          uploads. Drevalis-only stats follow below for comparison. */}
+      <ChannelStatsOverview />
+
+      {/* Drevalis-uploads aggregates. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Total Uploads"
+          label="Drevalis Uploads"
           value={formatNumber(uploads.length)}
           icon={<Upload size={20} />}
           color="#A78BFA"
         />
         <StatCard
-          label="Total Views"
+          label="Drevalis Views"
           value={formatNumber(totalViews)}
           icon={<Eye size={20} />}
           color="#60A5FA"
         />
         <StatCard
-          label="Total Likes"
+          label="Drevalis Likes"
           value={formatNumber(totalLikes)}
           icon={<ThumbsUp size={20} />}
           color="#34D399"

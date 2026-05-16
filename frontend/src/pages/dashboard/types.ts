@@ -62,6 +62,7 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
     'stat-cards',
     'quick-actions',
     'recent-episodes',
+    'recent-youtube',
     'activity-timeline',
   ],
   // Off by default so the existing dashboard still renders the same on
@@ -72,6 +73,5 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
     'top-series',
     'quota-usage',
     'llm-cost',
-    'recent-youtube',
   ],
 };

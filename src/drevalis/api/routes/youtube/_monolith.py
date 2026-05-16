@@ -720,6 +720,151 @@ async def republish_video_as_draft(
 
 
 @router.get(
+    "/channels/stats-overview",
+    status_code=status.HTTP_200_OK,
+    summary="Per-channel aggregates over the synced YouTubeChannelVideo table",
+)
+async def channels_stats_overview(
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+) -> dict[str, Any]:
+    """Channel-wide aggregates from the ``youtube_channel_videos`` sync
+    table. Surfaces everything the user's YouTube channel has on it —
+    not just videos Drevalis uploaded — so the YouTube dashboard can
+    show "your channel has 141 videos, 4.2M views total" alongside
+    the Drevalis-only-uploads stats.
+
+    Output::
+
+      {"channels": [
+         {"channel_id": "...", "channel_name": "...",
+          "youtube_channel_id": "UC...",
+          "total_videos": 29, "shorts": 14, "longform": 15,
+          "total_views": 1234, "total_likes": 67, "total_comments": 8,
+          "last_synced_at": "...",
+          "top_video": {"video_id": "...", "title": "...",
+                        "thumbnail_url": "...", "view_count": 500,
+                        "url": "https://..."}},
+         ...],
+       "totals": {"channels": 9, "total_videos": 141,
+                  "total_views": 4200000, "total_likes": 50000,
+                  "total_comments": 3000}}
+    """
+    from sqlalchemy import func as _func, select as _select
+
+    from drevalis.models.youtube_channel import YouTubeChannel, YouTubeChannelVideo
+
+    channels = (await db.execute(_select(YouTubeChannel))).scalars().all()
+    channel_out: list[dict[str, Any]] = []
+    grand_videos = 0
+    grand_views = 0
+    grand_likes = 0
+    grand_comments = 0
+
+    for ch in channels:
+        agg = (
+            await db.execute(
+                _select(
+                    _func.count(YouTubeChannelVideo.id),
+                    _func.coalesce(_func.sum(YouTubeChannelVideo.view_count), 0),
+                    _func.coalesce(_func.sum(YouTubeChannelVideo.like_count), 0),
+                    _func.coalesce(_func.sum(YouTubeChannelVideo.comment_count), 0),
+                    _func.max(YouTubeChannelVideo.last_synced_at),
+                ).where(YouTubeChannelVideo.channel_id == ch.id)
+            )
+        ).one()
+        # Aggregate is_short separately — SQLite doesn't sum booleans
+        # cleanly across dialects.
+        shorts_count = int(
+            (
+                await db.execute(
+                    _select(_func.count())
+                    .select_from(YouTubeChannelVideo)
+                    .where(YouTubeChannelVideo.channel_id == ch.id)
+                    .where(YouTubeChannelVideo.is_short.is_(True))
+                )
+            ).scalar_one()
+            or 0
+        )
+        total_videos = int(agg[0] or 0)
+        total_views = int(agg[1] or 0)
+        total_likes = int(agg[2] or 0)
+        total_comments = int(agg[3] or 0)
+        last_sync = agg[4]
+
+        # Fallback to Redis marker for empty channels so the UI can
+        # still distinguish "synced + empty" from "never synced".
+        if last_sync is None:
+            try:
+                raw = await redis.get(f"youtube:last_sync:{ch.id}")
+                if raw:
+                    marker_str = (
+                        raw.decode() if isinstance(raw, bytes) else str(raw)
+                    )
+                    from datetime import datetime as _dt
+
+                    try:
+                        last_sync = _dt.fromisoformat(marker_str.split("|", 1)[0])
+                    except ValueError:
+                        pass
+            except Exception:
+                pass
+
+        top = (
+            await db.execute(
+                _select(YouTubeChannelVideo)
+                .where(YouTubeChannelVideo.channel_id == ch.id)
+                .order_by(YouTubeChannelVideo.view_count.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+        channel_out.append(
+            {
+                "channel_id": str(ch.id),
+                "channel_name": ch.channel_name,
+                "youtube_channel_id": ch.channel_id,
+                "is_active": ch.is_active,
+                "total_videos": total_videos,
+                "shorts": shorts_count,
+                "longform": total_videos - shorts_count,
+                "total_views": total_views,
+                "total_likes": total_likes,
+                "total_comments": total_comments,
+                "last_synced_at": last_sync.isoformat() if last_sync else None,
+                "top_video": (
+                    {
+                        "video_id": str(top.id),
+                        "youtube_video_id": top.youtube_video_id,
+                        "title": top.title,
+                        "thumbnail_url": top.thumbnail_url,
+                        "view_count": top.view_count,
+                        "is_short": top.is_short,
+                        "url": f"https://www.youtube.com/watch?v={top.youtube_video_id}",
+                    }
+                    if top is not None
+                    else None
+                ),
+            }
+        )
+        grand_videos += total_videos
+        grand_views += total_views
+        grand_likes += total_likes
+        grand_comments += total_comments
+
+    return {
+        "channels": channel_out,
+        "totals": {
+            "channels": len(channel_out),
+            "total_videos": grand_videos,
+            "total_views": grand_views,
+            "total_likes": grand_likes,
+            "total_comments": grand_comments,
+        },
+    }
+
+
+@router.get(
     "/recent-videos",
     status_code=status.HTTP_200_OK,
     summary="Most-recent videos across all connected channels",

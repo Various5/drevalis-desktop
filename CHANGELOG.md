@@ -11,6 +11,38 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.44 — synced channel videos visible in dashboard + YouTube tab)
+- **Synced YouTube channel videos now actually appear in the
+  dashboard.** Previously Library would show all the synced content
+  but the dashboard + YouTube → Dashboard tab only knew about
+  Drevalis-uploaded videos (``YouTubeUpload`` rows). After syncing
+  a channel with 100 existing uploads the user saw "0 views" on
+  every dashboard.
+- **Main Dashboard ``Recent YouTube Videos`` widget is now ON by
+  default** for new installs. Shows the 5 most-recent videos across
+  every connected channel with a Drevalis-upload sparkle for
+  cross-matched ones. Existing users keep their saved layout but
+  can enable it via Dashboard → Customize.
+- **YouTube → Dashboard tab gets a new "Channel Stats Overview"
+  section at the top:**
+  - 4 channel-wide stat cards (Channel Videos, Channel Views,
+    Channel Likes, Channel Comments).
+  - Per-channel roll-up card showing each channel's video count,
+    shorts/longform split, total views/likes, and a thumbnail of
+    the channel's top video by view count.
+  - Empty channels render "✓ Synced — channel has no videos yet"
+    instead of zeroes so the user can spot which channels are
+    dormant at a glance.
+- The existing "Total Uploads / Total Views / Total Likes" stat
+  row beneath is now relabelled "Drevalis Uploads / Drevalis Views
+  / Drevalis Likes" so the contrast between channel-wide vs
+  Drevalis-only numbers is unambiguous.
+- **New endpoint** ``GET /api/v1/youtube/channels/stats-overview``
+  returns per-channel aggregates from the ``youtube_channel_videos``
+  sync table plus grand totals; falls back to the Redis sync
+  marker so empty-but-synced channels also expose their
+  ``last_synced_at``.
+
 ### Fixed (alpha.43 — Empty channels looked "never synced" in the UI)
 - **Empty YouTube channels now correctly display "✓ Synced — this
   channel has no videos on YouTube yet"** instead of "No channel
