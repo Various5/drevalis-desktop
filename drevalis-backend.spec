@@ -123,7 +123,15 @@ excludes = [
     "pydoc_data",
     "test",
     "tests",
-    "unittest",
+    # ``unittest`` is part of the Python stdlib. We can NOT exclude it
+    # because ``pyparsing.__init__`` unconditionally does
+    # ``from .testing import *`` and ``pyparsing.testing`` imports
+    # ``unittest`` at module load. That import chain runs as soon as
+    # ``googleapiclient.discovery`` → ``httplib2`` → ``httplib2.auth``
+    # → ``pyparsing`` are imported, which is exactly what the YouTube
+    # OAuth code-exchange step does. The exclude was saving ~120 KB
+    # at the cost of breaking the YouTube connect flow entirely
+    # (see alpha.35 fix notes).
     # Dev-only -- shipped because they're in --extra dev. Drevalis never
     # imports them at runtime.
     "mypy",

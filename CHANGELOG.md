@@ -11,6 +11,26 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.35 — YouTube OAuth code exchange crashed on missing unittest)
+- **YouTube connect crashed at the code-for-tokens step with
+  ``ModuleNotFoundError: No module named 'unittest'``** the moment
+  the OAuth callback handler tried to build the Google API client.
+  Import chain: ``handle_callback → _exchange → googleapiclient.discovery
+  → httplib2 → httplib2.auth → pyparsing → pyparsing.testing →
+  import unittest``. The bundled binary couldn't satisfy that import
+  because the PyInstaller spec listed ``unittest`` in ``excludes``.
+- Removed ``unittest`` from the PyInstaller excludes list. Cost: ~120 KB
+  of stdlib in the bundle. Benefit: YouTube OAuth flow actually
+  completes end-to-end on a frozen install. The exclude saved
+  pennies of disk and broke the whole channel-connect flow — bad
+  trade.
+- Note: this surfaced now (not earlier) because the OAuth state-
+  lookup fix in alpha.34 finally let the callback handler reach the
+  code-exchange step. The unittest exclude has been there since the
+  PyInstaller spec was first written; before alpha.34, the callback
+  bailed earlier on GETDEL so this exception never had a chance to
+  fire.
+
 ### Fixed (alpha.34 — OAuth callback failed on bundled Redis 5)
 - **OAuth callback for YouTube and TikTok crashed with
   ``ResponseError: unknown command 'GETDEL'``** because the bundled
