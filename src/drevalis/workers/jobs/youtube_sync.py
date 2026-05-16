@@ -157,9 +157,49 @@ async def sync_youtube_channel_videos(
                 shorts += 1
             else:
                 longform += 1
+        # ── Reconciliation pass: episode ↔ youtube_video_id auto-link ────
+        # For every channel video whose youtube_video_id matches a
+        # YouTubeUpload row Drevalis owns, make sure the linked Episode's
+        # ``metadata_["youtube_video_url"]`` is populated. This heals
+        # episodes that were uploaded before this reconciliation existed
+        # (or whose URL got lost in a manual cleanup) without needing
+        # the user to click anything.
+        from sqlalchemy import select as _select
+
+        from drevalis.models.episode import Episode
+        from drevalis.models.youtube_channel import YouTubeUpload
+
+        upload_rows = (
+            await session.execute(
+                _select(YouTubeUpload.episode_id, YouTubeUpload.youtube_video_id)
+                .where(YouTubeUpload.channel_id == channel.id)
+                .where(YouTubeUpload.upload_status == "done")
+                .where(YouTubeUpload.youtube_video_id.is_not(None))
+            )
+        ).all()
+        reconciled = 0
+        for ep_id, vid in upload_rows:
+            if not (ep_id and vid):
+                continue
+            ep = await session.get(Episode, ep_id)
+            if ep is None:
+                continue
+            url = f"https://www.youtube.com/watch?v={vid}"
+            md = dict(ep.metadata_ or {})
+            if md.get("youtube_video_url") != url:
+                md["youtube_video_url"] = url
+                md["youtube_video_id"] = vid
+                ep.metadata_ = md
+                reconciled += 1
         await session.commit()
 
-    log.info("job_complete", synced=synced, shorts=shorts, longform=longform)
+    log.info(
+        "job_complete",
+        synced=synced,
+        shorts=shorts,
+        longform=longform,
+        episodes_reconciled=reconciled,
+    )
 
     # Broadcast a "channel synced" WS event so the frontend can refresh
     # its YouTube section without polling. Best-effort; failure here is

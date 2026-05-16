@@ -147,6 +147,60 @@ async def _publish_scheduled_posts_locked(
                             setattr(channel, k, v)
                         await session.flush()
 
+                    # Title-similarity duplicate-block. Compare the
+                    # scheduled-post title to every video already on
+                    # this channel and refuse to upload if anything
+                    # crosses 0.85 SequenceMatcher ratio — that level
+                    # of overlap almost always means the user already
+                    # uploaded this content (or near-identical content)
+                    # and re-publishing would duplicate the listing.
+                    # Failures are *permanent* (status='failed'), not
+                    # retryable — the user can disable the block by
+                    # editing the post title or via the
+                    # ``skip_duplicate_check`` metadata flag.
+                    skip_check = False
+                    try:
+                        skip_check = bool(
+                            (post.metadata_ or {}).get("skip_duplicate_check")
+                        )
+                    except Exception:
+                        skip_check = False
+                    if not skip_check and post.title:
+                        import difflib as _difflib
+
+                        from sqlalchemy import select as _select
+
+                        from drevalis.models.youtube_channel import (
+                            YouTubeChannelVideo as _Vid,
+                        )
+
+                        ch_vids = (
+                            (
+                                await session.execute(
+                                    _select(_Vid).where(_Vid.channel_id == channel.id)
+                                )
+                            )
+                            .scalars()
+                            .all()
+                        )
+                        norm = (post.title or "").lower()
+                        best: tuple[float, str, str] | None = None
+                        for v in ch_vids:
+                            r = _difflib.SequenceMatcher(
+                                None, norm, (v.title or "").lower()
+                            ).ratio()
+                            if r >= 0.85 and (best is None or r > best[0]):
+                                best = (r, v.title or "", v.youtube_video_id)
+                        if best is not None:
+                            raise RuntimeError(
+                                "Duplicate-block: title is "
+                                f"{int(best[0] * 100)}% similar to existing "
+                                f"video '{best[1][:80]}' (youtube.com/watch?v="
+                                f"{best[2]}). Edit the post title or set "
+                                "metadata.skip_duplicate_check=true to "
+                                "override."
+                            )
+
                     # Skip if this episode is already published on this
                     # channel. The cron can fire late (5 min granularity)
                     # and overlap with a manual upload, or a previous tick

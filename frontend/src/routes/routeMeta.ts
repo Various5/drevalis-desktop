@@ -114,6 +114,13 @@ export const ROUTES: Record<string, RouteMeta> = {
     navGroup: 'publish',
     icon: 'Youtube',
   },
+  '/youtube/library': {
+    path: '/youtube/library',
+    title: 'YouTube Library',
+    navLabel: 'YT Library',
+    navGroup: 'publish',
+    icon: 'Library',
+  },
   '/youtube/callback': {
     path: '/youtube/callback',
     title: 'Connecting YouTube…',

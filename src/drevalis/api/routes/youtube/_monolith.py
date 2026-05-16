@@ -364,6 +364,14 @@ async def list_channel_videos(
         default="all",
         description="Filter by video kind. ``shorts`` = duration ≤ 60s.",
     ),
+    source: Literal["all", "drevalis", "external"] = Query(
+        default="all",
+        description=(
+            "Filter by who uploaded it. ``drevalis`` = only videos with "
+            "a matching YouTubeUpload row (status='done'). ``external`` "
+            "= only videos that have no Drevalis upload trail."
+        ),
+    ),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -374,9 +382,14 @@ async def list_channel_videos(
     this channel (or returned zero videos). Hit ``POST .../resync`` to
     kick off a fresh enumeration.
     """
-    from sqlalchemy import func as _func, select as _select
+    from sqlalchemy import and_ as _and, func as _func, select as _select
+    from sqlalchemy.orm import aliased
 
-    from drevalis.models.youtube_channel import YouTubeChannel, YouTubeChannelVideo
+    from drevalis.models.youtube_channel import (
+        YouTubeChannel,
+        YouTubeChannelVideo,
+        YouTubeUpload,
+    )
 
     channel = await db.get(YouTubeChannel, channel_id)
     if channel is None:
@@ -385,24 +398,56 @@ async def list_channel_videos(
             detail="channel_not_found",
         )
 
-    q = _select(YouTubeChannelVideo).where(YouTubeChannelVideo.channel_id == channel_id)
+    # Outer-join YouTubeUpload so we can both annotate rows with
+    # uploaded_via_drevalis AND filter on the join state. Each
+    # YouTubeChannelVideo can have at most one ``done`` upload per
+    # channel (Drevalis enforces channel/episode dedup); the COALESCE
+    # below keeps a NULL when no upload exists.
+    UploadAlias = aliased(YouTubeUpload)
+    join_cond = _and(
+        UploadAlias.youtube_video_id == YouTubeChannelVideo.youtube_video_id,
+        UploadAlias.channel_id == YouTubeChannelVideo.channel_id,
+        UploadAlias.upload_status == "done",
+    )
+    q = (
+        _select(YouTubeChannelVideo, UploadAlias.episode_id)
+        .outerjoin(UploadAlias, join_cond)
+        .where(YouTubeChannelVideo.channel_id == channel_id)
+    )
     if kind == "shorts":
         q = q.where(YouTubeChannelVideo.is_short.is_(True))
     elif kind == "longform":
         q = q.where(YouTubeChannelVideo.is_short.is_(False))
+    if source == "drevalis":
+        q = q.where(UploadAlias.episode_id.is_not(None))
+    elif source == "external":
+        q = q.where(UploadAlias.episode_id.is_(None))
     q = q.order_by(YouTubeChannelVideo.published_at.desc().nulls_last())
 
-    total_q = _select(_func.count()).select_from(YouTubeChannelVideo).where(
-        YouTubeChannelVideo.channel_id == channel_id
+    # ``total`` is the count over the *same* (kind, source) filter pair
+    # so the UI's pagination footer reads correctly. Build a parallel
+    # count query rather than running the full select(...).count()
+    # which materialises every row.
+    total_q = (
+        _select(_func.count(YouTubeChannelVideo.id))
+        .select_from(YouTubeChannelVideo)
+        .outerjoin(UploadAlias, join_cond)
+        .where(YouTubeChannelVideo.channel_id == channel_id)
     )
     if kind == "shorts":
         total_q = total_q.where(YouTubeChannelVideo.is_short.is_(True))
     elif kind == "longform":
         total_q = total_q.where(YouTubeChannelVideo.is_short.is_(False))
+    if source == "drevalis":
+        total_q = total_q.where(UploadAlias.episode_id.is_not(None))
+    elif source == "external":
+        total_q = total_q.where(UploadAlias.episode_id.is_(None))
     total = int((await db.execute(total_q)).scalar_one() or 0)
 
-    rows = (await db.execute(q.limit(limit).offset(offset))).scalars().all()
-    last_sync = max((r.last_synced_at for r in rows if r.last_synced_at), default=None)
+    rows = (await db.execute(q.limit(limit).offset(offset))).all()
+    last_sync = max(
+        (v.last_synced_at for v, _ep in rows if v.last_synced_at), default=None
+    )
 
     # Quick aggregate counts so the UI can render "120 videos · 87 shorts"
     # without a second round trip.
@@ -438,9 +483,108 @@ async def list_channel_videos(
                 "like_count": v.like_count,
                 "comment_count": v.comment_count,
                 "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
+                "uploaded_via_drevalis": ep_id is not None,
+                "drevalis_episode_id": str(ep_id) if ep_id else None,
             }
-            for v in rows
+            for v, ep_id in rows
         ],
+    }
+
+
+@router.post(
+    "/channels/{channel_id}/videos/{video_pk}/import-as-episode",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a draft episode pre-filled from an existing channel video",
+)
+async def import_video_as_episode(
+    channel_id: UUID,
+    video_pk: UUID,
+    payload: dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Take a video that exists on the YouTube channel (synced by
+    ``sync_youtube_channel_videos``) and create a new Drevalis Episode
+    pre-filled from its title + description. Useful for back-filling
+    episode rows for content that was uploaded before Drevalis was
+    connected, so the Library page's "External" tab can be bulk-
+    imported into the workflow.
+
+    Body::
+
+        {"series_id": "<uuid>"}
+
+    The created episode is in ``draft`` status with the YouTube video
+    URL stored in ``metadata_["youtube_video_url"]`` so the analytics
+    cross-match picks it up. A reconciliation ``YouTubeUpload`` row
+    (status='done') is also inserted so the episode shows as
+    "Uploaded via Drevalis" in the Library going forward.
+    """
+    from drevalis.models.episode import Episode
+    from drevalis.models.youtube_channel import (
+        YouTubeChannel,
+        YouTubeChannelVideo,
+        YouTubeUpload,
+    )
+
+    series_id_raw = payload.get("series_id")
+    if not series_id_raw:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="series_id is required",
+        )
+    try:
+        series_id = UUID(str(series_id_raw))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="series_id must be a UUID",
+        ) from exc
+
+    channel = await db.get(YouTubeChannel, channel_id)
+    if channel is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="channel_not_found")
+    video = await db.get(YouTubeChannelVideo, video_pk)
+    if video is None or video.channel_id != channel_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="video_not_found")
+
+    yt_url = f"https://www.youtube.com/watch?v={video.youtube_video_id}"
+    episode = Episode(
+        series_id=series_id,
+        title=video.title or "Imported from YouTube",
+        topic=(video.description or "")[:1000] or None,
+        status="exported",  # already live on YouTube, no need to generate
+        metadata_={
+            "youtube_video_url": yt_url,
+            "youtube_video_id": video.youtube_video_id,
+            "imported_from_youtube": True,
+            "imported_at": datetime.now(tz=UTC).isoformat(),
+        },
+    )
+    db.add(episode)
+    await db.flush()  # populate episode.id
+
+    upload = YouTubeUpload(
+        episode_id=episode.id,
+        channel_id=channel.id,
+        youtube_video_id=video.youtube_video_id,
+        youtube_url=yt_url,
+        title=video.title or "",
+        description=video.description,
+        privacy_status=video.privacy_status or "public",
+        upload_status="done",
+    )
+    db.add(upload)
+    await db.commit()
+
+    return {
+        "episode_id": str(episode.id),
+        "series_id": str(series_id),
+        "youtube_video_id": video.youtube_video_id,
+        "youtube_url": yt_url,
+        "message": (
+            f"Imported '{video.title}' as a new episode in status=exported. "
+            "Find it in the series detail page or open it from the Library."
+        ),
     }
 
 

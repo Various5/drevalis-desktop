@@ -31,6 +31,7 @@ const Jobs = lazy(() => import('@/pages/Jobs'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Help = lazy(() => import('@/pages/Help'));
 const YouTube = lazy(() => import('@/pages/YouTube'));
+const YouTubeLibrary = lazy(() => import('@/pages/YouTubeLibrary'));
 const Usage = lazy(() => import('@/pages/Usage'));
 const CloudGPU = lazy(() => import('@/pages/CloudGPU'));
 const Assets = lazy(() => import('@/pages/Assets'));
@@ -157,6 +158,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/help" element={<Help />} />
         <Route path="/youtube" element={<YouTube />} />
+        <Route path="/youtube/library" element={<YouTubeLibrary />} />
         <Route path="/social/:platform" element={<SocialPlatform />} />
         <Route path="/usage" element={<Usage />} />
         <Route path="/cloud-gpu" element={<CloudGPU />} />

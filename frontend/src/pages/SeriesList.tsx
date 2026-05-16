@@ -14,6 +14,51 @@ import { series as seriesApi } from '@/lib/api';
 import { useSeries, useVoiceProfiles, queryKeys } from '@/lib/queries';
 import type { SeriesCreate, SeriesGenerateResponse } from '@/types';
 
+// Compact per-episode title-conflict check shown inside the AI-Series
+// result dialog. Single-line warning if any existing channel video
+// crosses the 0.7 similarity threshold; silent otherwise.
+function SeriesEpisodeTitleConflict({ title }: { title: string }) {
+  const [match, setMatch] = useState<{ similarity: number; title: string; url: string } | null>(null);
+  useEffect(() => {
+    if (!title.trim()) return;
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/v1/youtube/check-title-conflict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ title: title.trim(), threshold: 0.7 }),
+        });
+        if (!res.ok) return;
+        const j = (await res.json()) as {
+          matches: Array<{ similarity: number; title: string; url: string }>;
+        };
+        if (!cancelled) setMatch(j.matches?.[0] ?? null);
+      } catch {
+        /* network error — keep silent */
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [title]);
+  if (!match) return null;
+  return (
+    <a
+      href={match.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-1 inline-flex items-center gap-1 text-[11px] text-warning hover:underline"
+      title={`Existing video: ${match.title}`}
+    >
+      ⚠ {Math.round(match.similarity * 100)}% match to "{match.title.slice(0, 50)}
+      {match.title.length > 50 ? '…' : ''}"
+    </a>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Series List Page
 // ---------------------------------------------------------------------------
@@ -399,6 +444,7 @@ function SeriesList() {
                     {i + 1}. {ep.title}
                   </span>
                   <p className="text-xs text-txt-tertiary mt-0.5">{ep.topic}</p>
+                  <SeriesEpisodeTitleConflict title={ep.title} />
                 </div>
               ))}
             </div>

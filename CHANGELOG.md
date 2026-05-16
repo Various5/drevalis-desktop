@@ -11,6 +11,44 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.38 — YouTube Library + reconciliation + duplicate-block)
+- **New ``/youtube/library`` page** — dedicated browser for every video
+  on every connected channel. Three filter tabs (All / Drevalis /
+  External) × three kind tabs (All / Long / Shorts), title search,
+  and bulk-select on the External tab. Selected externals can be
+  **bulk-imported as draft episodes**: each video becomes an
+  ``Episode(status='exported')`` in the chosen series with the
+  YouTube URL stored in ``metadata_['youtube_video_url']`` AND a
+  reconciliation ``YouTubeUpload`` row (``upload_status='done'``)
+  so the imported video immediately shows as Drevalis-tracked in
+  analytics + cross-match. Backed by:
+  - ``GET /channels/{id}/videos`` extended with
+    ``source=all|drevalis|external`` query param (outer-joins
+    ``YouTubeUpload`` to filter on the join state).
+  - ``POST /channels/{id}/videos/{video_pk}/import-as-episode``
+    (body ``{series_id}``).
+- **Title-conflict warning in the AI Series Generator result dialog.**
+  Every auto-generated episode title now runs through the same
+  ``/check-title-conflict`` endpoint as the single-episode dialog. If
+  any existing channel video crosses 0.7 similarity the title gets a
+  one-line ⚠ warning inline with the percentage match and a
+  click-through link to the existing YouTube video.
+- **Auto-link reconciliation in ``sync_youtube_channel_videos``.**
+  After every channel-video upsert pass the worker walks every
+  ``YouTubeUpload(status='done')`` for the channel and, for each, sets
+  the linked Episode's ``metadata_["youtube_video_url"]`` and
+  ``metadata_["youtube_video_id"]``. Heals episodes whose URL was
+  never stored (or got wiped during a manual cleanup) without
+  user action.
+- **Duplicate-block in ``publish_scheduled_posts``.** Before each
+  YouTube upload attempt the worker now compares the scheduled
+  post's title to every existing video on the target channel via
+  ``difflib.SequenceMatcher``. ≥ 0.85 similarity → permanent
+  ``failed`` with a human-readable error message naming the existing
+  video. Users can override per-post by setting
+  ``metadata.skip_duplicate_check=true``. Saves quota + avoids
+  silently re-uploading near-duplicates after a manual YouTube edit.
+
 ### Added (alpha.37 — channel videos: title check, dashboard widget, cross-match)
 - **Episode-create dialog** now warns inline if the title looks too
   similar to an existing video on any connected channel. Debounced
