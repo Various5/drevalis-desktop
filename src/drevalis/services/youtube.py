@@ -579,13 +579,22 @@ class YouTubeService:
         refresh_token_encrypted: str | None,
         token_expiry: datetime | None,
         max_videos: int = 500,
+        youtube_channel_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """Enumerate every public/unlisted video on the connected channel.
 
         Two-phase walk:
-            1. ``channels.list(mine=True, part='contentDetails')`` → uploads
-               playlist ID (every channel has an auto-managed playlist
-               containing all of its uploads).
+            1. ``channels.list(part='contentDetails', id=<YouTube channel
+               id>)`` → uploads playlist ID (every channel has an
+               auto-managed playlist containing all of its uploads).
+               Using the explicit ``id=`` parameter (vs ``mine=True``)
+               avoids the brand-account ambiguity where a single
+               Google account owns multiple YouTube channels and
+               ``mine=True`` returns only the primary channel for the
+               token — not the channel the user actually meant to
+               authorize. Without the explicit ID, channels created
+               as brand-account sub-channels of the OAuth-primary
+               account silently return zero videos.
             2. ``playlistItems.list(playlistId=...)`` paginated to gather
                video IDs, then ``videos.list(part='snippet,statistics,
                contentDetails')`` in 50-ID chunks to get stats + duration.
@@ -608,11 +617,22 @@ class YouTubeService:
             from googleapiclient.discovery import build
 
             youtube = build("youtube", "v3", credentials=credentials)
-            res = (
-                youtube.channels()
-                .list(part="contentDetails", mine=True)
-                .execute()
-            )
+            # Prefer explicit channel lookup when we know the YouTube
+            # channel ID — see docstring for the brand-account
+            # rationale. Fall back to ``mine=True`` for legacy callers
+            # that didn't pass an ID.
+            if youtube_channel_id:
+                res = (
+                    youtube.channels()
+                    .list(part="contentDetails", id=youtube_channel_id)
+                    .execute()
+                )
+            else:
+                res = (
+                    youtube.channels()
+                    .list(part="contentDetails", mine=True)
+                    .execute()
+                )
             items = res.get("items") or []
             if not items:
                 return None

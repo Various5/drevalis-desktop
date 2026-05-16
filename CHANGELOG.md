@@ -11,6 +11,25 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.42 — Sync returned 0 videos on brand-account sub-channels)
+- **Channel sync was silently returning zero videos for some
+  connected channels** while working correctly for others. Root
+  cause: ``YouTubeService.list_channel_videos`` called
+  ``channels.list(mine=True)`` to resolve the uploads-playlist ID
+  for the connected channel. ``mine=True`` returns the *primary*
+  channel of the OAuth token's Google account, not necessarily the
+  channel the user authorized. When the user owns multiple brand-
+  account sub-channels (e.g. 9 channels under one Google account),
+  only the brand-primary returns data via ``mine=True``; the
+  sub-channels look empty.
+- ``list_channel_videos`` now accepts an explicit
+  ``youtube_channel_id`` argument and uses ``channels.list(id=...)``
+  to look up the uploads playlist for the exact channel the worker
+  was asked to sync. The worker passes
+  ``YouTubeChannel.channel_id`` (the YouTube-side ID stored at
+  OAuth-callback time) so every channel resolves correctly
+  regardless of which is the brand-account primary.
+
 ### Fixed (alpha.41 — Sync buttons were hidden on disconnected channels)
 - **Sync now visible on every channel card** in Settings → YouTube.
   The ``ChannelVideoSummary`` widget was previously gated on

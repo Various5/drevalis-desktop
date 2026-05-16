@@ -82,6 +82,10 @@ async def sync_youtube_channel_videos(
                 refresh_token_encrypted=channel.refresh_token_encrypted,
                 token_expiry=channel.token_expiry,
                 max_videos=max_videos,
+                # Pin to THIS channel's YouTube ID, not the OAuth token's
+                # primary channel. Required for brand-account sub-channels
+                # — see service docstring + alpha.42 fix history.
+                youtube_channel_id=channel.channel_id,
             )
         except YouTubeTokenDecryptError:
             log.warning("youtube_tokens_undecryptable")
