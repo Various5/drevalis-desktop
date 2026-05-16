@@ -11,6 +11,24 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.46 — channel stats now show on Analytics tab too)
+- **YouTube → Analytics tab was stuck on an endless spinner** when
+  the user had synced channels but no Drevalis-uploaded videos.
+  Root cause: an early-return ``if (stats.length === 0) return
+  <Spinner />`` gated the whole tab on Drevalis-only data. After
+  a fresh channel sync with no Drevalis publish history, the tab
+  never resolved.
+- **``ChannelStatsOverview`` is now embedded at the top of the
+  Analytics tab too** — same 4 channel-wide stat cards + per-channel
+  roll-up that already lived on the Dashboard tab. Pulls from
+  ``/youtube/channels/stats-overview`` so the user sees every video
+  on every connected channel immediately, regardless of whether
+  Drevalis has uploaded anything.
+- **Empty-state added** for the Drevalis-uploads leaderboard:
+  "No Drevalis uploads on these channels yet — the breakdown above
+  shows everything on your YouTube channels." No more confused
+  zero-state.
+
 ### Fixed (alpha.45 — collapse "no channel assigned" into one Glitchtip issue)
 - **The daily ``publish_scheduled_posts`` cron tick was generating 6
   distinct Glitchtip issues per day** when scheduled YouTube posts

@@ -1657,7 +1657,12 @@ function AnalyticsTab({ uploads, loading, channelMap, channelId }: AnalyticsTabP
     );
   }
 
-  if (stats.length === 0) {
+  // Early-return cases (loading / no Drevalis uploads). We *don't*
+  // gate the entire AnalyticsTab on Drevalis uploads anymore — the
+  // ChannelStatsOverview below works off the synced channel-video
+  // table and is useful even with zero Drevalis uploads. Only the
+  // per-video Drevalis leaderboard further down needs ``stats``.
+  if (statsLoading && stats.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
         <Spinner size="md" />
@@ -1665,9 +1670,12 @@ function AnalyticsTab({ uploads, loading, channelMap, channelId }: AnalyticsTabP
     );
   }
 
-  // Compute averages for trending detection
-  const avgViews =
-    stats.length > 0 ? stats.reduce((s, v) => s + v.views, 0) / stats.length : 0;
+  const hasDrevalisStats = stats.length > 0;
+
+  // Compute averages for trending detection (zero-safe when no stats).
+  const avgViews = hasDrevalisStats
+    ? stats.reduce((s, v) => s + v.views, 0) / stats.length
+    : 0;
 
   const totalViews = stats.reduce((s, v) => s + v.views, 0);
   const totalLikes = stats.reduce((s, v) => s + v.likes, 0);
@@ -1689,6 +1697,31 @@ function AnalyticsTab({ uploads, loading, channelMap, channelId }: AnalyticsTabP
 
   return (
     <div className="space-y-4">
+      {/* Channel-wide aggregates from the youtube_channel_videos sync
+          table. Always shown — even with zero Drevalis uploads — so
+          the user sees their channel state immediately after a sync,
+          not just Drevalis-uploaded videos. */}
+      <ChannelStatsOverview />
+
+      {/* If the user has NO Drevalis uploads at all, surface a clear
+          explanation rather than rendering the rest of the leaderboard
+          empty. Stops the previous endless-spinner state when a user
+          synced their channels but never published via Drevalis. */}
+      {!hasDrevalisStats && !statsLoading && (
+        <Card padding="md">
+          <div className="text-center py-6 space-y-1">
+            <p className="text-sm text-txt-secondary">
+              No Drevalis uploads on these channels yet.
+            </p>
+            <p className="text-xs text-txt-tertiary">
+              The breakdown above shows everything on your YouTube channels.
+              Once you publish an episode via Drevalis, its per-video stats
+              appear in the leaderboard below.
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Channel analytics (YouTube Analytics API — CTR, retention, subs) */}
       <Card padding="md">
         <div className="flex items-center justify-between mb-3">
