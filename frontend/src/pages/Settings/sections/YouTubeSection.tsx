@@ -263,6 +263,7 @@ export function YouTubeSection() {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                <SyncChannelButton channelId={ch.id} />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -336,9 +337,11 @@ export function YouTubeSection() {
             </div>
 
             {/* Synced channel videos — populated by sync_youtube_channel_videos
-                after the OAuth callback. Resync button lets the user
-                refresh on demand. */}
-            {ch.is_active && <ChannelVideoSummary channelId={ch.id} />}
+                after the OAuth callback. Always rendered (even for
+                disconnected channels) so the user can see the last
+                sync state and trigger a fresh one once they
+                reconnect. */}
+            <ChannelVideoSummary channelId={ch.id} />
           </Card>
         ))
       )}
@@ -353,5 +356,42 @@ export function YouTubeSection() {
         }}
       />
     </div>
+  );
+}
+
+// Single-button sync trigger for the channel-card header row. Sits
+// next to Reconnect / Disconnect so the user can fire a sync from the
+// most channel-actiony place in the UI, regardless of how the
+// ``ChannelVideoSummary`` widget below is rendering.
+function SyncChannelButton({ channelId }: { channelId: string }) {
+  const { toast } = useToast();
+  const [syncing, setSyncing] = useState(false);
+  const trigger = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/v1/youtube/channels/${channelId}/resync`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success('Sync queued — refresh in a few seconds');
+    } catch (err) {
+      toast.error('Sync failed', { description: String(err) });
+    } finally {
+      setSyncing(false);
+    }
+  };
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => void trigger()}
+      disabled={syncing}
+      className="text-txt-secondary hover:text-accent"
+      title="Pull the latest video list + stats from YouTube"
+    >
+      <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+      <span className="ml-1">{syncing ? 'Syncing…' : 'Sync'}</span>
+    </Button>
   );
 }

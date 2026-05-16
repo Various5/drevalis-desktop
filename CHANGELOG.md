@@ -11,6 +11,17 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.41 — Sync buttons were hidden on disconnected channels)
+- **Sync now visible on every channel card** in Settings → YouTube.
+  The ``ChannelVideoSummary`` widget was previously gated on
+  ``channel.is_active``, so a channel whose ``is_active`` flag had
+  drifted (manual disconnect, reconnect mid-flow) had no visible
+  way to trigger a sync. Now always rendered.
+- **Added a dedicated ``Sync`` button** in the channel-card header
+  row, next to ``Reconnect`` / ``Disconnect``. Same button works
+  before the stats widget loads, so the action is one click from
+  the channel name regardless of widget state.
+
 ### Added (alpha.40 — Sync channels button on YouTube overview)
 - **Sync button is now where users actually look for it** — the
   YouTube overview page (``/youtube``). Previously the resync was

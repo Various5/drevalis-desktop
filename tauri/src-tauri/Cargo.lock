@@ -846,7 +846,7 @@ dependencies = [
 
 [[package]]
 name = "drevalis-shell"
-version = "0.1.0-alpha.40"
+version = "0.1.0-alpha.41"
 dependencies = [
  "sentry",
  "serde",
