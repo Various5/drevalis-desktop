@@ -48,6 +48,7 @@ from drevalis.workers.jobs.video_ingest import (
     analyze_video_ingest,
     commit_video_ingest_clip,
 )
+from drevalis.workers.jobs.youtube_sync import sync_youtube_channel_videos
 
 # ---------------------------------------------------------------------------
 # Lifecycle hook imports
@@ -142,6 +143,7 @@ class WorkerSettings:
         commit_video_ingest_clip,
         render_from_edit,
         prune_orphaned_scheduled_posts,
+        sync_youtube_channel_videos,
     ]
     cron_jobs = [
         # Check for due scheduled posts every 5 minutes

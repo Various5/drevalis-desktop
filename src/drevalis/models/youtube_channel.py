@@ -60,6 +60,66 @@ class YouTubeChannel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
 
+class YouTubeChannelVideo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A video that exists on a connected YouTube channel.
+
+    Populated by ``sync_youtube_channel_videos`` (worker job) on first
+    connect and refreshed manually via the resync endpoint. Distinct
+    from ``YouTubeUpload`` which only tracks uploads Drevalis itself
+    performed — this table is the **truth about the channel** so the
+    user can see what's already up there and Drevalis can avoid
+    duplicating an episode that's already published.
+
+    ``is_short`` is a heuristic (duration <= 60s) — YouTube's Data API
+    doesn't expose a definitive "this is a Short" flag, so we'd need
+    aspect-ratio + #shorts-hashtag detection to do better. Good
+    enough for the dashboard split.
+    """
+
+    __tablename__ = "youtube_channel_videos"
+    __table_args__ = (
+        Index("ix_youtube_channel_videos_channel_id", "channel_id"),
+        Index(
+            "ix_youtube_channel_videos_channel_video",
+            "channel_id",
+            "youtube_video_id",
+            unique=True,
+        ),
+    )
+
+    channel_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("youtube_channels.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    youtube_video_id: Mapped[str] = mapped_column(TEXT, nullable=False)
+    title: Mapped[str] = mapped_column(TEXT, nullable=False)
+    description: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    thumbnail_url: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    duration_seconds: Mapped[int | None] = mapped_column(INTEGER, nullable=True)
+    is_short: Mapped[bool] = mapped_column(
+        BOOLEAN, nullable=False, server_default=text("false")
+    )
+    privacy_status: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    view_count: Mapped[int] = mapped_column(
+        INTEGER, nullable=False, server_default=text("0")
+    )
+    like_count: Mapped[int] = mapped_column(
+        INTEGER, nullable=False, server_default=text("0")
+    )
+    comment_count: Mapped[int] = mapped_column(
+        INTEGER, nullable=False, server_default=text("0")
+    )
+    last_synced_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+
+    channel: Mapped[YouTubeChannel] = relationship()
+
+
 class YouTubeUpload(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Tracks a single YouTube upload attempt for an episode.
 

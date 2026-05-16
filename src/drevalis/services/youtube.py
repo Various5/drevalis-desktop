@@ -573,6 +573,155 @@ class YouTubeService:
 
     # ── Analytics ─────────────────────────────────────────────────────────
 
+    async def list_channel_videos(
+        self,
+        access_token_encrypted: str,
+        refresh_token_encrypted: str | None,
+        token_expiry: datetime | None,
+        max_videos: int = 500,
+    ) -> list[dict[str, Any]]:
+        """Enumerate every public/unlisted video on the connected channel.
+
+        Two-phase walk:
+            1. ``channels.list(mine=True, part='contentDetails')`` → uploads
+               playlist ID (every channel has an auto-managed playlist
+               containing all of its uploads).
+            2. ``playlistItems.list(playlistId=...)`` paginated to gather
+               video IDs, then ``videos.list(part='snippet,statistics,
+               contentDetails')`` in 50-ID chunks to get stats + duration.
+
+        Returns a list of dicts with: ``video_id``, ``title``,
+        ``description``, ``thumbnail_url``, ``published_at``,
+        ``duration_seconds`` (None for live streams), ``is_short``
+        (heuristic: duration ≤ 60s), ``privacy_status``, ``view_count``,
+        ``like_count``, ``comment_count``.
+
+        Quota cost: 1 (channels.list) + ceil(N/50) (playlistItems) +
+        ceil(N/50) (videos.list). For a 500-video channel that's ~21
+        units against the 10,000/day quota.
+        """
+        credentials = self._build_credentials(
+            access_token_encrypted, refresh_token_encrypted, token_expiry
+        )
+
+        def _resolve_uploads_playlist_id() -> str | None:
+            from googleapiclient.discovery import build
+
+            youtube = build("youtube", "v3", credentials=credentials)
+            res = (
+                youtube.channels()
+                .list(part="contentDetails", mine=True)
+                .execute()
+            )
+            items = res.get("items") or []
+            if not items:
+                return None
+            rel = (items[0].get("contentDetails") or {}).get("relatedPlaylists") or {}
+            return rel.get("uploads")
+
+        def _list_playlist_video_ids(playlist_id: str) -> list[str]:
+            from googleapiclient.discovery import build
+
+            youtube = build("youtube", "v3", credentials=credentials)
+            ids: list[str] = []
+            page_token: str | None = None
+            while True:
+                res = (
+                    youtube.playlistItems()
+                    .list(
+                        part="contentDetails",
+                        playlistId=playlist_id,
+                        maxResults=50,
+                        pageToken=page_token,
+                    )
+                    .execute()
+                )
+                for item in res.get("items", []):
+                    vid = (item.get("contentDetails") or {}).get("videoId")
+                    if vid:
+                        ids.append(vid)
+                        if len(ids) >= max_videos:
+                            return ids
+                page_token = res.get("nextPageToken")
+                if not page_token:
+                    return ids
+
+        def _parse_iso8601_duration(s: str | None) -> int | None:
+            """Parse YouTube's PT#H#M#S duration into seconds.
+
+            Returns ``None`` for live streams (which report ``P0D`` or
+            an empty duration on the unaired side).
+            """
+            if not s:
+                return None
+            # PT1H2M3S, PT15S, PT4M, P0D, etc. Skip live indicators.
+            if s == "P0D":
+                return None
+            import re
+
+            m = re.match(
+                r"^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$", s
+            )
+            if not m:
+                return None
+            h, mn, sc = (int(g) if g else 0 for g in m.groups())
+            total = h * 3600 + mn * 60 + sc
+            return total or None
+
+        def _fetch_video_details(ids: list[str]) -> list[dict[str, Any]]:
+            from googleapiclient.discovery import build
+
+            if not ids:
+                return []
+            youtube = build("youtube", "v3", credentials=credentials)
+            out: list[dict[str, Any]] = []
+            for i in range(0, len(ids), 50):
+                chunk = ids[i : i + 50]
+                res = (
+                    youtube.videos()
+                    .list(
+                        part="snippet,statistics,contentDetails,status",
+                        id=",".join(chunk),
+                    )
+                    .execute()
+                )
+                for item in res.get("items", []):
+                    snippet = item.get("snippet") or {}
+                    stats = item.get("statistics") or {}
+                    details = item.get("contentDetails") or {}
+                    status = item.get("status") or {}
+                    thumbnails = snippet.get("thumbnails") or {}
+                    thumb = (
+                        thumbnails.get("medium")
+                        or thumbnails.get("high")
+                        or thumbnails.get("default")
+                        or {}
+                    )
+                    duration = _parse_iso8601_duration(details.get("duration"))
+                    is_short = bool(duration is not None and duration <= 60)
+                    out.append(
+                        {
+                            "video_id": item["id"],
+                            "title": snippet.get("title") or "",
+                            "description": (snippet.get("description") or "")[:2000],
+                            "thumbnail_url": thumb.get("url"),
+                            "published_at": snippet.get("publishedAt"),
+                            "duration_seconds": duration,
+                            "is_short": is_short,
+                            "privacy_status": status.get("privacyStatus"),
+                            "view_count": int(stats.get("viewCount") or 0),
+                            "like_count": int(stats.get("likeCount") or 0),
+                            "comment_count": int(stats.get("commentCount") or 0),
+                        }
+                    )
+            return out
+
+        playlist_id = await asyncio.to_thread(_resolve_uploads_playlist_id)
+        if not playlist_id:
+            return []
+        ids = await asyncio.to_thread(_list_playlist_video_ids, playlist_id)
+        return await asyncio.to_thread(_fetch_video_details, ids)
+
     async def get_video_stats(
         self,
         access_token_encrypted: str,

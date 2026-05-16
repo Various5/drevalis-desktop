@@ -11,6 +11,37 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.36 — sync existing YouTube videos on channel connect)
+- **After connecting a YouTube channel, Drevalis now pulls every video
+  already on the channel** so the dashboard reflects the actual state
+  of the account instead of starting from a blank slate. Triggered
+  automatically post-OAuth-callback, also manually via Settings →
+  YouTube → Resync.
+- New model ``YouTubeChannelVideo`` (table: ``youtube_channel_videos``)
+  — one row per video on a connected channel. Stores ``video_id``,
+  ``title``, ``description``, ``thumbnail_url``, ``published_at``,
+  ``duration_seconds``, ``is_short`` (heuristic: ≤ 60s),
+  ``privacy_status``, ``view_count``, ``like_count``,
+  ``comment_count``. Unique index on
+  ``(channel_id, youtube_video_id)`` so resyncs upsert in place.
+- New service method ``YouTubeService.list_channel_videos`` — walks
+  the channel's auto-managed uploads playlist (channels.list →
+  contentDetails.relatedPlaylists.uploads → playlistItems paginated →
+  videos.list in 50-ID chunks). Quota cost ~21 units for 500 videos.
+- New worker ``sync_youtube_channel_videos`` — idempotent SQLite
+  upsert with ``ON CONFLICT (channel_id, youtube_video_id) DO
+  UPDATE`` so re-runs refresh stats in place. Broadcasts a
+  ``channel_videos_synced`` event over Redis pub/sub for the
+  frontend.
+- New API:
+  - ``GET /api/v1/youtube/channels/{id}/videos?kind=all|shorts|longform``
+    — paginated list + aggregate counts (total, shorts_total,
+    longform_total, last_synced_at).
+  - ``POST /api/v1/youtube/channels/{id}/resync`` — manual trigger.
+- Settings → YouTube channel card now shows
+  ``N long-form · M shorts · total X`` with a Resync button + last
+  sync timestamp.
+
 ### Fixed (alpha.35 — YouTube OAuth code exchange crashed on missing unittest)
 - **YouTube connect crashed at the code-for-tokens step with
   ``ModuleNotFoundError: No module named 'unittest'``** the moment

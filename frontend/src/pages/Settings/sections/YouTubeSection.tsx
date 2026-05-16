@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Youtube, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Youtube, Trash2, RefreshCw, Film, Smartphone } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -7,6 +7,117 @@ import { Spinner } from '@/components/ui/Spinner';
 import { SocialConnectWizard } from '@/components/social/SocialConnectWizard';
 import { useToast } from '@/components/ui/Toast';
 import { youtube } from '@/lib/api';
+
+interface ChannelVideoStats {
+  total: number;
+  shorts_total: number;
+  longform_total: number;
+  last_synced_at: string | null;
+}
+
+function ChannelVideoSummary({ channelId }: { channelId: string }) {
+  const { toast } = useToast();
+  const [stats, setStats] = useState<ChannelVideoStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [resyncing, setResyncing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/v1/youtube/channels/${channelId}/videos?limit=1`,
+        { credentials: 'include' },
+      );
+      if (res.ok) {
+        const j = (await res.json()) as ChannelVideoStats;
+        setStats(j);
+      }
+    } catch {
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [channelId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const resync = async () => {
+    setResyncing(true);
+    try {
+      const res = await fetch(
+        `/api/v1/youtube/channels/${channelId}/resync`,
+        { method: 'POST', credentials: 'include' },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success('Sync started — checking back in a few seconds');
+      // Background-poll for ~30s. The worker usually finishes in <10s
+      // for channels under 500 videos; we poll every 3s and stop on
+      // either a stat change or the timeout.
+      const before = stats?.last_synced_at ?? null;
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        await load();
+        if (stats?.last_synced_at && stats.last_synced_at !== before) break;
+      }
+    } catch (err) {
+      toast.error('Resync failed', { description: String(err) });
+    } finally {
+      setResyncing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-2 text-xs text-txt-tertiary">Loading channel stats…</div>
+    );
+  }
+
+  const synced = stats && (stats.total > 0 || stats.last_synced_at);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-3 text-xs text-txt-secondary">
+          {synced ? (
+            <>
+              <span className="inline-flex items-center gap-1">
+                <Film size={12} className="text-txt-tertiary" />
+                {stats?.longform_total ?? 0} long-form
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Smartphone size={12} className="text-txt-tertiary" />
+                {stats?.shorts_total ?? 0} shorts
+              </span>
+              <span className="text-txt-tertiary">
+                · total {stats?.total ?? 0}
+              </span>
+            </>
+          ) : (
+            <span className="text-txt-tertiary italic">
+              No channel videos synced yet. Click Resync to pull what's on YouTube.
+            </span>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void resync()}
+          disabled={resyncing}
+          title="Re-enumerate this channel's videos from YouTube"
+        >
+          <RefreshCw size={12} className={resyncing ? 'animate-spin' : ''} />
+          <span className="ml-1">{resyncing ? 'Syncing…' : 'Resync'}</span>
+        </Button>
+      </div>
+      {synced && stats?.last_synced_at && (
+        <div className="text-[10px] text-txt-tertiary mt-1">
+          Last sync {new Date(stats.last_synced_at).toLocaleString()}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface YouTubeChannel {
   id: string;
@@ -223,6 +334,11 @@ export function YouTubeSection() {
                 className="bg-bg-elevated border border-border rounded px-2 py-1 text-sm text-txt-primary w-32"
               />
             </div>
+
+            {/* Synced channel videos — populated by sync_youtube_channel_videos
+                after the OAuth callback. Resync button lets the user
+                refresh on demand. */}
+            {ch.is_active && <ChannelVideoSummary channelId={ch.id} />}
           </Card>
         ))
       )}

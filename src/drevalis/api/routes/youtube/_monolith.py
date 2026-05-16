@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from drevalis.core.config import Settings
 from drevalis.core.deps import get_db, get_redis, get_settings
 from drevalis.core.exceptions import NotFoundError, ValidationError
+from drevalis.core.redis import get_arq_pool
 from drevalis.schemas.youtube import (
     PlaylistAddVideo,
     PlaylistCreate,
@@ -306,6 +307,18 @@ async def oauth_callback(
             ),
         )
 
+    # Kick off the channel-video sync in the background. This populates
+    # ``youtube_channel_videos`` with what's already live on the channel
+    # so the dashboard shows accurate "X videos / Y shorts" counts and
+    # we can detect duplicates before re-uploading. Best-effort —
+    # failure here is logged but doesn't break the connect flow.
+    try:
+        arq = get_arq_pool()
+        await arq.enqueue_job("sync_youtube_channel_videos", str(channel.id))
+        logger.info("youtube_channel_sync_enqueued", channel_id=str(channel.id))
+    except Exception:
+        logger.warning("youtube_channel_sync_enqueue_failed", exc_info=True)
+
     return _oauth_html(
         ok=True,
         title=f"Connected {channel.channel_name}",
@@ -335,6 +348,143 @@ async def connection_status(
     channel_responses = [YouTubeChannelResponse.model_validate(c) for c in all_channels]
     primary = YouTubeChannelResponse.model_validate(active) if active else channel_responses[0]
     return YouTubeConnectionStatus(connected=True, channel=primary, channels=channel_responses)
+
+
+# ── Channel videos (synced from YouTube) ─────────────────────────────────
+
+
+@router.get(
+    "/channels/{channel_id}/videos",
+    status_code=status.HTTP_200_OK,
+    summary="List videos that exist on the connected channel",
+)
+async def list_channel_videos(
+    channel_id: UUID,
+    kind: Literal["all", "shorts", "longform"] = Query(
+        default="all",
+        description="Filter by video kind. ``shorts`` = duration ≤ 60s.",
+    ),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Return videos previously enumerated by ``sync_youtube_channel_videos``.
+
+    Empty list + ``synced=False`` means the sync job hasn't run yet for
+    this channel (or returned zero videos). Hit ``POST .../resync`` to
+    kick off a fresh enumeration.
+    """
+    from sqlalchemy import func as _func, select as _select
+
+    from drevalis.models.youtube_channel import YouTubeChannel, YouTubeChannelVideo
+
+    channel = await db.get(YouTubeChannel, channel_id)
+    if channel is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="channel_not_found",
+        )
+
+    q = _select(YouTubeChannelVideo).where(YouTubeChannelVideo.channel_id == channel_id)
+    if kind == "shorts":
+        q = q.where(YouTubeChannelVideo.is_short.is_(True))
+    elif kind == "longform":
+        q = q.where(YouTubeChannelVideo.is_short.is_(False))
+    q = q.order_by(YouTubeChannelVideo.published_at.desc().nulls_last())
+
+    total_q = _select(_func.count()).select_from(YouTubeChannelVideo).where(
+        YouTubeChannelVideo.channel_id == channel_id
+    )
+    if kind == "shorts":
+        total_q = total_q.where(YouTubeChannelVideo.is_short.is_(True))
+    elif kind == "longform":
+        total_q = total_q.where(YouTubeChannelVideo.is_short.is_(False))
+    total = int((await db.execute(total_q)).scalar_one() or 0)
+
+    rows = (await db.execute(q.limit(limit).offset(offset))).scalars().all()
+    last_sync = max((r.last_synced_at for r in rows if r.last_synced_at), default=None)
+
+    # Quick aggregate counts so the UI can render "120 videos · 87 shorts"
+    # without a second round trip.
+    shorts_q = _select(_func.count()).select_from(YouTubeChannelVideo).where(
+        YouTubeChannelVideo.channel_id == channel_id,
+        YouTubeChannelVideo.is_short.is_(True),
+    )
+    longform_q = _select(_func.count()).select_from(YouTubeChannelVideo).where(
+        YouTubeChannelVideo.channel_id == channel_id,
+        YouTubeChannelVideo.is_short.is_(False),
+    )
+    shorts_total = int((await db.execute(shorts_q)).scalar_one() or 0)
+    longform_total = int((await db.execute(longform_q)).scalar_one() or 0)
+
+    return {
+        "channel_id": str(channel_id),
+        "total": total,
+        "shorts_total": shorts_total,
+        "longform_total": longform_total,
+        "last_synced_at": last_sync.isoformat() if last_sync else None,
+        "videos": [
+            {
+                "id": str(v.id),
+                "youtube_video_id": v.youtube_video_id,
+                "title": v.title,
+                "description": v.description,
+                "thumbnail_url": v.thumbnail_url,
+                "published_at": v.published_at.isoformat() if v.published_at else None,
+                "duration_seconds": v.duration_seconds,
+                "is_short": v.is_short,
+                "privacy_status": v.privacy_status,
+                "view_count": v.view_count,
+                "like_count": v.like_count,
+                "comment_count": v.comment_count,
+                "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
+            }
+            for v in rows
+        ],
+    }
+
+
+@router.post(
+    "/channels/{channel_id}/resync",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Manually re-enumerate the channel's videos",
+)
+async def resync_channel_videos(
+    channel_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Re-enqueue the channel-video sync job for a connected channel.
+
+    The same job is enqueued automatically after a successful OAuth
+    callback (see ``oauth_callback``). This endpoint is the manual
+    "refresh" button — useful after a user uploads a video outside
+    Drevalis and wants the dashboard to catch up without waiting for
+    the next periodic resync.
+    """
+    from drevalis.models.youtube_channel import YouTubeChannel
+
+    channel = await db.get(YouTubeChannel, channel_id)
+    if channel is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="channel_not_found",
+        )
+
+    try:
+        arq = get_arq_pool()
+        await arq.enqueue_job("sync_youtube_channel_videos", str(channel_id))
+    except Exception as exc:
+        logger.error("resync_enqueue_failed", channel_id=str(channel_id), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"could_not_enqueue: {type(exc).__name__}",
+        ) from exc
+
+    return {
+        "channel_id": str(channel_id),
+        "status": "enqueued",
+        "message": "Sync queued — refresh in a few seconds to see the result.",
+    }
 
 
 @router.post(
