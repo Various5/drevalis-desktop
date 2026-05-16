@@ -372,9 +372,20 @@ export default function YouTubeLibrary() {
             </div>
           ) : filteredVideos.length === 0 ? (
             <Card padding="md">
-              <p className="text-sm text-txt-secondary text-center py-6">
-                No videos match this filter.
-              </p>
+              <div className="text-center py-6 space-y-1">
+                <p className="text-sm text-txt-secondary">
+                  {videos.length === 0
+                    ? 'No videos on this channel for the selected filter.'
+                    : 'No videos match this search.'}
+                </p>
+                {videos.length === 0 && (
+                  <p className="text-xs text-txt-tertiary">
+                    If you expected videos here, make sure the channel actually
+                    has uploads on YouTube, then click <strong>Resync</strong>
+                    {' '}above to refresh.
+                  </p>
+                )}
+              </div>
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

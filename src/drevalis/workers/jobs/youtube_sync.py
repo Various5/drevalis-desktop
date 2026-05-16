@@ -205,6 +205,24 @@ async def sync_youtube_channel_videos(
         episodes_reconciled=reconciled,
     )
 
+    # Persist a per-channel sync marker in Redis so the API can
+    # distinguish "channel was synced but has 0 videos" from
+    # "sync never ran". Without this, an empty channel and an
+    # unsynced channel look identical to the frontend because
+    # ``last_synced_at`` derived from video rows is null in both
+    # cases. 30-day TTL is plenty — the worker re-fires on every
+    # OAuth callback and manual resync, so the marker refreshes
+    # often.
+    if ctx.get("redis") is not None:
+        try:
+            await ctx["redis"].setex(
+                f"youtube:last_sync:{channel_id_str}",
+                30 * 24 * 60 * 60,
+                f"{now.isoformat()}|synced={synced}|shorts={shorts}|longform={longform}",
+            )
+        except Exception:
+            log.debug("ws_sync_marker_failed", exc_info=True)
+
     # Broadcast a "channel synced" WS event so the frontend can refresh
     # its YouTube section without polling. Best-effort; failure here is
     # cosmetic, the data is already in the DB.

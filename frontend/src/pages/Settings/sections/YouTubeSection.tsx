@@ -73,13 +73,21 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
     );
   }
 
-  const synced = stats && (stats.total > 0 || stats.last_synced_at);
+  // Three distinct states the user needs to see:
+  //   1. Never synced (no rows AND no Redis marker → ``last_synced_at``
+  //      is null) — prompt them to sync.
+  //   2. Synced + has videos (total > 0) — show the stat row.
+  //   3. Synced + empty (last_synced_at is set, total === 0) — call
+  //      out that the channel has no uploads yet so the user doesn't
+  //      think the sync silently broke.
+  const hasSynced = stats !== null && Boolean(stats.last_synced_at);
+  const hasVideos = (stats?.total ?? 0) > 0;
 
   return (
     <div className="mt-3 pt-3 border-t border-border">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-3 text-xs text-txt-secondary">
-          {synced ? (
+          {hasVideos ? (
             <>
               <span className="inline-flex items-center gap-1">
                 <Film size={12} className="text-txt-tertiary" />
@@ -93,6 +101,10 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
                 · total {stats?.total ?? 0}
               </span>
             </>
+          ) : hasSynced ? (
+            <span className="text-txt-tertiary italic">
+              ✓ Synced — this channel has no videos on YouTube yet.
+            </span>
           ) : (
             <span className="text-txt-tertiary italic">
               No channel videos synced yet. Click Resync to pull what's on YouTube.
@@ -110,7 +122,7 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
           <span className="ml-1">{resyncing ? 'Syncing…' : 'Resync'}</span>
         </Button>
       </div>
-      {synced && stats?.last_synced_at && (
+      {hasSynced && stats?.last_synced_at && (
         <div className="text-[10px] text-txt-tertiary mt-1">
           Last sync {new Date(stats.last_synced_at).toLocaleString()}
         </div>

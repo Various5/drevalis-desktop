@@ -11,6 +11,25 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.43 — Empty channels looked "never synced" in the UI)
+- **Empty YouTube channels now correctly display "✓ Synced — this
+  channel has no videos on YouTube yet"** instead of "No channel
+  videos synced yet. Click Resync…". Without the fix, a user with
+  brand-account sub-channels that don't have uploads couldn't tell
+  whether the sync had run or silently broken.
+- **Mechanism**: worker writes a per-channel Redis marker
+  ``youtube:last_sync:{channel_id}`` after every sync (even on 0
+  results) with a 30-day TTL. The ``/channels/{id}/videos`` endpoint
+  reads it as a fallback when no video rows exist, so the
+  ``last_synced_at`` field is populated for empty channels too.
+- ``ChannelVideoSummary`` (Settings → YouTube) now renders three
+  distinct states: ``Synced + has videos`` → counts;
+  ``Synced + empty`` → green checkmark message; ``Never synced``
+  → prompt to sync.
+- ``YouTubeLibrary`` empty-state now clarifies "If you expected
+  videos here, make sure the channel actually has uploads on
+  YouTube, then click Resync".
+
 ### Fixed (alpha.42 — Sync returned 0 videos on brand-account sub-channels)
 - **Channel sync was silently returning zero videos for some
   connected channels** while working correctly for others. Root

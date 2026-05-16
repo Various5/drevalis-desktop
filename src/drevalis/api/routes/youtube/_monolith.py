@@ -375,6 +375,7 @@ async def list_channel_videos(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> dict[str, Any]:
     """Return videos previously enumerated by ``sync_youtube_channel_videos``.
 
@@ -452,6 +453,38 @@ async def list_channel_videos(
         (row[0].last_synced_at for row in rows if row[0].last_synced_at),
         default=None,
     )
+
+    # Fall back to the Redis sync-marker when there are no video rows
+    # for this channel. Worker writes the marker after every sync
+    # (even on empty channels) so the UI can show "Synced at T, 0
+    # videos" rather than "Never synced". Without this the empty-but-
+    # synced state is indistinguishable from never-synced.
+    sync_marker_meta: dict[str, Any] = {}
+    if last_sync is None:
+        try:
+            raw = await redis.get(f"youtube:last_sync:{channel_id}")
+            if raw:
+                marker_str = raw.decode() if isinstance(raw, bytes) else str(raw)
+                # Format from worker: "<iso>|synced=N|shorts=N|longform=N"
+                parts = marker_str.split("|")
+                if parts:
+                    from datetime import datetime as _dt
+
+                    try:
+                        last_sync = _dt.fromisoformat(parts[0])
+                    except ValueError:
+                        pass
+                    for p in parts[1:]:
+                        if "=" in p:
+                            k, v = p.split("=", 1)
+                            try:
+                                sync_marker_meta[k] = int(v)
+                            except ValueError:
+                                sync_marker_meta[k] = v
+        except Exception:
+            # Best-effort. If Redis is down the endpoint still works,
+            # the frontend just doesn't get the empty-channel marker.
+            pass
 
     # Quick aggregate counts so the UI can render "120 videos · 87 shorts"
     # without a second round trip.
