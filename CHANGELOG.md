@@ -11,6 +11,39 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.39 — Library: re-publish + duplicate-confirm + title-drift)
+- **New bulk action "Re-publish via Drevalis"** alongside the existing
+  "Import as episodes" on the Library page. Where Import marks each
+  selected video as already-exported (no generation), Re-publish
+  creates a **fresh draft episode** seeded with the video's title +
+  description so the pipeline will actually generate a new version.
+  Existing YouTube videos stay untouched; the new episode is an
+  independent listing.
+- **``POST /channels/{id}/videos/{video_pk}/republish-as-draft``** —
+  body ``{series_id}`` → returns the new episode ID. Different from
+  ``import-as-episode``: ``status='draft'``, no reconciliation
+  ``YouTubeUpload`` row, metadata records the source video for
+  audit-trail.
+- **Duplicate-confirm in the bulk dialog.** Before submitting either
+  action, the dialog counts how many of the selected videos are
+  already linked to a Drevalis episode and surfaces a yellow warning
+  banner. For Import: warns that duplicates create a second
+  "exported" episode for the same video. For Re-publish: clarifies
+  that a separate draft will be created alongside the existing
+  episode.
+- **Title-drift indicator.** ``/videos`` endpoint now returns
+  ``drevalis_local_title`` (the title at upload time per
+  ``YouTubeUpload`` row) and a ``title_drifted: bool``. The Library
+  page shows a yellow ⚠ "Edited on YouTube — was '…'" line on each
+  card where the YouTube-side title diverged from what Drevalis
+  recorded — surfaces silent reconciliation drift when the user
+  edits a video directly on YouTube after Drevalis uploaded it.
+- **Selection model relaxed.** The Library card's checkbox now
+  always renders (was hidden on Drevalis-tracked videos), so users
+  can include already-tracked videos in a re-publish batch. The
+  Drevalis badge moved to the bottom-left of the thumbnail to leave
+  the top-left clear for the checkbox.
+
 ### Added (alpha.38 — YouTube Library + reconciliation + duplicate-block)
 - **New ``/youtube/library`` page** — dedicated browser for every video
   on every connected channel. Three filter tabs (All / Drevalis /

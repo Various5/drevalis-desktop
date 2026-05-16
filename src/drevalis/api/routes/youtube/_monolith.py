@@ -409,8 +409,11 @@ async def list_channel_videos(
         UploadAlias.channel_id == YouTubeChannelVideo.channel_id,
         UploadAlias.upload_status == "done",
     )
+    # Also pull ``UploadAlias.title`` so the frontend can detect drift
+    # between the YouTube-side title (which the user may have edited
+    # directly on YouTube) and the title we recorded at upload time.
     q = (
-        _select(YouTubeChannelVideo, UploadAlias.episode_id)
+        _select(YouTubeChannelVideo, UploadAlias.episode_id, UploadAlias.title)
         .outerjoin(UploadAlias, join_cond)
         .where(YouTubeChannelVideo.channel_id == channel_id)
     )
@@ -446,7 +449,8 @@ async def list_channel_videos(
 
     rows = (await db.execute(q.limit(limit).offset(offset))).all()
     last_sync = max(
-        (v.last_synced_at for v, _ep in rows if v.last_synced_at), default=None
+        (row[0].last_synced_at for row in rows if row[0].last_synced_at),
+        default=None,
     )
 
     # Quick aggregate counts so the UI can render "120 videos · 87 shorts"
@@ -485,8 +489,18 @@ async def list_channel_videos(
                 "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
                 "uploaded_via_drevalis": ep_id is not None,
                 "drevalis_episode_id": str(ep_id) if ep_id else None,
+                # Title at upload time (per YouTubeUpload row). When this
+                # differs from ``title`` the user edited the video on
+                # YouTube after Drevalis published it; the UI surfaces
+                # the drift so the operator can reconcile.
+                "drevalis_local_title": local_title,
+                "title_drifted": bool(
+                    local_title is not None
+                    and local_title.strip()
+                    and local_title.strip() != (v.title or "").strip()
+                ),
             }
-            for v, ep_id in rows
+            for v, ep_id, local_title in rows
         ],
     }
 
@@ -584,6 +598,90 @@ async def import_video_as_episode(
         "message": (
             f"Imported '{video.title}' as a new episode in status=exported. "
             "Find it in the series detail page or open it from the Library."
+        ),
+    }
+
+
+@router.post(
+    "/channels/{channel_id}/videos/{video_pk}/republish-as-draft",
+    status_code=status.HTTP_201_CREATED,
+    summary="Seed a brand-new Drevalis-generated episode from an existing channel video",
+)
+async def republish_video_as_draft(
+    channel_id: UUID,
+    video_pk: UUID,
+    payload: dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Use an existing YouTube video's title + description as the seed
+    for a fresh Drevalis-generated episode.
+
+    Different from ``import-as-episode``:
+    - ``status='draft'`` so the pipeline will actually generate
+      (vs ``exported`` for import, which marks the existing
+      external video as already-published).
+    - No reconciliation ``YouTubeUpload`` row is created — this is
+      a NEW episode that, when generated and uploaded, will be a
+      *separate* listing on the channel.
+
+    Body::
+
+        {"series_id": "<uuid>"}
+
+    Use case: "I have an old YouTube video, I want Drevalis to
+    re-create the same topic with a fresh AI-generated script and
+    voiceover, then publish it as a new video on the same channel."
+    The pre-existing video stays untouched on YouTube; the new
+    episode is independent.
+    """
+    from drevalis.models.episode import Episode
+    from drevalis.models.youtube_channel import YouTubeChannel, YouTubeChannelVideo
+
+    series_id_raw = payload.get("series_id")
+    if not series_id_raw:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="series_id is required",
+        )
+    try:
+        series_id = UUID(str(series_id_raw))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="series_id must be a UUID",
+        ) from exc
+
+    channel = await db.get(YouTubeChannel, channel_id)
+    if channel is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="channel_not_found")
+    video = await db.get(YouTubeChannelVideo, video_pk)
+    if video is None or video.channel_id != channel_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="video_not_found")
+
+    episode = Episode(
+        series_id=series_id,
+        title=video.title or "Republished from YouTube",
+        topic=(video.description or "")[:1000] or video.title or None,
+        status="draft",
+        metadata_={
+            "republished_from_youtube": {
+                "channel_id": str(channel_id),
+                "source_video_id": video.youtube_video_id,
+                "source_url": f"https://www.youtube.com/watch?v={video.youtube_video_id}",
+                "republished_at": datetime.now(tz=UTC).isoformat(),
+            }
+        },
+    )
+    db.add(episode)
+    await db.commit()
+
+    return {
+        "episode_id": str(episode.id),
+        "series_id": str(series_id),
+        "source_video_id": video.youtube_video_id,
+        "message": (
+            f"Created a draft episode seeded from '{video.title}'. "
+            "Open the episode and click Generate to produce the new video."
         ),
     }
 

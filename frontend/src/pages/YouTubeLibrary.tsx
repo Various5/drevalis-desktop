@@ -23,6 +23,8 @@ import {
   Download,
   RefreshCw,
   Search,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -51,7 +53,11 @@ interface LibVideo {
   url: string;
   uploaded_via_drevalis: boolean;
   drevalis_episode_id: string | null;
+  drevalis_local_title: string | null;
+  title_drifted: boolean;
 }
+
+type BulkAction = 'import' | 'republish';
 
 type SourceTab = 'all' | 'drevalis' | 'external';
 type KindTab = 'all' | 'shorts' | 'longform';
@@ -86,6 +92,7 @@ export default function YouTubeLibrary() {
   const [importOpen, setImportOpen] = useState(false);
   const [importSeriesId, setImportSeriesId] = useState('');
   const [importing, setImporting] = useState(false);
+  const [bulkAction, setBulkAction] = useState<BulkAction>('import');
 
   // Load channels + series once.
   useEffect(() => {
@@ -167,15 +174,17 @@ export default function YouTubeLibrary() {
     });
   };
 
-  const importSelected = async () => {
+  const runBulk = async () => {
     if (!importSeriesId || selected.size === 0) return;
     setImporting(true);
+    const endpoint =
+      bulkAction === 'republish' ? 'republish-as-draft' : 'import-as-episode';
     let okCount = 0;
     let failCount = 0;
     for (const videoPk of selected) {
       try {
         const res = await fetch(
-          `/api/v1/youtube/channels/${activeChannelId}/videos/${videoPk}/import-as-episode`,
+          `/api/v1/youtube/channels/${activeChannelId}/videos/${videoPk}/${endpoint}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -192,12 +201,27 @@ export default function YouTubeLibrary() {
     setImporting(false);
     setImportOpen(false);
     setSelected(new Set());
+    const verb = bulkAction === 'republish' ? 'queued for re-publish' : 'imported';
     toast.success(
-      `Imported ${okCount} episode${okCount === 1 ? '' : 's'}` +
+      `${okCount} episode${okCount === 1 ? '' : 's'} ${verb}` +
         (failCount > 0 ? ` (${failCount} failed)` : ''),
     );
     await loadVideos();
   };
+
+  // Compute the duplicate-warning state for the open dialog: how many
+  // of the selected videos are *already* Drevalis-tracked. For the
+  // import action this is just confusing (we'd create a second
+  // exported episode), so we surface a warning before letting the
+  // user proceed.
+  const selectedVideos = useMemo(
+    () => videos.filter((v) => selected.has(v.id)),
+    [videos, selected],
+  );
+  const duplicateCount = useMemo(
+    () => selectedVideos.filter((v) => v.uploaded_via_drevalis).length,
+    [selectedVideos],
+  );
 
   const channelOptions = channels.map((c) => ({ value: c.id, label: c.channel_name }));
 
@@ -312,9 +336,26 @@ export default function YouTubeLibrary() {
                   </Button>
                   <Button
                     size="sm"
-                    variant="primary"
-                    onClick={() => setImportOpen(true)}
+                    variant="ghost"
+                    onClick={() => {
+                      setBulkAction('republish');
+                      setImportOpen(true);
+                    }}
                     disabled={seriesList.length === 0}
+                    title="Create a fresh draft episode seeded from each video's title + description. The pipeline will generate brand-new content."
+                  >
+                    <RotateCcw size={12} />
+                    <span className="ml-1">Re-publish via Drevalis</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      setBulkAction('import');
+                      setImportOpen(true);
+                    }}
+                    disabled={seriesList.length === 0}
+                    title="Reconcile each video as an already-published Drevalis episode (no generation)."
                   >
                     <Download size={12} />
                     <span className="ml-1">Import as episodes</span>
@@ -371,20 +412,24 @@ export default function YouTubeLibrary() {
                           SHORT
                         </span>
                       )}
+                      {/* Both the checkbox AND the Drevalis badge live on
+                          the thumbnail top-left. Checkbox always renders
+                          so the user can include Drevalis-tracked videos
+                          in a re-publish batch (creating a new draft
+                          alongside the existing one). The badge moves
+                          to the top-right when paired with a checkbox. */}
+                      <label className="absolute top-1.5 left-1.5 cursor-pointer bg-black/40 rounded p-0.5">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelected(v.id)}
+                          className="w-4 h-4 rounded accent-accent block"
+                        />
+                      </label>
                       {v.uploaded_via_drevalis && (
-                        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 text-[9px] bg-accent/90 text-white px-1.5 py-0.5 rounded">
+                        <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-0.5 text-[9px] bg-accent/90 text-white px-1.5 py-0.5 rounded">
                           <Sparkles size={9} /> Drevalis
                         </span>
-                      )}
-                      {!v.uploaded_via_drevalis && (
-                        <label className="absolute top-1.5 left-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelected(v.id)}
-                            className="w-4 h-4 rounded accent-accent"
-                          />
-                        </label>
                       )}
                     </div>
                     <div className="mt-2 px-0.5">
@@ -394,6 +439,18 @@ export default function YouTubeLibrary() {
                       >
                         {v.title}
                       </p>
+                      {v.title_drifted && v.drevalis_local_title && (
+                        <div
+                          className="mt-0.5 text-[9px] text-warning inline-flex items-center gap-0.5"
+                          title={`Drevalis recorded: "${v.drevalis_local_title}"`}
+                        >
+                          <AlertTriangle size={9} className="shrink-0" />
+                          <span className="truncate">
+                            Edited on YouTube — was "{v.drevalis_local_title.slice(0, 40)}
+                            {v.drevalis_local_title.length > 40 ? '…' : ''}"
+                          </span>
+                        </div>
+                      )}
                       <div className="mt-1 text-[10px] text-txt-tertiary flex items-center justify-between">
                         <span>{formatViews(v.view_count)} views · {formatRel(v.published_at)}</span>
                       </div>
@@ -426,19 +483,63 @@ export default function YouTubeLibrary() {
         </>
       )}
 
-      {/* Import dialog */}
+      {/* Bulk action dialog — handles both Import and Re-publish flavours */}
       <Dialog
         open={importOpen}
         onClose={() => setImportOpen(false)}
-        title={`Import ${selected.size} video${selected.size === 1 ? '' : 's'} as episodes`}
+        title={
+          bulkAction === 'republish'
+            ? `Re-publish ${selected.size} video${selected.size === 1 ? '' : 's'} via Drevalis`
+            : `Import ${selected.size} video${selected.size === 1 ? '' : 's'} as episodes`
+        }
       >
         <div className="space-y-3">
           <p className="text-sm text-txt-secondary">
-            Each selected video becomes a draft episode in the chosen series with
-            status <code className="text-xs">exported</code> and the YouTube URL
-            stored in metadata. A reconciliation upload row is created so the
-            episode shows as "Uploaded via Drevalis" going forward.
+            {bulkAction === 'republish' ? (
+              <>
+                Each selected video becomes a <strong>draft episode</strong>
+                seeded with the same title + description. The pipeline will
+                generate brand-new content; the existing YouTube videos stay
+                untouched.
+              </>
+            ) : (
+              <>
+                Each selected video becomes an <strong>exported episode</strong>
+                with the YouTube URL stored in metadata. A reconciliation
+                upload row is created so the episode shows as "Uploaded via
+                Drevalis" going forward — no generation, no re-upload.
+              </>
+            )}
           </p>
+
+          {duplicateCount > 0 && (
+            <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={14} className="text-warning shrink-0 mt-0.5" />
+                <div className="text-xs text-warning leading-relaxed">
+                  <strong>
+                    {duplicateCount} of {selected.size} selected
+                  </strong>{' '}
+                  {duplicateCount === 1 ? 'is' : 'are'} already linked to a
+                  Drevalis episode.{' '}
+                  {bulkAction === 'republish' ? (
+                    <>
+                      Re-publishing will create a <em>separate</em> draft
+                      alongside the existing one. The existing episode is
+                      untouched.
+                    </>
+                  ) : (
+                    <>
+                      Importing again creates a duplicate "exported" episode for
+                      the same video. Consider skipping these — they're already
+                      tracked.
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <Select
             label="Target series"
             placeholder="Select series…"
@@ -455,9 +556,11 @@ export default function YouTubeLibrary() {
             variant="primary"
             loading={importing}
             disabled={!importSeriesId}
-            onClick={() => void importSelected()}
+            onClick={() => void runBulk()}
           >
-            Import {selected.size} episode{selected.size === 1 ? '' : 's'}
+            {bulkAction === 'republish'
+              ? `Create ${selected.size} draft${selected.size === 1 ? '' : 's'}`
+              : `Import ${selected.size} episode${selected.size === 1 ? '' : 's'}`}
           </Button>
         </DialogFooter>
       </Dialog>
