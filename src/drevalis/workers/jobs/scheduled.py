@@ -15,6 +15,15 @@ import structlog
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
+class NoChannelAssignedError(RuntimeError):
+    """Raised when a scheduled YouTube post can't resolve a target channel.
+
+    Typed so the outer ``except`` can dedupe Glitchtip events by logging
+    a fixed message (no post_id in the title) instead of a unique error
+    per post.
+    """
+
+
 async def publish_scheduled_posts(ctx: dict[str, Any]) -> dict[str, Any]:
     """Periodic job: check for scheduled posts that are due and publish them.
 
@@ -129,7 +138,12 @@ async def _publish_scheduled_posts_locked(
                             if series and series_channel_id:
                                 channel = await ch_repo.get_by_id(series_channel_id)
                     if channel is None:
-                        raise RuntimeError(
+                        # Config issue, not a bug — surface with a typed
+                        # error so the outer handler collapses every
+                        # affected post into ONE Glitchtip issue
+                        # regardless of post_id (mirrors the
+                        # YouTubeTokenDecryptError pattern).
+                        raise NoChannelAssignedError(
                             "No YouTube channel assigned: set youtube_channel_id on "
                             "the scheduled post or on the episode's series."
                         )
@@ -469,6 +483,33 @@ async def _publish_scheduled_posts_locked(
                     await session.commit()
                     failed += 1
 
+            except NoChannelAssignedError:
+                # Same dedupe pattern as YouTubeTokenDecryptError:
+                # fixed log message so every affected post collapses
+                # into ONE Glitchtip issue regardless of post_id,
+                # mark the post as permanently failed with a
+                # user-actionable message.
+                log.warning(
+                    "scheduled_post_no_channel_assigned",
+                    hint="Assign youtube_channel_id on the post or on the episode's series.",
+                )
+                try:
+                    await repo.update(
+                        post.id,
+                        status="failed",
+                        error_message=(
+                            "No YouTube channel assigned. Open the episode's "
+                            "series and set a YouTube channel, then reschedule."
+                        ),
+                    )
+                    await session.commit()
+                except Exception as nested:
+                    log.exception(
+                        "post_fail_record_failed",
+                        post_id=str(post.id),
+                        nested_error=str(nested)[:200],
+                    )
+                failed += 1
             except YouTubeTokenDecryptError as exc:
                 # Encryption-key mismatch: the YouTube tokens stored in
                 # the DB were encrypted with a key the worker no longer

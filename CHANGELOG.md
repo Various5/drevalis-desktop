@@ -11,6 +11,19 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.45 — collapse "no channel assigned" into one Glitchtip issue)
+- **The daily ``publish_scheduled_posts`` cron tick was generating 6
+  distinct Glitchtip issues per day** when scheduled YouTube posts
+  couldn't resolve a target channel — one issue per ``post_id``.
+  Mirrors the earlier ``YouTubeTokenDecryptError`` noise pattern.
+- New typed ``NoChannelAssignedError`` raised in the resolver path,
+  caught by the worker BEFORE the generic ``except Exception`` so
+  the log line uses a fixed message (no ``post_id`` in the title).
+  All affected posts collapse to one issue regardless of count.
+  Posts are still marked permanently ``failed`` with a friendly
+  ``error_message`` pointing at "open the episode's series and
+  assign a YouTube channel".
+
 ### Added (alpha.44 — synced channel videos visible in dashboard + YouTube tab)
 - **Synced YouTube channel videos now actually appear in the
   dashboard.** Previously Library would show all the synced content
