@@ -11,6 +11,20 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.40 — Sync channels button on YouTube overview)
+- **Sync button is now where users actually look for it** — the
+  YouTube overview page (``/youtube``). Previously the resync was
+  buried in Settings → YouTube → per-channel card and on the
+  Library page header. The new top-bar button does the right thing
+  by default:
+  - When "All Channels" is the filter: enqueues a sync for *every*
+    connected channel in parallel.
+  - When a specific channel is filtered: syncs only that one.
+- **Library link** added to the same top bar so the user has a
+  one-click jump to the full video browser.
+- Both buttons sit next to "Manage in Settings" for a consistent
+  channel-management cluster.
+
 ### Added (alpha.39 — Library: re-publish + duplicate-confirm + title-drift)
 - **New bulk action "Re-publish via Drevalis"** alongside the existing
   "Import as episodes" on the Library page. Where Import marks each

@@ -21,6 +21,8 @@ import {
   Percent,
   ImageOff,
   Copy,
+  RefreshCw,
+  Library,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
@@ -1965,6 +1967,41 @@ function YouTubePage() {
   const [uploadsLoading, setUploadsLoading] = useState(false);
   const [playlistsLoading, setPlaylistsLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
+
+  // Fire ``/channels/{id}/resync`` for every channel currently in
+  // ``allChannels`` (or just the selected one when the user is
+  // filtered). Each call enqueues a worker job that walks the
+  // uploads playlist + upserts ``youtube_channel_videos`` — fire-and-
+  // forget; we just toast a confirmation. The Library page + Recent
+  // YouTube dashboard widget pick up the new data on their next
+  // poll/focus.
+  const syncAllChannels = useCallback(async () => {
+    const targets =
+      selectedChannelId === 'all'
+        ? allChannels.map((c) => c.id)
+        : [selectedChannelId];
+    if (targets.length === 0) return;
+    setSyncingAll(true);
+    let ok = 0;
+    for (const id of targets) {
+      try {
+        const res = await fetch(`/api/v1/youtube/channels/${id}/resync`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (res.ok) ok++;
+      } catch {
+        /* count is enough — per-channel failures are surfaced in
+           Glitchtip; the toast below is a top-level confirmation. */
+      }
+    }
+    setSyncingAll(false);
+    toast.success(
+      `Sync started for ${ok}/${targets.length} channel${targets.length === 1 ? '' : 's'}` +
+        ' — Library + Recent widget refresh in a few seconds.',
+    );
+  }, [allChannels, selectedChannelId, toast]);
   // Connect-wizard for users who haven't yet pasted YouTube OAuth
   // credentials into Settings. The plain ``Connect YouTube`` button
   // assumes credentials already exist and 503s otherwise; the wizard
@@ -2256,7 +2293,33 @@ function YouTubePage() {
             <Button
               variant="ghost"
               size="sm"
-              className="ml-2 text-txt-tertiary hover:text-txt-primary"
+              className="ml-2"
+              onClick={() => void syncAllChannels()}
+              disabled={syncingAll}
+              title="Pull the latest video list + stats from YouTube for every connected channel"
+            >
+              <RefreshCw size={13} className={syncingAll ? 'animate-spin' : ''} />
+              <span className="ml-1">
+                {syncingAll
+                  ? 'Syncing…'
+                  : selectedChannelId === 'all'
+                    ? 'Sync all channels'
+                    : 'Sync channel'}
+              </span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/youtube/library')}
+              title="Browse every video on the channel(s) — bulk import / re-publish externals"
+            >
+              <Library size={13} />
+              <span className="ml-1">Library</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-txt-tertiary hover:text-txt-primary"
               onClick={() => navigate('/settings')}
             >
               Manage in Settings
