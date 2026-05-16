@@ -11,6 +11,8 @@ import {
   Search,
   X,
   CheckSquare,
+  AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -30,6 +32,94 @@ import type {
   SeriesListItem,
   EpisodeCreate,
 } from '@/types';
+
+// ---------------------------------------------------------------------------
+// Title-conflict warning — calls /youtube/check-title-conflict with a
+// 400ms debounce so the user gets fast feedback without one API hit
+// per keystroke. Surfaces inline above the topic field so the warning
+// is impossible to miss before clicking Create.
+// ---------------------------------------------------------------------------
+
+interface TitleMatch {
+  video_id: string;
+  youtube_video_id: string;
+  title: string;
+  similarity: number;
+  is_short: boolean;
+  url: string;
+}
+
+function TitleConflictWarning({ title }: { title: string }) {
+  const [matches, setMatches] = useState<TitleMatch[]>([]);
+  const [loading, setLoading] = useState(false);
+  const trimmed = title.trim();
+
+  useEffect(() => {
+    if (trimmed.length < 6) {
+      setMatches([]);
+      return;
+    }
+    setLoading(true);
+    const handle = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/v1/youtube/check-title-conflict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ title: trimmed, threshold: 0.7 }),
+        });
+        if (!res.ok) {
+          setMatches([]);
+        } else {
+          const j = (await res.json()) as { matches: TitleMatch[] };
+          setMatches(j.matches ?? []);
+        }
+      } catch {
+        setMatches([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [trimmed]);
+
+  if (loading || matches.length === 0) return null;
+
+  return (
+    <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={14} className="text-warning shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-warning">
+            Similar to existing video{matches.length > 1 ? 's' : ''} on your channel
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {matches.map((m) => (
+              <li
+                key={m.video_id}
+                className="flex items-center justify-between gap-2 text-xs"
+              >
+                <a
+                  href={m.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-txt-secondary truncate hover:text-accent inline-flex items-center gap-1 min-w-0"
+                >
+                  <span className="truncate">{m.title}</span>
+                  <ExternalLink size={10} className="shrink-0 opacity-60" />
+                </a>
+                <span className="text-[10px] tabular-nums text-txt-tertiary shrink-0">
+                  {Math.round(m.similarity * 100)}% match
+                  {m.is_short ? ' · short' : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Status filter tabs
@@ -632,6 +722,11 @@ function EpisodesList() {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
           />
+          {/* Debounced title-similarity check against every video already
+              on the connected YouTube channels. Warns inline if the
+              title looks like content that's already published, before
+              the user spends generation credits on a duplicate. */}
+          <TitleConflictWarning title={newTitle} />
           <Textarea
             label="Topic"
             placeholder="What should this episode be about?"

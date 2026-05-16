@@ -11,6 +11,36 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.37 — channel videos: title check, dashboard widget, cross-match)
+- **Episode-create dialog** now warns inline if the title looks too
+  similar to an existing video on any connected channel. Debounced
+  400ms ``POST /api/v1/youtube/check-title-conflict``; threshold 0.7
+  via ``difflib.SequenceMatcher``; matches render as a yellow banner
+  with each existing video's title, similarity %, and external-link
+  to YouTube. Sub-100 ms even on channels with thousands of videos
+  because the comparison runs in Python against locally-cached rows.
+- **Dashboard widget "Recent YouTube Videos"** (hidden by default;
+  enable via Dashboard → Customize). Shows the 5 most-recent videos
+  across all connected channels with thumbnails, view counts,
+  relative timestamps, and a SHORT badge for videos ≤ 60s. Drevalis-
+  uploaded videos get a sparkle (✨) icon and deep-link to the
+  episode detail page; externally-uploaded videos open YouTube in
+  a new tab.
+- **Cross-match: episode ↔ existing video**. ``/recent-videos`` and
+  ``/channels/{id}/videos`` now JOIN ``youtube_uploads`` so each
+  video carries ``uploaded_via_drevalis: bool`` and
+  ``drevalis_episode_id: str | null``. No new schema column — pure
+  query-time join on ``youtube_video_id``.
+- **Drevalis-only analytics API**:
+  ``GET /api/v1/youtube/channels/{id}/drevalis-videos`` returns the
+  paginated list of channel videos that have a matching
+  ``YouTubeUpload`` row with ``upload_status='done'``. Designed for
+  a future analytics tab that splits "everything on the channel" vs
+  "only what Drevalis published". Existing analytics view in
+  Settings → YouTube already reads from ``YouTubeUpload`` so it's
+  effectively Drevalis-only today — the new endpoint formalises the
+  contract for upcoming UI.
+
 ### Added (alpha.36 — sync existing YouTube videos on channel connect)
 - **After connecting a YouTube channel, Drevalis now pulls every video
   already on the channel** so the dashboard reflects the actual state

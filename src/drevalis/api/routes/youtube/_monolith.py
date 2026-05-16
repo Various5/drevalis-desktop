@@ -444,6 +444,246 @@ async def list_channel_videos(
     }
 
 
+@router.get(
+    "/recent-videos",
+    status_code=status.HTTP_200_OK,
+    summary="Most-recent videos across all connected channels",
+)
+async def recent_channel_videos(
+    limit: int = Query(default=5, ge=1, le=50),
+    channel_id: UUID | None = Query(
+        default=None,
+        description="Restrict to one channel. Omit to span all connected channels.",
+    ),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """For the dashboard "your latest YouTube videos" widget.
+
+    Pulls from ``youtube_channel_videos`` (populated by the sync worker
+    on connect + resync), ordered by ``published_at DESC``. Joins
+    against ``youtube_uploads`` to mark which ones Drevalis itself
+    published — that's the foundation for the cross-match feature.
+    """
+    from sqlalchemy import select as _select
+    from sqlalchemy.orm import aliased
+
+    from drevalis.models.youtube_channel import (
+        YouTubeChannel,
+        YouTubeChannelVideo,
+        YouTubeUpload,
+    )
+
+    q = (
+        _select(YouTubeChannelVideo, YouTubeChannel.channel_name)
+        .join(
+            YouTubeChannel,
+            YouTubeChannel.id == YouTubeChannelVideo.channel_id,
+        )
+    )
+    if channel_id is not None:
+        q = q.where(YouTubeChannelVideo.channel_id == channel_id)
+    q = q.order_by(YouTubeChannelVideo.published_at.desc().nulls_last()).limit(limit)
+
+    rows = (await db.execute(q)).all()
+    if not rows:
+        return {"videos": [], "total": 0}
+
+    # Single-shot lookup of which video IDs Drevalis published itself.
+    # ``upload_status='done'`` to exclude in-flight / failed rows so the
+    # cross-match badge means "actually live on YouTube via Drevalis".
+    video_ids = [v.youtube_video_id for v, _ in rows]
+    uploads_q = _select(YouTubeUpload.youtube_video_id, YouTubeUpload.episode_id).where(
+        YouTubeUpload.youtube_video_id.in_(video_ids),
+        YouTubeUpload.upload_status == "done",
+    )
+    drevalis_map: dict[str, str] = {}
+    for vid_id, ep_id in (await db.execute(uploads_q)).all():
+        if vid_id:
+            drevalis_map[vid_id] = str(ep_id) if ep_id else ""
+
+    return {
+        "videos": [
+            {
+                "id": str(v.id),
+                "channel_id": str(v.channel_id),
+                "channel_name": name,
+                "youtube_video_id": v.youtube_video_id,
+                "title": v.title,
+                "thumbnail_url": v.thumbnail_url,
+                "published_at": v.published_at.isoformat() if v.published_at else None,
+                "duration_seconds": v.duration_seconds,
+                "is_short": v.is_short,
+                "view_count": v.view_count,
+                "like_count": v.like_count,
+                "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
+                # Cross-match: if Drevalis uploaded this video, expose
+                # the episode_id so the UI can deep-link back into the
+                # episode detail page.
+                "drevalis_episode_id": drevalis_map.get(v.youtube_video_id),
+                "uploaded_via_drevalis": v.youtube_video_id in drevalis_map,
+            }
+            for v, name in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@router.post(
+    "/check-title-conflict",
+    status_code=status.HTTP_200_OK,
+    summary="Check if a proposed title is too similar to an existing channel video",
+)
+async def check_title_conflict(
+    payload: dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Return existing channel videos whose title is suspiciously close
+    to the proposed one.
+
+    Used by the episode-create dialog as an inline warning ("you may
+    have already published this"). Pure ``difflib.SequenceMatcher``
+    comparison — no LLM call, no network round-trip, sub-100ms even
+    for channels with thousands of videos because we keep everything
+    in SQLite and run the comparison in Python.
+
+    Request body::
+
+        {"title": "...",
+         "channel_id": "...",   // optional, restricts to one channel
+         "threshold": 0.7}       // optional, 0..1 (default 0.7)
+
+    Response::
+
+        {"matches": [{"video_id": ..., "title": ...,
+                       "similarity": 0.83, "published_at": ...,
+                       "url": ..., "is_short": ...}],
+         "checked": 412}
+    """
+    import difflib as _difflib
+
+    from sqlalchemy import select as _select
+
+    from drevalis.models.youtube_channel import YouTubeChannelVideo
+
+    title = str(payload.get("title") or "").strip()
+    if not title:
+        return {"matches": [], "checked": 0}
+
+    threshold = float(payload.get("threshold") or 0.7)
+    threshold = max(0.0, min(1.0, threshold))
+
+    channel_id_raw = payload.get("channel_id")
+    channel_filter = None
+    if channel_id_raw:
+        try:
+            channel_filter = UUID(str(channel_id_raw))
+        except ValueError:
+            pass
+
+    q = _select(YouTubeChannelVideo)
+    if channel_filter is not None:
+        q = q.where(YouTubeChannelVideo.channel_id == channel_filter)
+
+    rows = (await db.execute(q)).scalars().all()
+    norm_title = title.lower()
+    matches: list[dict[str, Any]] = []
+    for v in rows:
+        ratio = _difflib.SequenceMatcher(
+            None, norm_title, (v.title or "").lower()
+        ).ratio()
+        if ratio >= threshold:
+            matches.append(
+                {
+                    "video_id": str(v.id),
+                    "youtube_video_id": v.youtube_video_id,
+                    "title": v.title,
+                    "similarity": round(ratio, 3),
+                    "published_at": v.published_at.isoformat() if v.published_at else None,
+                    "is_short": v.is_short,
+                    "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
+                }
+            )
+    matches.sort(key=lambda m: m["similarity"], reverse=True)
+    return {"matches": matches[:5], "checked": len(rows)}
+
+
+@router.get(
+    "/channels/{channel_id}/drevalis-videos",
+    status_code=status.HTTP_200_OK,
+    summary="Channel videos that Drevalis itself uploaded (cross-match)",
+)
+async def list_drevalis_uploaded_videos(
+    channel_id: UUID,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Same shape as ``/channels/{id}/videos`` but filtered to videos
+    that have a corresponding ``YouTubeUpload`` row with
+    ``upload_status='done'``.
+
+    Used by the Analytics view to show only Drevalis-published content
+    when the user toggles "Drevalis uploads only".
+    """
+    from sqlalchemy import func as _func, select as _select
+
+    from drevalis.models.youtube_channel import (
+        YouTubeChannel,
+        YouTubeChannelVideo,
+        YouTubeUpload,
+    )
+
+    channel = await db.get(YouTubeChannel, channel_id)
+    if channel is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="channel_not_found",
+        )
+
+    base = (
+        _select(YouTubeChannelVideo, YouTubeUpload.episode_id)
+        .join(
+            YouTubeUpload,
+            (YouTubeUpload.youtube_video_id == YouTubeChannelVideo.youtube_video_id)
+            & (YouTubeUpload.upload_status == "done"),
+        )
+        .where(YouTubeChannelVideo.channel_id == channel_id)
+    )
+
+    total_q = _select(_func.count()).select_from(base.subquery())
+    total = int((await db.execute(total_q)).scalar_one() or 0)
+
+    rows = (
+        await db.execute(
+            base.order_by(YouTubeChannelVideo.published_at.desc().nulls_last())
+            .limit(limit)
+            .offset(offset)
+        )
+    ).all()
+
+    return {
+        "channel_id": str(channel_id),
+        "total": total,
+        "videos": [
+            {
+                "id": str(v.id),
+                "youtube_video_id": v.youtube_video_id,
+                "drevalis_episode_id": str(ep_id) if ep_id else None,
+                "title": v.title,
+                "thumbnail_url": v.thumbnail_url,
+                "published_at": v.published_at.isoformat() if v.published_at else None,
+                "duration_seconds": v.duration_seconds,
+                "is_short": v.is_short,
+                "view_count": v.view_count,
+                "like_count": v.like_count,
+                "comment_count": v.comment_count,
+                "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
+            }
+            for v, ep_id in rows
+        ],
+    }
+
+
 @router.post(
     "/channels/{channel_id}/resync",
     status_code=status.HTTP_202_ACCEPTED,

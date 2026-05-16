@@ -27,6 +27,7 @@ import { UpcomingPostsWidget } from './widgets/UpcomingPostsWidget';
 import { TopSeriesWidget } from './widgets/TopSeriesWidget';
 import { QuotaUsageWidget } from './widgets/QuotaUsageWidget';
 import { LLMCostWidget } from './widgets/LLMCostWidget';
+import { RecentYouTubeWidget } from './widgets/RecentYouTubeWidget';
 import { WIDGET_LABELS, type WidgetId } from './types';
 
 // =============================================================================
@@ -80,6 +81,7 @@ const WIDGET_REGISTRY: Record<WidgetId, WidgetRenderer> = {
   'top-series': () => <TopSeriesWidget />,
   'quota-usage': () => <QuotaUsageWidget />,
   'llm-cost': () => <LLMCostWidget />,
+  'recent-youtube': () => <RecentYouTubeWidget />,
 };
 
 // ---------------------------------------------------------------------------
