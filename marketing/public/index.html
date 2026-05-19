@@ -80,24 +80,23 @@
 
   <!-- ── Hero ──────────────────────────────────────────────── -->
   <section class="relative overflow-hidden">
-    <div class="bg-glow" style="background: var(--accent); top: -100px; left: 20%; width: 520px; height: 520px;"></div>
-    <div class="bg-glow" style="background: #8b5cf6; top: 120px; right: 10%; width: 380px; height: 380px; opacity: 0.18;"></div>
+    <div class="bg-glow" style="background: var(--accent); top: -100px; left: 20%; width: 520px; height: 520px; opacity: 0.18;"></div>
 
     <div class="container-xl pt-20 pb-12 relative z-10">
       <div class="text-center max-w-3xl mx-auto reveal">
         <span class="eyebrow mb-6"><span class="eyebrow-dot"></span>Native Windows app · Pre-release alpha</span>
         <h1 class="display-hero mt-6 mb-5">
           Type a topic.<br/>
-          Get a finished, captioned, <span class="accent-gradient">uploaded video</span>.
+          Get a finished, captioned, uploaded video.
         </h1>
         <p class="lead max-w-2xl mx-auto mb-9">
-          Drevalis writes the script, narrates it, generates the visuals, adds captions, picks a thumbnail, and uploads to YouTube — all on your own computer. One flat price. No per-video fees.
+          Drevalis writes the script, narrates it, generates the visuals, adds captions, picks a thumbnail, and uploads to YouTube — all on your own computer. One flat monthly price.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3 mb-4">
           <a href="/download" class="btn btn-primary btn-lg">Download for Windows →</a>
           <a href="/pricing" class="btn btn-secondary btn-lg">See pricing</a>
         </div>
-        <p class="small-muted">Signed installer · Cancel anytime · macOS &amp; Linux coming</p>
+        <p class="small-muted">Signed installer · Cancel anytime · Windows 10 / 11 (64-bit)</p>
       </div>
     </div>
 
@@ -265,7 +264,7 @@
       <div class="text-center max-w-2xl mx-auto mb-14 reveal">
         <span class="eyebrow mb-4">Pricing</span>
         <h2 class="display-section mt-4 mb-4">Pick the plan that fits.</h2>
-        <p class="lead">Pay monthly or yearly. Card, PayPal, Apple Pay — whatever's easiest. Billed in Swiss Francs.</p>
+        <p class="lead">Monthly or yearly. Card payment via Stripe (Apple Pay and Google Pay supported at checkout). Billed in Swiss Francs; tax added automatically where it applies.</p>
       </div>
 
       <div data-pricing-block>
@@ -275,7 +274,7 @@
       </div>
 
       <p class="text-center small-muted mt-6">
-        <a href="/pricing" class="underline">Full feature comparison →</a> · Cancel anytime · VAT/MWST automatic
+        <a href="/pricing" class="underline">Full feature comparison →</a> · Cancel anytime · VAT/MWST automatic where applicable
       </p>
     </div>
   </section>
@@ -283,7 +282,7 @@
   <!-- ── Honest "doesn't do" ──────────────────────────────── -->
   <section class="section">
     <div class="container-lg">
-      <div class="card p-10 md:p-12 reveal" style="border-color: rgba(251, 191, 36, 0.25); background: linear-gradient(135deg, rgba(251, 191, 36, 0.04), rgba(20, 22, 27, 0.85));">
+      <div class="card p-10 md:p-12 reveal">
         <span class="pill pill-amber mb-4">Honest first</span>
         <h2 class="display-section mt-3 mb-4">What Drevalis <em>doesn't</em> do.</h2>
         <p class="lead mb-10">Cheaper to be honest now than to refund you later.</p>
@@ -304,6 +303,35 @@
             <h4 class="mb-2">It stops when you cancel</h4>
             <p class="text-sm">7-day grace period — everything keeps working. After that, no new videos and no updates until you renew. Old videos stay on your disk forever, untouched.</p>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── What you should know to run it ───────────────────── -->
+  <section class="section border-y border-white/[0.04]">
+    <div class="container-lg">
+      <div class="text-center max-w-2xl mx-auto mb-10 reveal">
+        <span class="eyebrow mb-3">Before you buy</span>
+        <h2 class="display-section mt-3 mb-3">What you should know to run it.</h2>
+        <p class="lead">Drevalis is a self-hosted creator tool, not a cloud SaaS. You should be comfortable with the four points below.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-5 reveal">
+        <div class="card p-7">
+          <h4 class="mb-2">You install and configure external tools</h4>
+          <p class="text-sm">Image and video scenes require ComfyUI on your machine (free, separate install). Scripts require a local LLM (LM Studio / Ollama, free) or a cloud one (Claude / OpenAI — you provide the API key). FFmpeg and Redis ship inside the Drevalis installer; you don't manage those.</p>
+        </div>
+        <div class="card p-7">
+          <h4 class="mb-2">Your hardware sets the ceiling</h4>
+          <p class="text-sm">An NVIDIA GPU with 12 GB+ VRAM keeps local ComfyUI scenes responsive. No GPU? Audiobooks and still-image Shorts still run; or rent a cloud GPU (Pro plan) and the heavy work happens on rented hardware. The app itself is light — the slow parts are whatever model you point it at.</p>
+        </div>
+        <div class="card p-7">
+          <h4 class="mb-2">You're responsible for what you publish</h4>
+          <p class="text-sm">The app generates whatever you ask. Copyright, likeness rights, and YouTube/TikTok AI-disclosure rules are on you to check before posting. Drevalis hands the MP4 to the upload endpoint — it doesn't moderate the content.</p>
+        </div>
+        <div class="card p-7">
+          <h4 class="mb-2">Your data lives on your disk</h4>
+          <p class="text-sm">Scripts, voices, MP4s, and channel credentials never leave your machine. Our servers only check that your subscription is active (one yes/no request per day). There's a one-file backup button — keeping that file safe is up to you.</p>
         </div>
       </div>
     </div>
@@ -341,8 +369,8 @@
   <!-- ── Final CTA ────────────────────────────────────────── -->
   <section class="section">
     <div class="container-md">
-      <div class="card p-14 text-center relative overflow-hidden reveal" style="background: linear-gradient(135deg, rgba(0,229,184,0.08), rgba(20,22,27,0.85)); border-color: rgba(0,229,184,0.2);">
-        <div class="bg-glow" style="background: var(--accent); top: -60px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; opacity: 0.25;"></div>
+      <div class="card p-14 text-center relative overflow-hidden reveal" style="background: linear-gradient(135deg, var(--accent-soft), rgba(20,22,27,0.85)); border-color: var(--border-accent);">
+        <div class="bg-glow" style="background: var(--accent); top: -60px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; opacity: 0.18;"></div>
         <div class="relative z-10">
           <h2 class="display-section mb-4">Stop editing. Start publishing.</h2>
           <p class="lead max-w-lg mx-auto mb-8">Cancel any time. We don't store your card.</p>

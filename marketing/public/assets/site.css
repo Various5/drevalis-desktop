@@ -179,11 +179,12 @@ p code, li code {
   50%      { opacity: 0.55; transform: scale(0.85); }
 }
 
+/* .accent-gradient — solid indigo highlight on key words. The old
+   purple→indigo→cyan three-stop rainbow read as "startup demo" rather
+   than "professional product"; collapsing to a single accent colour
+   matches the rest of the indigo-only palette in the v0.20.2 redesign. */
 .accent-gradient {
-  background: linear-gradient(135deg, #8b5cf6 0%, var(--accent) 50%, #22d3ee 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent);
 }
 
 .display-hero {
@@ -477,7 +478,7 @@ body.lightbox-open { overflow: hidden; }
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  background: var(--accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;

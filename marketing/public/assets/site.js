@@ -315,6 +315,11 @@ async function startPaypalCheckout({ tier, interval }) {
 }
 
 function wirePaypalButtons() {
+  // PayPal is disabled site-wide for now (alpha pricing only takes
+  // Stripe). Keeping the wiring code so flipping the flag back is a
+  // one-line change once PayPal is re-enabled at the licence server.
+  return;
+  // eslint-disable-next-line no-unreachable
   if (!window.PAYPAL_ENABLED) return;
   document.querySelectorAll('button[data-checkout]').forEach((btn) => {
     if (btn.parentElement?.querySelector('[data-paypal]')) return;

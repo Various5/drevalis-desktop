@@ -53,34 +53,13 @@
   <!-- ── Platform support ──────────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-xl">
-      <div class="grid md:grid-cols-3 gap-5 reveal">
-
-        <div class="card p-7">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="pill pill-blue">Windows 10 · 11</span>
-          </div>
-          <h3 class="mb-2">Native installer</h3>
-          <p class="text-sm text-[var(--txt-secondary)] mb-4">An NSIS .exe — install as a regular user (no admin prompt needed). FFmpeg and Redis are bundled inside the install directory. The first launch creates a SQLite database under <code class="inline">%LOCALAPPDATA%\Drevalis</code>.</p>
-          <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-sm" rel="noopener">Get the .exe</a>
+      <div class="card p-7 reveal max-w-2xl mx-auto">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="pill pill-indigo">Windows 10 · 11 · 64-bit</span>
         </div>
-
-        <div class="card p-7" style="opacity: 0.6;">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="pill pill-purple">macOS</span>
-          </div>
-          <h3 class="mb-2">Coming next</h3>
-          <p class="text-sm text-[var(--txt-secondary)] mb-4">Tauri shell already cross-compiles for Apple silicon and Intel; we still need to wire up the Developer ID signing pipeline before we ship a .dmg. Drop your email below to be notified when it lands.</p>
-          <a href="mailto:support@drevalis.com?subject=macOS%20alpha%20interest" class="btn btn-ghost btn-sm">Email when ready</a>
-        </div>
-
-        <div class="card p-7" style="opacity: 0.6;">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="pill pill-green">Linux</span>
-          </div>
-          <h3 class="mb-2">Coming after macOS</h3>
-          <p class="text-sm text-[var(--txt-secondary)] mb-4">AppImage build planned — same Tauri shell, same FastAPI backend bundle, same SQLite DB. No package-manager fight.</p>
-          <a href="mailto:support@drevalis.com?subject=Linux%20alpha%20interest" class="btn btn-ghost btn-sm">Email when ready</a>
-        </div>
+        <h3 class="mb-2">Native installer</h3>
+        <p class="text-sm text-[var(--txt-secondary)] mb-4">An NSIS <code class="inline">.exe</code> — installs as a regular user (no admin prompt needed). FFmpeg and Redis are bundled inside the install directory. The first launch creates a SQLite database under <code class="inline">%LOCALAPPDATA%\Drevalis</code>. macOS and Linux are not supported at this time.</p>
+        <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-sm" rel="noopener">Get the .exe</a>
       </div>
     </div>
   </section>
