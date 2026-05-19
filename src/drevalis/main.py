@@ -186,9 +186,42 @@ def create_app() -> FastAPI:
 
     frontend_dist = resources_root() / "frontend" / "dist"
     if frontend_dist.is_dir():
+
+        class _NoIndexCacheStatic(StaticFiles):
+            """``StaticFiles`` that forces a no-cache on ``index.html`` while
+            keeping the default long-cache behaviour on the content-hashed
+            ``assets/index-<hash>.js`` bundles.
+
+            Why this exists: WebView2 (the Edge WebView shipped with Tauri
+            on Windows) aggressively caches the SPA's ``index.html``.
+            After ``alpha.50`` shipped, users still saw the alpha.46 UI
+            because the cached ``index.html`` referenced old bundle hashes
+            that no longer existed on disk — the new bundle hashes were
+            never even requested. Adding a ``Cache-Control: no-cache,
+            must-revalidate`` on the HTML shell forces WebView2 to
+            re-validate it on every launch, which picks up the new bundle
+            URLs immediately after an in-app update. The hashed JS/CSS
+            files keep their default ``max-age`` because their URLs change
+            with every build, so cache-busting is already automatic.
+            """
+
+            async def get_response(self, path, scope):  # type: ignore[override]
+                response = await super().get_response(path, scope)
+                if path in ("", "/", "index.html"):
+                    response.headers["Cache-Control"] = (
+                        "no-cache, no-store, must-revalidate, max-age=0"
+                    )
+                    response.headers["Pragma"] = "no-cache"
+                    response.headers["Expires"] = "0"
+                return response
+
         application.mount(
             "/",
-            StaticFiles(directory=str(frontend_dist), html=True, follow_symlink=False),
+            _NoIndexCacheStatic(
+                directory=str(frontend_dist),
+                html=True,
+                follow_symlink=False,
+            ),
             name="frontend",
         )
 

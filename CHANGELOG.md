@@ -11,6 +11,24 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.51 — WebView2 was caching stale SPA shells across updates)
+- **Force ``Cache-Control: no-cache, no-store, must-revalidate`` on the
+  SPA's ``index.html``** served by the FastAPI ``StaticFiles`` mount.
+  The hashed bundle files in ``/assets/`` keep their normal long-cache
+  behaviour because their URLs change with every build — the index
+  shell was the only file that needed to be revalidated to pick up
+  the new bundle URLs after an update.
+- Why this matters: after alpha.50 shipped, a user on alpha.46/47
+  installed the new build (binary version stamp updated, files on
+  disk replaced) but the Tauri WebView2 kept rendering the *old* UI
+  because it had cached the previous ``index.html`` long enough to
+  outlive the install. The cached HTML referenced bundle hashes that
+  no longer existed on disk; the new bundles were never even
+  requested. The no-cache header makes WebView2 revalidate the shell
+  on every launch, so future updates take effect on the first
+  restart instead of waiting for the cache to expire (or the user
+  to manually nuke ``%LOCALAPPDATA%\com.drevalis.studio\EBWebView``).
+
 ### Changed (alpha.50 — YouTube tab redesigned around synced channel data)
 - **5 tabs → 3 tabs.** The YouTube section now has **Overview**,
   **Videos**, and **Performance**. The legacy ``Uploads``,
