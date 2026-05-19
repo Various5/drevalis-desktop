@@ -5,7 +5,6 @@ import {
   Youtube,
   Upload,
   ListVideo,
-  BarChart3,
   Plus,
   Trash2,
   ExternalLink,
@@ -281,15 +280,28 @@ interface ChannelStatsRow {
   } | null;
 }
 
-function ChannelStatsOverview() {
+interface ChannelStatsTotals {
+  channels: number;
+  total_videos: number;
+  total_views: number;
+  total_likes: number;
+  total_comments: number;
+}
+
+// Shared hook so the Dashboard rollup, the Analytics summary, and the
+// ``ChannelStatsOverview`` widget all read the same synced channel
+// data without each rendering a separate fetch. The widget plus any
+// caller mount → 1 backend request. ``window focus`` refresh kept so
+// a sync triggered in another tab is reflected the next time the user
+// alt-tabs back.
+function useChannelStatsOverview(): {
+  rows: ChannelStatsRow[];
+  totals: ChannelStatsTotals | null;
+  loading: boolean;
+  byChannelDbId: Map<string, ChannelStatsRow>;
+} {
   const [rows, setRows] = useState<ChannelStatsRow[]>([]);
-  const [totals, setTotals] = useState<{
-    channels: number;
-    total_videos: number;
-    total_views: number;
-    total_likes: number;
-    total_comments: number;
-  } | null>(null);
+  const [totals, setTotals] = useState<ChannelStatsTotals | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -317,6 +329,16 @@ function ChannelStatsOverview() {
       window.removeEventListener('focus', onFocus);
     };
   }, []);
+
+  const byChannelDbId = useMemo(
+    () => new Map(rows.map((r) => [r.channel_id, r])),
+    [rows],
+  );
+  return { rows, totals, loading, byChannelDbId };
+}
+
+function ChannelStatsOverview() {
+  const { totals, loading } = useChannelStatsOverview();
 
   if (loading) {
     return (
@@ -358,87 +380,10 @@ function ChannelStatsOverview() {
         />
       </div>
 
-      {/* Per-channel breakdown — same data, one card per channel.
-          Helps the user spot which of their channels is actually
-          performing vs which is dormant. */}
-      <Card padding="md">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Per-Channel Roll-up (synced)</CardTitle>
-            <span className="text-[11px] text-txt-tertiary">
-              from ``youtube_channel_videos`` (sync table)
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {rows.map((r) => {
-              const hasContent = r.total_videos > 0;
-              return (
-                <div
-                  key={r.channel_id}
-                  className="rounded-md border border-border p-3 hover:border-border-hover transition-colors"
-                >
-                  <div className="text-sm font-medium text-txt-primary truncate mb-1">
-                    {r.channel_name}
-                  </div>
-                  {hasContent ? (
-                    <>
-                      <div className="text-xs text-txt-secondary flex items-center gap-2 flex-wrap">
-                        <span>{formatNumber(r.total_videos)} videos</span>
-                        <span className="text-txt-tertiary">·</span>
-                        <span>{r.longform} long</span>
-                        <span className="text-txt-tertiary">·</span>
-                        <span>{r.shorts} shorts</span>
-                      </div>
-                      <div className="text-xs text-txt-secondary mt-1">
-                        <span className="inline-flex items-center gap-1">
-                          <Eye size={11} className="text-txt-tertiary" />
-                          {formatNumber(r.total_views)}
-                        </span>
-                        <span className="mx-2 text-txt-tertiary">·</span>
-                        <span className="inline-flex items-center gap-1">
-                          <ThumbsUp size={11} className="text-txt-tertiary" />
-                          {formatNumber(r.total_likes)}
-                        </span>
-                      </div>
-                      {r.top_video && (
-                        <a
-                          href={r.top_video.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 flex items-center gap-2 text-[11px] text-txt-tertiary hover:text-accent group"
-                          title={r.top_video.title}
-                        >
-                          {r.top_video.thumbnail_url && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={r.top_video.thumbnail_url}
-                              alt=""
-                              className="w-10 h-6 object-cover rounded shrink-0"
-                              loading="lazy"
-                            />
-                          )}
-                          <span className="truncate">
-                            Top: {r.top_video.title} ·{' '}
-                            {formatNumber(r.top_video.view_count)} views
-                          </span>
-                        </a>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-txt-tertiary italic">
-                      {r.last_synced_at
-                        ? '✓ Synced — channel has no videos yet'
-                        : 'Not synced yet'}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Per-channel breakdown intentionally removed — duplicated the
+          rollup cards rendered by ``DashboardTab``/``AnalyticsTab``
+          one level up. Keeping just the four big totals here so the
+          two surfaces don't show the same channel twice. */}
     </div>
   );
 }
@@ -493,17 +438,28 @@ function DashboardTab({
   });
 
   // ── Per-channel roll-up (v0.20.30 redesign) ─────────────────
-  // Build a per-channel aggregate using the flat ``uploads`` +
-  // ``stats`` feeds. Uploads carry ``channel_id``; stats are keyed by
-  // ``video_id``. Join the two to produce a single row per channel
-  // with uploads / views / likes / comments + last-upload timestamp.
+  // The rollup blends two sources:
+  //   1. Drevalis-uploaded videos (``uploads`` + per-video ``stats``)
+  //   2. **Channel-wide** numbers from the synced
+  //      ``youtube_channel_videos`` table (every video on the channel,
+  //      even ones Drevalis didn't upload).
+  // Source 2 is what the user actually wants to see on the dashboard
+  // after a fresh install + backup-restore + reconnect: their real
+  // channel size, not just whatever Drevalis happened to publish. We
+  // still surface the Drevalis-uploaded count as a sub-stat so they
+  // can spot at a glance how much of the channel came through here.
+  const { byChannelDbId: syncedByChannelDbId } = useChannelStatsOverview();
+
   interface ChannelRollup {
     channel: YouTubeChannel;
-    uploadCount: number;
-    views: number;
+    uploadCount: number;       // Drevalis-uploaded videos
+    totalVideos: number;       // Everything synced (channel-wide)
+    views: number;             // Channel-wide views (preferred) or Drevalis-only fallback
     likes: number;
     comments: number;
     lastUpload: string | null;
+    lastSyncedAt: string | null;
+    isChannelWide: boolean;    // true when numbers come from sync, false when Drevalis-only
   }
   const statsByVideoIdForRollup = new Map<string, YouTubeVideoStats>(
     stats.map((s) => [s.video_id, s]),
@@ -511,9 +467,9 @@ function DashboardTab({
   const displayChannels = allChannels.length > 0 ? allChannels : [channel];
   const channelRollups: ChannelRollup[] = displayChannels.map((ch) => {
     const ups = uploads.filter((u) => (u as any).channel_id === ch.id);
-    let views = 0;
-    let likes = 0;
-    let comments = 0;
+    let drevalisViews = 0;
+    let drevalisLikes = 0;
+    let drevalisComments = 0;
     let lastUpload: string | null = null;
     for (const u of ups) {
       if (!lastUpload || u.created_at > lastUpload) lastUpload = u.created_at;
@@ -521,18 +477,24 @@ function DashboardTab({
         ? statsByVideoIdForRollup.get(u.youtube_video_id)
         : undefined;
       if (s) {
-        views += s.views;
-        likes += s.likes;
-        comments += s.comments;
+        drevalisViews += s.views;
+        drevalisLikes += s.likes;
+        drevalisComments += s.comments;
       }
     }
+
+    const synced = syncedByChannelDbId.get(ch.id);
+    const useSynced = synced !== undefined && synced.total_videos > 0;
     return {
       channel: ch,
       uploadCount: ups.length,
-      views,
-      likes,
-      comments,
+      totalVideos: synced?.total_videos ?? ups.length,
+      views: useSynced ? synced!.total_views : drevalisViews,
+      likes: useSynced ? synced!.total_likes : drevalisLikes,
+      comments: useSynced ? synced!.total_comments : drevalisComments,
       lastUpload,
+      lastSyncedAt: synced?.last_synced_at ?? null,
+      isChannelWide: useSynced,
     };
   });
   // Sort: most-viewed channels first — that's usually the one the
@@ -579,14 +541,23 @@ function DashboardTab({
               </div>
 
               {/* Stat grid — 2x2 layout on the card so the four
-                  numbers are always visible without scrolling. */}
+                  numbers are always visible without scrolling. Numbers
+                  are channel-wide (from sync) when available; the
+                  Drevalis-uploaded count is shown as a sub-stat under
+                  Videos so you can see how much of the channel came
+                  through here. */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="rounded-md bg-bg-elevated/60 px-2.5 py-2">
                   <div className="flex items-center gap-1 text-[10px] text-txt-tertiary uppercase tracking-wider">
-                    <Upload size={10} /> Uploads
+                    <ListVideo size={10} /> Videos
                   </div>
                   <div className="text-lg font-semibold text-txt-primary mt-0.5 leading-none">
-                    {formatNumber(r.uploadCount)}
+                    {formatNumber(r.totalVideos)}
+                  </div>
+                  <div className="text-[10px] text-txt-tertiary mt-0.5 leading-none">
+                    {r.isChannelWide
+                      ? `${formatNumber(Math.min(r.uploadCount, r.totalVideos))} via Drevalis`
+                      : 'via Drevalis'}
                   </div>
                 </div>
                 <div className="rounded-md bg-bg-elevated/60 px-2.5 py-2">
@@ -627,11 +598,15 @@ function DashboardTab({
                   <Percent size={10} />
                   {formatEngagement(engage)}
                 </span>
-                {r.lastUpload && (
+                {r.lastSyncedAt ? (
+                  <span title={`Synced ${new Date(r.lastSyncedAt).toLocaleString()}`}>
+                    Synced: {formatDate(r.lastSyncedAt)}
+                  </span>
+                ) : r.lastUpload ? (
                   <span title={new Date(r.lastUpload).toLocaleString()}>
                     Last: {formatDate(r.lastUpload)}
                   </span>
-                )}
+                ) : null}
               </div>
             </Card>
           );
@@ -1502,7 +1477,7 @@ interface AnalyticsTabProps {
   channelId?: string;
 }
 
-function AnalyticsTab({ uploads, loading, channelMap, channelId }: AnalyticsTabProps) {
+function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: AnalyticsTabProps) {
   const [stats, setStats] = useState<YouTubeVideoStats[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -1625,51 +1600,17 @@ function AnalyticsTab({ uploads, loading, channelMap, channelId }: AnalyticsTabP
     void fetchChannelAnalytics();
   }, [fetchChannelAnalytics]);
 
-  if (loading || statsLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size="md" />
-      </div>
-    );
-  }
-
-  if (completedUploads.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <BarChart3 size={32} className="text-txt-tertiary" />
-        <p className="text-sm text-txt-secondary">No published videos yet.</p>
-        <p className="text-xs text-txt-tertiary">
-          Analytics will appear here once videos finish uploading.
-        </p>
-      </div>
-    );
-  }
-
-  if (statsError) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <AlertTriangle size={28} className="text-error" />
-        <p className="text-sm text-error">{statsError}</p>
-        <Button variant="secondary" size="sm" onClick={() => void fetchStats()}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  // Early-return cases (loading / no Drevalis uploads). We *don't*
-  // gate the entire AnalyticsTab on Drevalis uploads anymore — the
-  // ChannelStatsOverview below works off the synced channel-video
-  // table and is useful even with zero Drevalis uploads. Only the
-  // per-video Drevalis leaderboard further down needs ``stats``.
-  if (statsLoading && stats.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size="md" />
-      </div>
-    );
-  }
-
+  // NOTE — we deliberately do *not* early-return on
+  // ``loading || statsLoading`` or on ``completedUploads.length === 0``
+  // here. Those guards used to short-circuit the entire tab to a
+  // spinner / empty-state, which hid the channel-wide stats from the
+  // synced ``youtube_channel_videos`` table. After a fresh install +
+  // backup-restore + reconnect, the user has zero Drevalis uploads on
+  // record but their channel still has 100s of synced videos — those
+  // numbers must remain visible. The conditional blocks lower down
+  // render the right empty/error/loading states for each section
+  // (Drevalis-only leaderboard, channel-analytics card) without
+  // taking out the whole tab.
   const hasDrevalisStats = stats.length > 0;
 
   // Compute averages for trending detection (zero-safe when no stats).
@@ -1702,6 +1643,24 @@ function AnalyticsTab({ uploads, loading, channelMap, channelId }: AnalyticsTabP
           the user sees their channel state immediately after a sync,
           not just Drevalis-uploaded videos. */}
       <ChannelStatsOverview />
+
+      {/* Inline error banner — was previously hidden by the removed
+          full-tab early-return. Surfaced here so a transient
+          /videos-stats failure doesn't take out the whole Analytics
+          tab; the rest of the page still renders. */}
+      {statsError && (
+        <Card padding="md">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-error">
+              <AlertTriangle size={16} />
+              <span>{statsError}</span>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => void fetchStats()}>
+              Retry
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* If the user has NO Drevalis uploads at all, surface a clear
           explanation rather than rendering the rest of the leaderboard

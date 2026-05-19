@@ -11,6 +11,39 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.47 — synced channel totals drive the Dashboard rollup; dedupe per-channel sections)
+- **The YouTube → Dashboard per-channel rollup cards now show
+  channel-wide numbers** (videos / views / likes / comments) from the
+  synced ``youtube_channel_videos`` table rather than just the
+  Drevalis-uploaded subset. The Drevalis-uploaded count is preserved
+  as a sub-stat under "Videos" so you can still see "10 videos · 3
+  via Drevalis" at a glance.
+  - Why: after a fresh install + backup-restore + reconnect, the user
+    has 0 Drevalis upload records but their channel may still have
+    hundreds of videos. The previous rollup showed 0/0/0/0 on every
+    card, leaving the user unsure whether sync had even happened.
+  - The sync source's ``last_synced_at`` timestamp now drives the
+    "Synced: …" footer on each card. If a channel has never been
+    synced, the card falls back to the Drevalis-only ``last upload``
+    label as before.
+- **The Analytics tab no longer returns an empty / spinner state when
+  there are no Drevalis uploads** — the early-return guards that hid
+  the entire tab on ``loading || statsLoading`` *and* on
+  ``completedUploads.length === 0`` are gone. The synced
+  ``ChannelStatsOverview`` always renders, and section-level
+  empty/error states render inline below it instead of blanking the
+  whole page.
+- **Removed the duplicate per-channel breakdown inside
+  ``ChannelStatsOverview``** — it duplicated the per-channel cards
+  rendered one level up on the Dashboard. The overview now shows only
+  the four channel-wide stat tiles; the per-channel cards live in one
+  place (the rollup) so the same channel isn't drawn twice on the
+  same page.
+- **Added a `useChannelStatsOverview()` hook** so the Dashboard
+  rollup, the Analytics tile row, and the overview widget all share
+  one ``/youtube/channels/stats-overview`` fetch instead of each
+  issuing their own request.
+
 ### Fixed (alpha.46 — channel stats now show on Analytics tab too)
 - **YouTube → Analytics tab was stuck on an endless spinner** when
   the user had synced channels but no Drevalis-uploaded videos.
