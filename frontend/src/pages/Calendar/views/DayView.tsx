@@ -11,12 +11,13 @@ interface DayViewProps {
   date: Date;
   posts: ScheduledPost[];
   onCancel: (id: string) => void;
+  onPostClick?: (post: ScheduledPost) => void;
 }
 
-export function DayView({ date, posts, onCancel }: DayViewProps) {
+export function DayView({ date, posts, onCancel, onPostClick }: DayViewProps) {
   return (
     <div className="flex flex-col h-full" data-testid="day-view">
-      <TimelineGrid columns={[date]} posts={posts} onCancel={onCancel} />
+      <TimelineGrid columns={[date]} posts={posts} onCancel={onCancel} onPostClick={onPostClick} />
     </div>
   );
 }

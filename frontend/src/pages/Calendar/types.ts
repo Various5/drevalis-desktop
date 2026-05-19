@@ -13,11 +13,46 @@ export interface ScheduledPost {
   tags?: string;
   privacy?: string;
   status: string;
+  error_message?: string | null;
+  published_at?: string | null;
+  remote_url?: string | null;
+  remote_id?: string | null;
+  youtube_channel_id?: string | null;
 }
 
 export type CalendarView = 'day' | 'week' | 'month';
 
 export type PlatformFilter = 'all' | 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'x';
+
+// Status filter — adds a synthetic ``missed`` bucket that the backend
+// doesn't track as its own status (it's just ``scheduled`` with a past
+// scheduled_at). See ``isMissed`` below.
+export type StatusFilter =
+  | 'all'
+  | 'scheduled'
+  | 'failed'
+  | 'missed'
+  | 'published'
+  | 'cancelled';
+
+// A post counts as "missed" when its scheduled_at is more than
+// MISSED_GRACE_MINUTES in the past and the worker still says it's
+// ``scheduled``. That window gives the publisher cron a chance to
+// pick the post up before we flag it as stuck. 15 minutes matches
+// the cron tick + a safety margin for slow YouTube uploads.
+export const MISSED_GRACE_MINUTES = 15;
+
+export function isMissed(post: ScheduledPost, now: Date = new Date()): boolean {
+  if (post.status !== 'scheduled') return false;
+  const scheduled = new Date(post.scheduled_at).getTime();
+  return now.getTime() - scheduled > MISSED_GRACE_MINUTES * 60_000;
+}
+
+/** Effective status that includes the synthetic ``missed`` bucket. */
+export function effectiveStatus(post: ScheduledPost): string {
+  if (isMissed(post)) return 'missed';
+  return post.status;
+}
 
 // ---------------------------------------------------------------------------
 // Shared constants

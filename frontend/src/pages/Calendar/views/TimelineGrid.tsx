@@ -38,6 +38,7 @@ interface TimelineGridProps {
   columns: Date[];
   posts: ScheduledPost[];
   onCancel: (id: string) => void;
+  onPostClick?: (post: ScheduledPost) => void;
 }
 
 interface LaidOutPost {
@@ -119,7 +120,7 @@ function layoutPosts(posts: ScheduledPost[]): LaidOutPost[] {
   return result;
 }
 
-export function TimelineGrid({ columns, posts, onCancel }: TimelineGridProps) {
+export function TimelineGrid({ columns, posts, onCancel, onPostClick }: TimelineGridProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const now = new Date();
   const showNowLine = columns.some((c) => isSameDay(c, now));
@@ -258,6 +259,7 @@ export function TimelineGrid({ columns, posts, onCancel }: TimelineGridProps) {
                         <PostChip
                           post={entry.post}
                           variant="full"
+                          onClick={onPostClick}
                           onCancel={onCancel}
                         />
                       </div>

@@ -1240,6 +1240,19 @@ export const schedule = {
       `/api/v1/schedule/next-slot?${qs.toString()}`,
     );
   },
+
+  // Manual retry of failed posts. ``post_ids`` filters to specific
+  // posts (used by per-row Retry buttons in the calendar detail
+  // drawer); omitted = every failed post within ``within_hours``
+  // (the "Retry all" banner at the top of the calendar).
+  retryFailed: (params: { post_ids?: string[]; within_hours?: number } = {}) =>
+    post<{ requeued: string[]; skipped: string[] }>(
+      '/api/v1/schedule/retry-failed',
+      {
+        within_hours: params.within_hours ?? 48,
+        post_ids: params.post_ids ?? null,
+      },
+    ),
 };
 
 // ---------------------------------------------------------------------------

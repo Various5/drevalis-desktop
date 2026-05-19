@@ -25,6 +25,9 @@ import { useConnectedPlatforms } from '@/lib/useConnectedPlatforms';
 
 import { ViewModeToggle } from './ViewModeToggle';
 import { PlatformTabs } from './PlatformTabs';
+import { StatusFilterChips } from './StatusFilterChips';
+import { ProblemsBanner } from './ProblemsBanner';
+import { PostDetailDrawer } from './PostDetailDrawer';
 import { MonthView } from './views/MonthView';
 import { WeekView } from './views/WeekView';
 import { DayView } from './views/DayView';
@@ -37,8 +40,14 @@ import {
   formatTime,
   formatDate,
   platformLabel,
+  effectiveStatus,
 } from './types';
-import type { ScheduledPost, CalendarView, PlatformFilter } from './types';
+import type {
+  ScheduledPost,
+  CalendarView,
+  PlatformFilter,
+  StatusFilter,
+} from './types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -444,6 +453,20 @@ function Calendar() {
   const [autoScheduleOpen, setAutoScheduleOpen] = useState(false);
   const [upcomingCollapsed, setUpcomingCollapsed] = useState(false);
 
+  // ── Status filter + detail-drawer state ──────────────────────────────────
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
+
+  // Keep the drawer's data fresh when ``posts`` re-fetches. Without this
+  // sync, the drawer would keep showing the pre-mutation snapshot of the
+  // post even after a retry/reschedule round-trip.
+  useEffect(() => {
+    if (selectedPost) {
+      const fresh = posts.find((p) => p.id === selectedPost.id);
+      if (fresh && fresh !== selectedPost) setSelectedPost(fresh);
+    }
+  }, [posts, selectedPost]);
+
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   const fetchPosts = useCallback(async () => {
@@ -571,11 +594,21 @@ function Calendar() {
   };
 
   // ── Filtered posts ────────────────────────────────────────────────────────
+  // Two-stage filter: platform → status. We compute both because the
+  // visible-status-counts on the chips need to reflect the platform
+  // selection but be unaffected by the status selection (so the user
+  // can see "I have 2 failed on YouTube" while currently filtered to
+  // "All" status).
 
-  const filteredPosts =
+  const platformFiltered =
     platformFilter === 'all'
       ? posts
       : posts.filter((p) => p.platform === platformFilter);
+
+  const filteredPosts =
+    statusFilter === 'all'
+      ? platformFiltered
+      : platformFiltered.filter((p) => effectiveStatus(p) === statusFilter);
 
   // ── Header label ──────────────────────────────────────────────────────────
 
@@ -667,14 +700,26 @@ function Calendar() {
           </div>
         </div>
 
-        {/* ── Platform tabs ── */}
-        <div className="shrink-0">
+        {/* ── Problems banner (only renders when posts are in trouble) ── */}
+        <ProblemsBanner
+          posts={posts}
+          onRetried={() => void fetchPosts()}
+          onShowFailed={() => setStatusFilter('failed')}
+        />
+
+        {/* ── Filter row: platform tabs + status chips ── */}
+        <div className="shrink-0 flex items-start justify-between gap-3 flex-wrap">
           <PlatformTabs
             active={platformFilter}
             onChange={handlePlatformChange}
             visiblePosts={posts}
             connectedSocials={connectedSocials}
             youtubeConnected={youtubeConnected}
+          />
+          <StatusFilterChips
+            active={statusFilter}
+            onChange={setStatusFilter}
+            posts={platformFiltered}
           />
         </div>
 
@@ -695,18 +740,21 @@ function Calendar() {
               onDayClick={handleDayClick}
               onCancel={handleCancel}
               onReschedule={handleReschedule}
+              onPostClick={setSelectedPost}
             />
           ) : view === 'week' ? (
             <WeekView
               weekStart={weekStart}
               posts={filteredPosts}
               onCancel={handleCancel}
+              onPostClick={setSelectedPost}
             />
           ) : (
             <DayView
               date={currentDay}
               posts={filteredPosts}
               onCancel={handleCancel}
+              onPostClick={setSelectedPost}
             />
           )}
         </Card>
@@ -766,6 +814,13 @@ function Calendar() {
         onCreated={handleCreated}
         preselectedDate={selectedDay}
         episodes={episodes}
+      />
+
+      {/* ── Detail drawer (per-post inspect + retry + edit + cancel) ───────── */}
+      <PostDetailDrawer
+        post={selectedPost}
+        onClose={() => setSelectedPost(null)}
+        onMutated={() => void fetchPosts()}
       />
     </div>
   );

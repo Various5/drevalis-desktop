@@ -24,6 +24,8 @@ interface MonthViewProps {
   onDayClick: (day: Date) => void;
   onCancel: (id: string) => void;
   onReschedule: (postId: string, newDate: Date) => Promise<void>;
+  /** Click on a post chip → open the detail drawer. */
+  onPostClick?: (post: ScheduledPost) => void;
 }
 
 export function MonthView({
@@ -33,6 +35,7 @@ export function MonthView({
   onDayClick,
   onCancel,
   onReschedule,
+  onPostClick,
 }: MonthViewProps) {
   const [draggedPost, setDraggedPost] = useState<ScheduledPost | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
@@ -222,6 +225,7 @@ export function MonthView({
                     key={post.id}
                     post={post}
                     variant="compact"
+                    onClick={onPostClick}
                     onCancel={onCancel}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
@@ -294,7 +298,14 @@ export function MonthView({
                       new Date(b.scheduled_at).getTime(),
                   )
                   .map((post) => (
-                    <li key={post.id} className="px-4 py-2.5 flex items-center gap-3">
+                    <li
+                      key={post.id}
+                      className="px-4 py-2.5 flex items-center gap-3 hover:bg-bg-hover cursor-pointer"
+                      onClick={() => {
+                        onPostClick?.(post);
+                        setExpandedDay(null);
+                      }}
+                    >
                       <span
                         className={`shrink-0 w-2 h-2 rounded-full ${PLATFORM_COLORS[post.platform] ?? 'bg-gray-500'}`}
                         aria-hidden="true"
@@ -310,7 +321,8 @@ export function MonthView({
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           onCancel(post.id);
                           setExpandedDay(null);
                         }}

@@ -11,6 +11,7 @@ interface WeekViewProps {
   weekStart: Date;
   posts: ScheduledPost[];
   onCancel: (id: string) => void;
+  onPostClick?: (post: ScheduledPost) => void;
 }
 
 /** Returns the 7 dates (Mon–Sun) of the week starting at weekStart. */
@@ -22,12 +23,12 @@ function getWeekDays(weekStart: Date): Date[] {
   });
 }
 
-export function WeekView({ weekStart, posts, onCancel }: WeekViewProps) {
+export function WeekView({ weekStart, posts, onCancel, onPostClick }: WeekViewProps) {
   const columns = getWeekDays(weekStart);
 
   return (
     <div className="flex flex-col h-full" data-testid="week-view">
-      <TimelineGrid columns={columns} posts={posts} onCancel={onCancel} />
+      <TimelineGrid columns={columns} posts={posts} onCancel={onCancel} onPostClick={onPostClick} />
     </div>
   );
 }

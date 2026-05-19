@@ -11,6 +11,41 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.52 — Calendar overhaul: surface failed/missed uploads + per-post actions)
+- **Problems banner at the top of the Calendar** — red when there are
+  any ``failed`` posts, amber when there are only ``missed`` ones
+  (``scheduled`` posts whose ``scheduled_at`` is more than 15 minutes
+  in the past). Single "Retry all" button requeues every failed
+  post via ``POST /schedule/retry-failed``; missed posts are picked
+  up on the next worker tick automatically. Hides itself when there
+  are no problems so the banner doesn't add noise on a healthy day.
+- **Status filter chips** next to the platform tabs — All / Scheduled /
+  Failed / Missed / Published / Cancelled, each with a live count
+  scoped to the current platform filter so you can see "2 failed on
+  YouTube" without opening the drawer.
+- **PostDetailDrawer** — click any post chip on the calendar (month
+  cell, week timeline, or day timeline) to slide in a side panel with:
+  - status badge (with the synthetic Missed bucket)
+  - last error message (with one-click copy) when failed
+  - per-post **Retry now** when failed/missed
+  - inline **Edit / Reschedule** form for active posts
+  - **Cancel** with confirmation
+  - the published URL when status is ``published``
+  - post + episode + remote IDs for debugging
+- **Status-coloured post chips** across every view — failed posts get
+  a red ring + ⚠ icon, missed get amber + ⏰, published get green +
+  ✓, cancelled get a muted strikethrough. Previously every chip
+  looked the same regardless of state; the only signal was the
+  platform colour.
+- **"Missed" detection** — synthetic UI bucket for
+  ``status='scheduled' AND scheduled_at < now - 15min``. The backend
+  doesn't track it as its own state (the cron eventually flips it to
+  ``failed`` or ``published``) but operators need to see the
+  interim limbo state so they can intervene.
+- ``schedule.retryFailed({ post_ids, within_hours })`` added to the
+  TypeScript API client — the per-post Retry button and the bulk
+  banner button both go through it.
+
 ### Fixed (alpha.51 — WebView2 was caching stale SPA shells across updates)
 - **Force ``Cache-Control: no-cache, no-store, must-revalidate`` on the
   SPA's ``index.html``** served by the FastAPI ``StaticFiles`` mount.
