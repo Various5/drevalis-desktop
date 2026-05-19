@@ -11,6 +11,26 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.49 — synced data drives Cross-Platform table + All-Platforms tab)
+- **YouTube → Dashboard → "Cross-Platform Performance" table** —
+  the YouTube row now reads from synced channel totals when they're
+  available (uploads-column = total channel videos, views/likes/
+  comments = channel-wide). Previously it pulled from
+  Drevalis-uploaded-only stats and showed 0/0/0/0 after a
+  backup-restore + reconnect, which read as "broken" despite
+  ``141 Channel Videos / 18K Channel Views`` being displayed two
+  rows above in the same tab.
+- **YouTube → All Platforms tab no longer claims "No platforms
+  connected"** when YouTube is connected. YouTube channels live in
+  their own ``youtube_channels`` table, not the generic
+  ``social_platforms`` store the tab was reading, so it never saw
+  them. The tab now renders one card per OAuth-connected YouTube
+  channel above the regular social-platforms cards.
+- **Drevalis-uploaded "Engagement Rate" tile** now stays scoped to
+  the Drevalis-uploaded videos that the three sibling tiles
+  (Uploads/Views/Likes) describe — previously the denominator could
+  drift to channel-wide totals after the alpha.47 refactor.
+
 ### Security (alpha.48 — close 4 open Dependabot alerts)
 - **Bump ``sentry`` 0.34 → 0.48** in the Tauri shell. The old version
   pinned ``rustls 0.22.4`` which pulled the unpatched ``rustls-webpki

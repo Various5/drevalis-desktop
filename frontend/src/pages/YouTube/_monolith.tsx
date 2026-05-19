@@ -396,10 +396,28 @@ function DashboardTab({
   socialStats,
   socialStatsLoading,
 }: DashboardTabProps) {
-  const totalViews = stats.reduce((sum, s) => sum + s.views, 0);
-  const totalLikes = stats.reduce((sum, s) => sum + s.likes, 0);
-  const totalComments = stats.reduce((sum, s) => sum + s.comments, 0);
-  const overallEngagement = engagementRate(totalViews, totalLikes, totalComments);
+  // Hook order matters — pull synced channel totals up here so the
+  // YouTube row in the cross-platform table can reflect channel-wide
+  // numbers (post-sync) rather than just Drevalis-uploaded ones.
+  const {
+    byChannelDbId: syncedByChannelDbId,
+    totals: syncedTotals,
+  } = useChannelStatsOverview();
+
+  const drevalisViews = stats.reduce((sum, s) => sum + s.views, 0);
+  const drevalisLikes = stats.reduce((sum, s) => sum + s.likes, 0);
+  const drevalisComments = stats.reduce((sum, s) => sum + s.comments, 0);
+  // Drevalis-only engagement is what the Drevalis card next to it is
+  // meant to measure — keep it scoped to Drevalis uploads, not the
+  // whole channel, so the number lines up with the "Drevalis Likes /
+  // Views / Uploads" tiles right above.
+  const overallEngagement = engagementRate(drevalisViews, drevalisLikes, drevalisComments);
+
+  // Aliases for the "Drevalis ..." stat cards rendered further down.
+  // ``totalComments`` is computed via ``drevalisComments`` directly
+  // wherever it's needed, so no alias is required for it.
+  const totalViews = drevalisViews;
+  const totalLikes = drevalisLikes;
 
   const recentUploads = [...uploads]
     .sort(
@@ -418,16 +436,24 @@ function DashboardTab({
     socialStats.map((s) => [s.platform.toLowerCase(), s]),
   );
 
-  // Cross-platform totals (including YouTube row injected from props)
+  // Cross-platform totals (including YouTube row injected from props).
+  // The YouTube row now prefers the synced channel-wide totals over
+  // Drevalis-only stats. After a fresh install + backup-restore +
+  // reconnect, the user has 0 Drevalis uploads but their channel may
+  // still have hundreds of synced videos — the table showed 0/0/0/0
+  // for YouTube in that state, which read as "broken" even though the
+  // sync had clearly populated the DB.
   const crossPlatformRows = PLATFORM_CONFIGS.map((cfg) => {
     if (cfg.id === 'youtube') {
+      const useSyncedRow =
+        syncedTotals !== null && syncedTotals.total_videos > 0;
       return {
         config: cfg,
         data: {
-          total_uploads: uploads.length,
-          total_views: totalViews,
-          total_likes: totalLikes,
-          total_comments: totalComments,
+          total_uploads: useSyncedRow ? syncedTotals.total_videos : uploads.length,
+          total_views: useSyncedRow ? syncedTotals.total_views : drevalisViews,
+          total_likes: useSyncedRow ? syncedTotals.total_likes : drevalisLikes,
+          total_comments: useSyncedRow ? syncedTotals.total_comments : drevalisComments,
           total_shares: 0,
         } as SocialPlatformStats,
         connected: true,
@@ -448,7 +474,7 @@ function DashboardTab({
   // channel size, not just whatever Drevalis happened to publish. We
   // still surface the Drevalis-uploaded count as a sub-stat so they
   // can spot at a glance how much of the channel came through here.
-  const { byChannelDbId: syncedByChannelDbId } = useChannelStatsOverview();
+  // (``syncedByChannelDbId`` already pulled from the hook above.)
 
   interface ChannelRollup {
     channel: YouTubeChannel;
@@ -1938,9 +1964,19 @@ interface SocialTabProps {
   platforms: SocialPlatform[];
   uploads: SocialUpload[];
   loading: boolean;
+  // v0.20.49 — YouTube lives in its own data model (the
+  // ``YouTubeChannel`` table), not in the generic ``social_platforms``
+  // store. Without this prop the All-Platforms tab said "No platforms
+  // connected" even when 9 YouTube channels were active.
+  youtubeChannels?: YouTubeChannel[];
 }
 
-function SocialTab({ platforms, uploads, loading }: SocialTabProps) {
+function SocialTab({
+  platforms,
+  uploads,
+  loading,
+  youtubeChannels = [],
+}: SocialTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -1964,12 +2000,41 @@ function SocialTab({ platforms, uploads, loading }: SocialTabProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {platforms.length === 0 ? (
+          {platforms.length === 0 && youtubeChannels.length === 0 ? (
             <p className="text-sm text-txt-tertiary py-4 text-center">
               No platforms connected. Connect accounts in Settings.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
+              {/* Synthetic YouTube entries — one card per channel.
+                  YouTube isn't in the social_platforms table, but
+                  channels listed here are exactly the OAuth-connected
+                  ones the user manages from Settings → YouTube. */}
+              {youtubeChannels.map((ch) => {
+                const ytConfig = getPlatformConfig('youtube');
+                return (
+                  <div
+                    key={`yt-${ch.id}`}
+                    className={[
+                      'flex items-center gap-3 px-4 py-3 rounded-lg border border-border',
+                      ytConfig.bgClass,
+                    ].join(' ')}
+                  >
+                    <span className={['w-2.5 h-2.5 rounded-full shrink-0', ytConfig.dotClass].join(' ')} />
+                    <div className="min-w-0 flex-1">
+                      <p className={['text-sm font-semibold truncate', ytConfig.textClass].join(' ')}>
+                        YouTube · {ch.channel_name}
+                      </p>
+                      <p className="text-xs text-txt-tertiary truncate">
+                        {ch.channel_id}
+                      </p>
+                    </div>
+                    <Badge variant="success" dot>
+                      Active
+                    </Badge>
+                  </div>
+                );
+              })}
               {platforms.map((p) => {
                 const config = getPlatformConfig(p.platform);
                 return (
@@ -2614,6 +2679,11 @@ function YouTubePage() {
                     platforms={socialPlatforms}
                     uploads={socialUploads}
                     loading={socialLoading}
+                    youtubeChannels={
+                      selectedChannelId === 'all'
+                        ? allChannels
+                        : allChannels.filter((c) => c.id === selectedChannelId)
+                    }
                   />
                 )}
               </div>
