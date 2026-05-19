@@ -11,6 +11,39 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Changed (alpha.50 — YouTube tab redesigned around synced channel data)
+- **5 tabs → 3 tabs.** The YouTube section now has **Overview**,
+  **Videos**, and **Performance**. The legacy ``Uploads``,
+  ``Playlists``, and ``All Platforms`` tabs are gone — they all
+  read from data sources (``youtube_uploads``, generic
+  ``social_platforms``) that didn't reflect what was actually on
+  the user's channels after a backup-restore + reconnect.
+- **Overview tab** — 4 compact KPI tiles (Videos / Views / Likes /
+  Comments) over the synced totals, a denser per-channel grid (4 per
+  row on wide screens), and a new **Top-10 Videos** thumbnail grid
+  (2×5) sorted by views. No more 0/0/0/0 cards after a fresh
+  install.
+- **Videos tab** — flat sortable table over the synced channel
+  videos. Filters by kind (all/shorts/long-form) and sort
+  (views/likes/comments/recent). Click a row to open the video on
+  YouTube. Backed by a new aggregate endpoint
+  ``GET /api/v1/youtube/videos`` so the table loads in one
+  round-trip rather than one fetch per channel.
+- **Performance tab** — kept just the YouTube Analytics API card
+  (CTR, retention, sub-growth, 7/28/90/365d window). The
+  Drevalis-only per-video leaderboard that used to live here was
+  removed because pre-current-version installs don't have the
+  ``YouTubeUpload`` rows it depended on; the Videos tab covers the
+  same need over data that actually exists.
+- **Backend endpoint** ``GET /api/v1/youtube/videos`` — channel-
+  joined flat list with kind/channel filters, ``views|likes|
+  comments|published`` sort. Replaces the per-channel
+  ``/channels/{id}/videos`` round-trip the new Videos tab would
+  otherwise need to issue N times.
+- **Mojibake fix** — repairs em-dashes/ellipsis that the previous
+  PowerShell-driven splice corrupted (``â€``-prefixed bytes around
+  comments / inline em-dashes).
+
 ### Fixed (alpha.49 — synced data drives Cross-Platform table + All-Platforms tab)
 - **YouTube → Dashboard → "Cross-Platform Performance" table** —
   the YouTube row now reads from synced channel totals when they're

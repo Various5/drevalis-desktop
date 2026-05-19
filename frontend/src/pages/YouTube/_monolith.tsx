@@ -3,23 +3,14 @@ import { useToast } from '@/components/ui/Toast';
 import { useNavigate } from 'react-router-dom';
 import {
   Youtube,
-  Upload,
   ListVideo,
-  Plus,
-  Trash2,
-  ExternalLink,
   Eye,
   ThumbsUp,
   MessageSquare,
   AlertTriangle,
   CheckCircle2,
-  Loader2,
-  Globe,
   TrendingUp,
-  Share2,
-  Percent,
   ImageOff,
-  Copy,
   RefreshCw,
   Library,
 } from 'lucide-react';
@@ -27,10 +18,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
 import { SocialConnectWizard } from '@/components/social/SocialConnectWizard';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Spinner } from '@/components/ui/Spinner';
 import { youtube as youtubeApi, social as socialApi } from '@/lib/api';
 import type {
@@ -51,11 +38,9 @@ import type { YouTubeChannelAnalytics } from '@/lib/api';
 // ---------------------------------------------------------------------------
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: Youtube },
-  { id: 'uploads', label: 'Uploads', icon: Upload },
-  { id: 'playlists', label: 'Playlists', icon: ListVideo },
-  { id: 'analytics', label: 'Analytics', icon: TrendingUp },
-  { id: 'social', label: 'All Platforms', icon: Globe },
+  { id: 'overview', label: 'Overview', icon: Youtube },
+  { id: 'videos', label: 'Videos', icon: ListVideo },
+  { id: 'performance', label: 'Performance', icon: TrendingUp },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -74,133 +59,6 @@ function formatDate(iso: string): string {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function uploadStatusVariant(status: YouTubeUpload['upload_status']): string {
-  switch (status) {
-    case 'done':
-      return 'done';
-    case 'failed':
-      return 'failed';
-    case 'uploading':
-      return 'generating';
-    default:
-      return 'neutral';
-  }
-}
-
-/**
- * Returns the standard YouTube mqdefault thumbnail URL (320x180) for a video ID.
- * Returns null when no videoId is available so callers can render a fallback.
- */
-function ytThumb(videoId: string | null | undefined): string | null {
-  if (!videoId) return null;
-  return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-}
-
-/**
- * Computes engagement rate as a percentage: (likes + comments) / views * 100.
- * Returns null when views is 0 to avoid division by zero.
- */
-function engagementRate(views: number, likes: number, comments: number): number | null {
-  if (views === 0) return null;
-  return ((likes + comments) / views) * 100;
-}
-
-function formatEngagement(rate: number | null): string {
-  if (rate === null) return '—';
-  return `${rate.toFixed(1)}%`;
-}
-
-// ---------------------------------------------------------------------------
-// VideoThumbnail — shared thumbnail component with fallback
-// ---------------------------------------------------------------------------
-
-interface VideoThumbnailProps {
-  videoId: string | null | undefined;
-  title: string;
-  width?: number;
-  height?: number;
-  className?: string;
-}
-
-function VideoThumbnail({ videoId, title, width = 120, height = 68, className = '' }: VideoThumbnailProps) {
-  const [imgError, setImgError] = useState(false);
-  const src = ytThumb(videoId);
-
-  const baseStyle: React.CSSProperties = { width, height, minWidth: width };
-
-  if (!src || imgError) {
-    return (
-      <div
-        className={['bg-bg-active rounded flex items-center justify-center shrink-0', className].join(' ')}
-        style={baseStyle}
-        aria-hidden="true"
-      >
-        <ImageOff size={16} className="text-txt-tertiary" />
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={`Thumbnail for ${title}`}
-      width={width}
-      height={height}
-      className={['object-cover rounded shrink-0', className].join(' ')}
-      style={baseStyle}
-      onError={() => setImgError(true)}
-      loading="lazy"
-    />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Platform config
-// ---------------------------------------------------------------------------
-
-interface PlatformConfig {
-  id: string;
-  label: string;
-  dotClass: string;
-  bgClass: string;
-  textClass: string;
-}
-
-const PLATFORM_CONFIGS: PlatformConfig[] = [
-  { id: 'youtube', label: 'YouTube', dotClass: 'bg-red-500', bgClass: 'bg-red-500/10', textClass: 'text-red-400' },
-  { id: 'tiktok', label: 'TikTok', dotClass: 'bg-cyan-400', bgClass: 'bg-cyan-500/10', textClass: 'text-cyan-400' },
-  { id: 'instagram', label: 'Instagram', dotClass: 'bg-pink-400', bgClass: 'bg-pink-500/10', textClass: 'text-pink-400' },
-  { id: 'x', label: 'X', dotClass: 'bg-gray-300', bgClass: 'bg-gray-500/10', textClass: 'text-gray-300' },
-];
-
-function getPlatformConfig(platformId: string): PlatformConfig {
-  return (
-    PLATFORM_CONFIGS.find((p) => p.id === platformId.toLowerCase()) ?? {
-      id: platformId,
-      label: platformId,
-      dotClass: 'bg-txt-tertiary',
-      bgClass: 'bg-bg-active',
-      textClass: 'text-txt-secondary',
-    }
-  );
-}
-
-function PlatformBadge({ platform }: { platform: string }) {
-  const config = getPlatformConfig(platform);
-  return (
-    <span
-      className={[
-        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium',
-        config.bgClass,
-        config.textClass,
-      ].join(' ')}
-    >
-      <span className={['w-1.5 h-1.5 rounded-full shrink-0', config.dotClass].join(' ')} />
-      {config.label}
-    </span>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -243,17 +101,8 @@ function NotConnectedBanner({ onConnect, onWizard, connecting }: NotConnectedBan
 }
 
 // ---------------------------------------------------------------------------
-// Dashboard tab
+// Channel-wide aggregate hook + widget (shared building block).
 // ---------------------------------------------------------------------------
-
-interface DashboardTabProps {
-  channel: YouTubeChannel;
-  allChannels: YouTubeChannel[];
-  uploads: YouTubeUpload[];
-  stats: YouTubeVideoStats[];
-  socialStats: SocialPlatformStats[];
-  socialStatsLoading: boolean;
-}
 
 // Channel-wide aggregates from the synced ``youtube_channel_videos``
 // table, fetched via ``/youtube/channels/stats-overview``. Shows
@@ -263,6 +112,7 @@ interface DashboardTabProps {
 interface ChannelStatsRow {
   channel_id: string;
   channel_name: string;
+  youtube_channel_id: string;
   total_videos: number;
   shorts: number;
   longform: number;
@@ -337,510 +187,243 @@ function useChannelStatsOverview(): {
   return { rows, totals, loading, byChannelDbId };
 }
 
-function ChannelStatsOverview() {
-  const { totals, loading } = useChannelStatsOverview();
+// ---------------------------------------------------------------------------
+// Overview tab — top-level summary of every connected channel.
+// Reads the synced ``/youtube/channels/stats-overview`` aggregate and
+// surfaces totals, per-channel cards, and the top-N videos as
+// thumbnails. Designed around the post-redesign "assume every channel
+// video is Drevalis content" model — the legacy Drevalis-uploaded
+// subset is no longer surfaced here.
+// ---------------------------------------------------------------------------
 
-  if (loading) {
+interface OverviewVideo {
+  id: string;
+  channel_id: string;
+  channel_name: string;
+  youtube_video_id: string;
+  title: string;
+  thumbnail_url: string | null;
+  view_count: number;
+  is_short: boolean;
+  url: string;
+}
+
+function OverviewTab({
+  allChannels,
+  channelFilterId,
+}: {
+  allChannels: YouTubeChannel[];
+  channelFilterId: string | undefined;
+}) {
+  void allChannels;
+  const { rows, totals, loading } = useChannelStatsOverview();
+
+  const filteredRows = useMemo(() => {
+    const sorted = [...rows].sort((a, b) => b.total_views - a.total_views);
+    if (!channelFilterId) return sorted;
+    return sorted.filter((r) => r.channel_id === channelFilterId);
+  }, [rows, channelFilterId]);
+
+  const filteredTotals = useMemo(() => {
+    if (!channelFilterId) return totals;
+    const sum = filteredRows.reduce(
+      (acc, r) => ({
+        total_videos: acc.total_videos + r.total_videos,
+        total_views: acc.total_views + r.total_views,
+        total_likes: acc.total_likes + r.total_likes,
+        total_comments: acc.total_comments + r.total_comments,
+      }),
+      { total_videos: 0, total_views: 0, total_likes: 0, total_comments: 0 },
+    );
+    return { channels: filteredRows.length, ...sum };
+  }, [channelFilterId, filteredRows, totals]);
+
+  // Top-N videos for the thumbnail grid. ``sort=views`` from the
+  // backend so we don't sort client-side over what could be a wide
+  // selection. Re-fires whenever the channel filter changes.
+  const [topVideos, setTopVideos] = useState<OverviewVideo[]>([]);
+  const [topLoading, setTopLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTopLoading(true);
+    const params = new URLSearchParams({ sort: 'views', limit: '10' });
+    if (channelFilterId) params.set('channel_id', channelFilterId);
+    fetch(`/api/v1/youtube/videos?${params.toString()}`, {
+      credentials: 'include',
+    })
+      .then((r) => (r.ok ? r.json() : { videos: [] }))
+      .then((j) => {
+        if (!cancelled) setTopVideos((j.videos ?? []) as OverviewVideo[]);
+      })
+      .catch(() => {
+        if (!cancelled) setTopVideos([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTopLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [channelFilterId]);
+
+  if (loading && rows.length === 0) {
     return (
-      <Card padding="md">
-        <div className="flex items-center justify-center py-4">
-          <Spinner size="sm" />
-        </div>
-      </Card>
+      <div className="flex items-center justify-center py-16">
+        <Spinner size="md" />
+      </div>
     );
   }
-  if (!totals || totals.channels === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-5">
+      {/* KPI tiles — 4 compact stats across the top. Driven by the
+          synced channel-video aggregate; reflects the actual channel
+          state, not just Drevalis-uploaded videos. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Channel Videos"
-          value={formatNumber(totals.total_videos)}
-          icon={<ListVideo size={20} />}
+          label="Videos"
+          value={formatNumber(filteredTotals?.total_videos ?? 0)}
+          icon={<ListVideo size={18} />}
           color="#FB7185"
         />
         <StatCard
-          label="Channel Views"
-          value={formatNumber(totals.total_views)}
-          icon={<Eye size={20} />}
+          label="Views"
+          value={formatNumber(filteredTotals?.total_views ?? 0)}
+          icon={<Eye size={18} />}
           color="#F87171"
         />
         <StatCard
-          label="Channel Likes"
-          value={formatNumber(totals.total_likes)}
-          icon={<ThumbsUp size={20} />}
+          label="Likes"
+          value={formatNumber(filteredTotals?.total_likes ?? 0)}
+          icon={<ThumbsUp size={18} />}
           color="#F472B6"
         />
         <StatCard
-          label="Channel Comments"
-          value={formatNumber(totals.total_comments)}
-          icon={<MessageSquare size={20} />}
+          label="Comments"
+          value={formatNumber(filteredTotals?.total_comments ?? 0)}
+          icon={<MessageSquare size={18} />}
           color="#C084FC"
         />
       </div>
 
-      {/* Per-channel breakdown intentionally removed — duplicated the
-          rollup cards rendered by ``DashboardTab``/``AnalyticsTab``
-          one level up. Keeping just the four big totals here so the
-          two surfaces don't show the same channel twice. */}
-    </div>
-  );
-}
-
-function DashboardTab({
-  channel,
-  allChannels,
-  uploads,
-  stats,
-  socialStats,
-  socialStatsLoading,
-}: DashboardTabProps) {
-  // Hook order matters — pull synced channel totals up here so the
-  // YouTube row in the cross-platform table can reflect channel-wide
-  // numbers (post-sync) rather than just Drevalis-uploaded ones.
-  const {
-    byChannelDbId: syncedByChannelDbId,
-    totals: syncedTotals,
-  } = useChannelStatsOverview();
-
-  const drevalisViews = stats.reduce((sum, s) => sum + s.views, 0);
-  const drevalisLikes = stats.reduce((sum, s) => sum + s.likes, 0);
-  const drevalisComments = stats.reduce((sum, s) => sum + s.comments, 0);
-  // Drevalis-only engagement is what the Drevalis card next to it is
-  // meant to measure — keep it scoped to Drevalis uploads, not the
-  // whole channel, so the number lines up with the "Drevalis Likes /
-  // Views / Uploads" tiles right above.
-  const overallEngagement = engagementRate(drevalisViews, drevalisLikes, drevalisComments);
-
-  // Aliases for the "Drevalis ..." stat cards rendered further down.
-  // ``totalComments`` is computed via ``drevalisComments`` directly
-  // wherever it's needed, so no alias is required for it.
-  const totalViews = drevalisViews;
-  const totalLikes = drevalisLikes;
-
-  const recentUploads = [...uploads]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )
-    .slice(0, 5);
-
-  // Stats lookup by video ID for recent uploads section
-  const statsByVideoId = new Map<string, YouTubeVideoStats>(
-    stats.map((s) => [s.video_id, s]),
-  );
-
-  // Build a lookup for social stats by platform name
-  const socialStatsByPlatform = new Map<string, SocialPlatformStats>(
-    socialStats.map((s) => [s.platform.toLowerCase(), s]),
-  );
-
-  // Cross-platform totals (including YouTube row injected from props).
-  // The YouTube row now prefers the synced channel-wide totals over
-  // Drevalis-only stats. After a fresh install + backup-restore +
-  // reconnect, the user has 0 Drevalis uploads but their channel may
-  // still have hundreds of synced videos — the table showed 0/0/0/0
-  // for YouTube in that state, which read as "broken" even though the
-  // sync had clearly populated the DB.
-  const crossPlatformRows = PLATFORM_CONFIGS.map((cfg) => {
-    if (cfg.id === 'youtube') {
-      const useSyncedRow =
-        syncedTotals !== null && syncedTotals.total_videos > 0;
-      return {
-        config: cfg,
-        data: {
-          total_uploads: useSyncedRow ? syncedTotals.total_videos : uploads.length,
-          total_views: useSyncedRow ? syncedTotals.total_views : drevalisViews,
-          total_likes: useSyncedRow ? syncedTotals.total_likes : drevalisLikes,
-          total_comments: useSyncedRow ? syncedTotals.total_comments : drevalisComments,
-          total_shares: 0,
-        } as SocialPlatformStats,
-        connected: true,
-      };
-    }
-    const data = socialStatsByPlatform.get(cfg.id) ?? null;
-    return { config: cfg, data, connected: data !== null };
-  });
-
-  // ── Per-channel roll-up (v0.20.30 redesign) ─────────────────
-  // The rollup blends two sources:
-  //   1. Drevalis-uploaded videos (``uploads`` + per-video ``stats``)
-  //   2. **Channel-wide** numbers from the synced
-  //      ``youtube_channel_videos`` table (every video on the channel,
-  //      even ones Drevalis didn't upload).
-  // Source 2 is what the user actually wants to see on the dashboard
-  // after a fresh install + backup-restore + reconnect: their real
-  // channel size, not just whatever Drevalis happened to publish. We
-  // still surface the Drevalis-uploaded count as a sub-stat so they
-  // can spot at a glance how much of the channel came through here.
-  // (``syncedByChannelDbId`` already pulled from the hook above.)
-
-  interface ChannelRollup {
-    channel: YouTubeChannel;
-    uploadCount: number;       // Drevalis-uploaded videos
-    totalVideos: number;       // Everything synced (channel-wide)
-    views: number;             // Channel-wide views (preferred) or Drevalis-only fallback
-    likes: number;
-    comments: number;
-    lastUpload: string | null;
-    lastSyncedAt: string | null;
-    isChannelWide: boolean;    // true when numbers come from sync, false when Drevalis-only
-  }
-  const statsByVideoIdForRollup = new Map<string, YouTubeVideoStats>(
-    stats.map((s) => [s.video_id, s]),
-  );
-  const displayChannels = allChannels.length > 0 ? allChannels : [channel];
-  const channelRollups: ChannelRollup[] = displayChannels.map((ch) => {
-    const ups = uploads.filter((u) => (u as any).channel_id === ch.id);
-    let drevalisViews = 0;
-    let drevalisLikes = 0;
-    let drevalisComments = 0;
-    let lastUpload: string | null = null;
-    for (const u of ups) {
-      if (!lastUpload || u.created_at > lastUpload) lastUpload = u.created_at;
-      const s = u.youtube_video_id
-        ? statsByVideoIdForRollup.get(u.youtube_video_id)
-        : undefined;
-      if (s) {
-        drevalisViews += s.views;
-        drevalisLikes += s.likes;
-        drevalisComments += s.comments;
-      }
-    }
-
-    const synced = syncedByChannelDbId.get(ch.id);
-    const useSynced = synced !== undefined && synced.total_videos > 0;
-    return {
-      channel: ch,
-      uploadCount: ups.length,
-      totalVideos: synced?.total_videos ?? ups.length,
-      views: useSynced ? synced!.total_views : drevalisViews,
-      likes: useSynced ? synced!.total_likes : drevalisLikes,
-      comments: useSynced ? synced!.total_comments : drevalisComments,
-      lastUpload,
-      lastSyncedAt: synced?.last_synced_at ?? null,
-      isChannelWide: useSynced,
-    };
-  });
-  // Sort: most-viewed channels first — that's usually the one the
-  // operator wants to tend to.
-  channelRollups.sort((a, b) => b.views - a.views);
-
-  return (
-    <div className="space-y-6">
-      {/* ── Per-channel overview cards (v0.20.30) ────────────────
-          Each card surfaces the four numbers that matter: uploads,
-          views, likes, comments. Sorted by views so top-performing
-          channels float to the top — the ones you actually want to
-          tend to first. The small sparkbar under the stats compares
-          each channel's views against the best performer so relative
-          size is scannable at a glance. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {channelRollups.map((r) => {
-          const topViews = channelRollups[0]?.views ?? 0;
-          const viewPct = topViews > 0 ? (r.views / topViews) * 100 : 0;
-          const engage = engagementRate(r.views, r.likes, r.comments);
-          return (
-            <Card
-              key={r.channel.id}
-              padding="md"
-              className="hover:border-accent/40 transition-colors"
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-accent-muted flex items-center justify-center shrink-0">
-                  <Youtube size={18} className="text-accent" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-txt-primary truncate">
-                      {r.channel.channel_name}
+      {/* Per-channel mini cards — 4 per row on wide screens. Lean
+          enough that ~10 channels fit on a 1280px screen without
+          scrolling, which was the main complaint about the previous
+          three-up grid. */}
+      {filteredRows.length > 0 && (
+        <Card padding="md">
+          <CardHeader>
+            <CardTitle className="text-sm">Channels</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+              {filteredRows.map((r) => {
+                const top = filteredRows[0];
+                const widthPct =
+                  top && top.total_views > 0
+                    ? Math.max(2, (r.total_views / top.total_views) * 100)
+                    : 0;
+                return (
+                  <div
+                    key={r.channel_id}
+                    className="rounded-md border border-border hover:border-border-hover transition-colors p-2.5"
+                  >
+                    <p className="text-xs font-semibold text-txt-primary truncate">
+                      {r.channel_name}
                     </p>
-                    <Badge variant="success" dot>
-                      Live
-                    </Badge>
+                    <p className="text-[10px] text-txt-tertiary truncate mt-0.5 font-mono">
+                      {r.youtube_channel_id}
+                    </p>
+                    <div className="flex items-baseline gap-2 mt-1.5">
+                      <span className="text-base font-semibold text-txt-primary leading-none">
+                        {formatNumber(r.total_views)}
+                      </span>
+                      <span className="text-[10px] text-txt-tertiary">views</span>
+                    </div>
+                    <div className="h-0.5 rounded-full bg-bg-elevated overflow-hidden mt-1.5">
+                      <div
+                        className="h-full rounded-full bg-accent"
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-txt-tertiary mt-1.5">
+                      <span>{r.total_videos} videos</span>
+                      <span>
+                        {formatNumber(r.total_likes)} likes
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-txt-tertiary truncate mt-0.5 font-mono">
-                    {r.channel.channel_id}
-                  </p>
-                </div>
-              </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-              {/* Stat grid — 2x2 layout on the card so the four
-                  numbers are always visible without scrolling. Numbers
-                  are channel-wide (from sync) when available; the
-                  Drevalis-uploaded count is shown as a sub-stat under
-                  Videos so you can see how much of the channel came
-                  through here. */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="rounded-md bg-bg-elevated/60 px-2.5 py-2">
-                  <div className="flex items-center gap-1 text-[10px] text-txt-tertiary uppercase tracking-wider">
-                    <ListVideo size={10} /> Videos
-                  </div>
-                  <div className="text-lg font-semibold text-txt-primary mt-0.5 leading-none">
-                    {formatNumber(r.totalVideos)}
-                  </div>
-                  <div className="text-[10px] text-txt-tertiary mt-0.5 leading-none">
-                    {r.isChannelWide
-                      ? `${formatNumber(Math.min(r.uploadCount, r.totalVideos))} via Drevalis`
-                      : 'via Drevalis'}
-                  </div>
-                </div>
-                <div className="rounded-md bg-bg-elevated/60 px-2.5 py-2">
-                  <div className="flex items-center gap-1 text-[10px] text-txt-tertiary uppercase tracking-wider">
-                    <Eye size={10} /> Views
-                  </div>
-                  <div className="text-lg font-semibold text-txt-primary mt-0.5 leading-none">
-                    {formatNumber(r.views)}
-                  </div>
-                </div>
-                <div className="rounded-md bg-bg-elevated/60 px-2.5 py-2">
-                  <div className="flex items-center gap-1 text-[10px] text-txt-tertiary uppercase tracking-wider">
-                    <ThumbsUp size={10} /> Likes
-                  </div>
-                  <div className="text-lg font-semibold text-txt-primary mt-0.5 leading-none">
-                    {formatNumber(r.likes)}
-                  </div>
-                </div>
-                <div className="rounded-md bg-bg-elevated/60 px-2.5 py-2">
-                  <div className="flex items-center gap-1 text-[10px] text-txt-tertiary uppercase tracking-wider">
-                    <MessageSquare size={10} /> Comments
-                  </div>
-                  <div className="text-lg font-semibold text-txt-primary mt-0.5 leading-none">
-                    {formatNumber(r.comments)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Relative-views sparkbar + engagement + last upload */}
-              <div className="h-1 rounded-full bg-bg-elevated overflow-hidden mb-2">
-                <div
-                  className="h-full rounded-full bg-accent transition-all"
-                  style={{ width: `${Math.max(2, viewPct)}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-txt-tertiary">
-                <span className="flex items-center gap-1">
-                  <Percent size={10} />
-                  {formatEngagement(engage)}
-                </span>
-                {r.lastSyncedAt ? (
-                  <span title={`Synced ${new Date(r.lastSyncedAt).toLocaleString()}`}>
-                    Synced: {formatDate(r.lastSyncedAt)}
-                  </span>
-                ) : r.lastUpload ? (
-                  <span title={new Date(r.lastUpload).toLocaleString()}>
-                    Last: {formatDate(r.lastUpload)}
-                  </span>
-                ) : null}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Channel-wide aggregates from the synced YouTubeChannelVideo
-          rows — counts everything on the channel, not just Drevalis
-          uploads. Drevalis-only stats follow below for comparison. */}
-      <ChannelStatsOverview />
-
-      {/* Drevalis-uploads aggregates. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Drevalis Uploads"
-          value={formatNumber(uploads.length)}
-          icon={<Upload size={20} />}
-          color="#A78BFA"
-        />
-        <StatCard
-          label="Drevalis Views"
-          value={formatNumber(totalViews)}
-          icon={<Eye size={20} />}
-          color="#60A5FA"
-        />
-        <StatCard
-          label="Drevalis Likes"
-          value={formatNumber(totalLikes)}
-          icon={<ThumbsUp size={20} />}
-          color="#34D399"
-        />
-        <StatCard
-          label="Engagement Rate"
-          value={formatEngagement(overallEngagement)}
-          icon={<Percent size={20} />}
-          color="#FBBF24"
-        />
-      </div>
-
-      {/* Cross-platform performance */}
+      {/* Top videos — 2x5 thumbnail grid. Clicking opens the video on
+          YouTube. The data feed is the synced channel videos sorted
+          by views; we don't gate on the user having Drevalis-uploaded
+          rows because pre-redesign installs don't carry that history. */}
       <Card padding="md">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Globe size={16} className="text-txt-secondary" />
-            <CardTitle>Cross-Platform Performance</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Top videos</CardTitle>
+            <span className="text-[11px] text-txt-tertiary">
+              by views
+            </span>
           </div>
         </CardHeader>
         <CardContent>
-          {socialStatsLoading ? (
+          {topLoading && topVideos.length === 0 ? (
             <div className="flex items-center justify-center py-6">
               <Spinner size="sm" />
             </div>
-          ) : (
-            <>
-              {/* Column headers */}
-              <div className="grid grid-cols-12 gap-3 px-1 pb-2 mb-1 border-b border-border">
-                <span className="col-span-3 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-                  Platform
-                </span>
-                <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-                  <Upload size={10} />
-                  Uploads
-                </span>
-                <span className="col-span-3 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-                  <Eye size={10} />
-                  Views
-                </span>
-                <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-                  <ThumbsUp size={10} />
-                  Likes
-                </span>
-                <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-                  <Share2 size={10} />
-                  Shares
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                {crossPlatformRows.map(({ config, data, connected }) => (
-                  <div
-                    key={config.id}
-                    className="grid grid-cols-12 gap-3 items-center px-1 py-2 rounded hover:bg-bg-hover transition-colors duration-fast"
-                  >
-                    <div className="col-span-3 flex items-center gap-2 min-w-0">
-                      <span
-                        className={[
-                          'w-2 h-2 rounded-full shrink-0',
-                          config.dotClass,
-                        ].join(' ')}
-                      />
-                      <span className={['text-sm font-medium truncate', config.textClass].join(' ')}>
-                        {config.label}
-                      </span>
-                    </div>
-
-                    {connected && data ? (
-                      <>
-                        <div className="col-span-2">
-                          <span className="text-sm text-txt-primary font-medium">
-                            {formatNumber(data.total_uploads)}
-                          </span>
-                        </div>
-                        <div className="col-span-3">
-                          <span className="text-sm text-txt-primary">
-                            {formatNumber(data.total_views)}
-                          </span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-sm text-txt-primary">
-                            {formatNumber(data.total_likes)}
-                          </span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-sm text-txt-primary">
-                            {formatNumber(data.total_shares)}
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="col-span-9">
-                        <span className="text-xs text-txt-tertiary italic">
-                          Not connected
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent uploads */}
-      <Card padding="md">
-        <CardHeader>
-          <CardTitle>Recent Uploads</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentUploads.length === 0 ? (
-            <p className="text-sm text-txt-tertiary py-4 text-center">
-              No uploads yet.
+          ) : topVideos.length === 0 ? (
+            <p className="text-xs text-txt-tertiary py-3">
+              No videos synced yet. Hit "Sync all channels" above to pull
+              them in.
             </p>
           ) : (
-            <ul className="space-y-3">
-              {recentUploads.map((u) => {
-                const videoStats = u.youtube_video_id
-                  ? statsByVideoId.get(u.youtube_video_id)
-                  : undefined;
-                return (
-                  <li
-                    key={u.id}
-                    className="flex items-center gap-3 py-2 border-b border-border last:border-0"
-                  >
-                    {/* Thumbnail */}
-                    <VideoThumbnail
-                      videoId={u.youtube_video_id}
-                      title={u.title}
-                      width={96}
-                      height={54}
-                      className="rounded"
-                    />
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-txt-primary truncate">
-                        {u.title}
-                      </p>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <span className="text-xs text-txt-tertiary">
-                          {formatDate(u.created_at)}
-                        </span>
-                        {videoStats && videoStats.views > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-txt-secondary">
-                            <Eye size={10} className="shrink-0" />
-                            {formatNumber(videoStats.views)}
-                          </span>
-                        )}
-                        {videoStats && videoStats.likes > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-txt-secondary">
-                            <ThumbsUp size={10} className="shrink-0" />
-                            {formatNumber(videoStats.likes)}
-                          </span>
-                        )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+              {topVideos.map((v) => (
+                <a
+                  key={v.id}
+                  href={v.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block focus:outline-none focus:ring-2 focus:ring-accent rounded"
+                  title={v.title}
+                >
+                  <div className="relative aspect-video rounded overflow-hidden bg-bg-elevated">
+                    {v.thumbnail_url ? (
+                      <img
+                        src={v.thumbnail_url}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-txt-tertiary">
+                        <ImageOff size={20} />
                       </div>
-                    </div>
-
-                    {/* Right side */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={uploadStatusVariant(u.upload_status)} dot>
-                        {u.upload_status}
-                      </Badge>
-                      {u.youtube_url && (
-                        <a
-                          href={u.youtube_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-txt-tertiary hover:text-accent transition-colors duration-fast"
-                          aria-label={`Open ${u.title} on YouTube`}
-                        >
-                          <ExternalLink size={13} />
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    )}
+                    <span className="absolute top-1 right-1 text-[9px] font-semibold bg-bg-base/80 backdrop-blur-sm rounded px-1 py-0.5 text-txt-primary">
+                      {v.is_short ? 'Short' : 'Long'}
+                    </span>
+                    <span className="absolute bottom-1 right-1 text-[10px] font-medium bg-bg-base/80 backdrop-blur-sm rounded px-1.5 py-0.5 text-txt-primary">
+                      {formatNumber(v.view_count)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-txt-primary mt-1.5 truncate group-hover:text-accent transition-colors">
+                    {v.title}
+                  </p>
+                  <p className="text-[10px] text-txt-tertiary truncate">
+                    {v.channel_name}
+                  </p>
+                </a>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -849,737 +432,208 @@ function DashboardTab({
 }
 
 // ---------------------------------------------------------------------------
-// Uploads tab
+// Videos tab — flat sortable list of every synced channel video.
+// Replaces the legacy Uploads tab + Library bulk-actions for the
+// at-a-glance "show me all my videos with stats" use case.
 // ---------------------------------------------------------------------------
 
-interface UploadsTabProps {
-  uploads: YouTubeUpload[];
-  loading: boolean;
-  channelMap?: Record<string, string>;
-  onUploadsChanged?: () => void;
-}
-
-// ── Duplicate detection panel ────────────────────────────────────────────
-//
-// Surfaces (episode, channel) pairs with more than one ``done`` upload row
-// and offers a one-click cleanup. The earliest row is kept; the rest are
-// marked ``failed`` with an audit reason and (when ``deleteOnYoutube`` is
-// on) deleted from YouTube via the Data API.
-
-interface DuplicateGroup {
-  episode_id: string;
+interface VideosTabRow {
+  id: string;
   channel_id: string;
-  keep: { upload_id: string; video_id: string | null };
-  duplicates: Array<{
-    upload_id: string;
-    video_id: string | null;
-    created_at: string | null;
-  }>;
+  channel_name: string;
+  youtube_video_id: string;
+  title: string;
+  thumbnail_url: string | null;
+  published_at: string | null;
+  duration_seconds: number | null;
+  is_short: boolean;
+  view_count: number;
+  like_count: number;
+  comment_count: number;
+  url: string;
 }
 
-function DuplicatesPanel({
-  uploads,
-  channelMap,
-  onAfterDedupe,
-}: {
-  uploads: YouTubeUpload[];
-  channelMap?: Record<string, string>;
-  onAfterDedupe: () => void;
-}) {
-  const { toast } = useToast();
-  const [groups, setGroups] = useState<DuplicateGroup[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteOnYouTube, setDeleteOnYouTube] = useState(true);
-  const [running, setRunning] = useState(false);
+function VideosTab({ channelFilterId }: { channelFilterId: string | undefined }) {
+  const [videos, setVideos] = useState<VideosTabRow[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [kind, setKind] = useState<'all' | 'shorts' | 'longform'>('all');
+  const [sort, setSort] = useState<'views' | 'likes' | 'comments' | 'published'>(
+    'views',
+  );
 
-  const fetch = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    try {
-      const res = await youtubeApi.listDuplicateUploads();
-      setGroups(res.groups);
-    } catch (err) {
-      toast.error('Failed to scan for duplicates', { description: String(err) });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    void fetch();
-  }, [fetch]);
-
-  // Re-scan whenever the upload list changes — newly-completed uploads
-  // can introduce new duplicates we want to surface.
-  useEffect(() => {
-    if (!loading && groups !== null) void fetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploads.length]);
-
-  const uploadById = useMemo(
-    () => new Map(uploads.map((u) => [u.id, u])),
-    [uploads],
-  );
-
-  const handleDedupe = async () => {
-    setRunning(true);
-    try {
-      const res = await youtubeApi.dedupeUploads(deleteOnYouTube);
-      const removedCount = res.rows_marked_failed;
-      const ytCount = res.videos_deleted;
-      toast.success(
-        `Removed ${removedCount} duplicate row${removedCount === 1 ? '' : 's'}`,
-        {
-          description: deleteOnYouTube
-            ? `${ytCount} video${ytCount === 1 ? '' : 's'} deleted from YouTube`
-            : 'Database rows marked failed; videos remain on YouTube',
-        },
-      );
-      if (res.delete_errors.length > 0) {
-        toast.warning('Some YouTube deletes failed', {
-          description: res.delete_errors.slice(0, 2).join('; '),
-        });
-      }
-      setConfirmOpen(false);
-      setReviewOpen(false);
-      setGroups([]);
-      onAfterDedupe();
-    } catch (err) {
-      toast.error('Dedup failed', { description: String(err) });
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  if (loading || groups === null || groups.length === 0) return null;
-
-  const totalDuplicates = groups.reduce((acc, g) => acc + g.duplicates.length, 0);
-
-  return (
-    <>
-      <Card padding="md" className="border-warning/30 bg-warning/[0.05]">
-        <div className="flex items-start gap-3">
-          <Copy size={18} className="shrink-0 mt-0.5 text-warning" aria-hidden="true" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-display font-semibold text-txt-primary">
-              {groups.length} duplicate group{groups.length === 1 ? '' : 's'} found ·{' '}
-              {totalDuplicates} extra upload{totalDuplicates === 1 ? '' : 's'}
-            </p>
-            <p className="text-xs text-txt-secondary mt-1">
-              The earliest upload per (episode, channel) is the canonical one.
-              Reviewing lets you remove the rest from the database — and from
-              YouTube itself, if you want.
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={() => setReviewOpen(true)}>
-            Review
-          </Button>
-        </div>
-      </Card>
-
-      <Dialog
-        open={reviewOpen}
-        onClose={() => setReviewOpen(false)}
-        title="Duplicate uploads"
-        maxWidth="lg"
-      >
-        <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-          {groups.map((g) => {
-            const channel = channelMap?.[g.channel_id] ?? g.channel_id.slice(0, 8);
-            const keepRow = uploadById.get(g.keep.upload_id);
-            return (
-              <Card key={`${g.episode_id}-${g.channel_id}`} padding="sm">
-                <p className="text-xs font-medium text-txt-primary mb-2">
-                  {keepRow?.title ?? '(unknown episode)'} ·{' '}
-                  <span className="text-accent">{channel}</span>
-                </p>
-                <p className="text-[11px] text-txt-tertiary mb-1">
-                  Keeping: <span className="font-mono">{g.keep.video_id ?? g.keep.upload_id.slice(0, 8)}</span>
-                </p>
-                <p className="text-[11px] text-txt-tertiary">
-                  Removing {g.duplicates.length}:{' '}
-                  {g.duplicates.map((d, i) => (
-                    <span key={d.upload_id}>
-                      {i > 0 && ', '}
-                      <span className="font-mono">{d.video_id ?? d.upload_id.slice(0, 8)}</span>
-                    </span>
-                  ))}
-                </p>
-              </Card>
-            );
-          })}
-        </div>
-        <label className="flex items-center gap-2 mt-3 text-xs text-txt-secondary">
-          <input
-            type="checkbox"
-            checked={deleteOnYouTube}
-            onChange={(e) => setDeleteOnYouTube(e.target.checked)}
-          />
-          Also delete the duplicate videos from YouTube (irreversible)
-        </label>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setReviewOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-            Remove duplicates
-          </Button>
-        </DialogFooter>
-      </Dialog>
-
-      <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title="Confirm dedup"
-        maxWidth="sm"
-      >
-        <p className="text-sm text-txt-secondary">
-          {deleteOnYouTube ? (
-            <>
-              This will mark {totalDuplicates} database row{totalDuplicates === 1 ? '' : 's'} as
-              failed AND <strong className="text-error">permanently delete the videos
-              from YouTube</strong>. This cannot be undone.
-            </>
-          ) : (
-            <>
-              This will mark {totalDuplicates} database row{totalDuplicates === 1 ? '' : 's'} as
-              failed. The videos themselves will stay on YouTube.
-            </>
-          )}
-        </p>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={running}>
-            Cancel
-          </Button>
-          <Button variant="destructive" loading={running} onClick={() => void handleDedupe()}>
-            Confirm
-          </Button>
-        </DialogFooter>
-      </Dialog>
-    </>
-  );
-}
-
-function UploadsTab({ uploads, loading, channelMap, onUploadsChanged }: UploadsTabProps) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size="md" />
-      </div>
-    );
-  }
-
-  if (uploads.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Upload size={32} className="text-txt-tertiary" />
-        <p className="text-sm text-txt-secondary">No uploads found.</p>
-        <p className="text-xs text-txt-tertiary">
-          Upload an episode from the Episodes page.
-        </p>
-      </div>
-    );
-  }
-
-  const sorted = [...uploads].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
+    const params = new URLSearchParams({
+      sort,
+      kind,
+      limit: '500',
+    });
+    if (channelFilterId) params.set('channel_id', channelFilterId);
+    fetch(`/api/v1/youtube/videos?${params.toString()}`, {
+      credentials: 'include',
+    })
+      .then((r) => (r.ok ? r.json() : { videos: [], total: 0 }))
+      .then((j) => {
+        if (!cancelled) {
+          setVideos((j.videos ?? []) as VideosTabRow[]);
+          setTotal(Number(j.total ?? 0));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setVideos([]);
+          setTotal(0);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sort, kind, channelFilterId]);
 
   return (
     <div className="space-y-3">
-      <DuplicatesPanel
-        uploads={uploads}
-        channelMap={channelMap}
-        onAfterDedupe={() => onUploadsChanged?.()}
-      />
-      {sorted.map((upload) => {
-        const channelName = channelMap?.[(upload as any).channel_id] ?? null;
-        return (
-          <Card key={upload.id} padding="md">
-            <div className="flex items-start gap-4">
-              {/* Thumbnail */}
-              <VideoThumbnail
-                videoId={upload.youtube_video_id}
-                title={upload.title}
-                width={120}
-                height={68}
-                className="mt-0.5"
-              />
-
-              {/* Main info */}
-              <div className="flex-1 min-w-0 space-y-1.5">
-                {/* Row 1: title + channel badge + status badge */}
-                <div className="flex items-start gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-txt-primary leading-snug">
-                    {upload.title}
-                  </p>
-                  {channelName && (
-                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-muted text-accent font-medium">
-                      <Youtube size={10} />
-                      {channelName}
-                    </span>
-                  )}
-                  <Badge variant={uploadStatusVariant(upload.upload_status)} dot className="shrink-0">
-                    {upload.upload_status}
-                  </Badge>
-                </div>
-
-                {/* Row 2: description (1-line truncate) */}
-                {(upload as any).description && (
-                  <p className="text-xs text-txt-secondary truncate max-w-prose">
-                    {(upload as any).description}
-                  </p>
-                )}
-
-                {/* Row 3: error message if any */}
-                {upload.error_message && (
-                  <p className="text-xs text-error truncate">
-                    {upload.error_message}
-                  </p>
-                )}
-
-                {/* Row 4: meta — privacy, date, stats */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs text-txt-tertiary capitalize">
-                    {upload.privacy_status}
-                  </span>
-                  <span className="text-txt-tertiary text-xs">·</span>
-                  <span className="text-xs text-txt-tertiary">
-                    {formatDate(upload.created_at)}
-                  </span>
-                  {(upload as any).views != null && (upload as any).views > 0 && (
-                    <>
-                      <span className="text-txt-tertiary text-xs">·</span>
-                      <span className="flex items-center gap-1 text-xs text-txt-secondary">
-                        <Eye size={10} className="shrink-0" />
-                        {formatNumber((upload as any).views)}
-                      </span>
-                    </>
-                  )}
-                  {(upload as any).likes != null && (upload as any).likes > 0 && (
-                    <span className="flex items-center gap-1 text-xs text-txt-secondary">
-                      <ThumbsUp size={10} className="shrink-0" />
-                      {formatNumber((upload as any).likes)}
-                    </span>
-                  )}
-                  {(upload as any).comments != null && (upload as any).comments > 0 && (
-                    <span className="flex items-center gap-1 text-xs text-txt-secondary">
-                      <MessageSquare size={10} className="shrink-0" />
-                      {formatNumber((upload as any).comments)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* External link */}
-              {upload.youtube_url && (
-                <a
-                  href={upload.youtube_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 p-1.5 rounded text-txt-tertiary hover:text-accent hover:bg-accent-muted transition-colors duration-fast mt-0.5"
-                  aria-label={`Open ${upload.title} on YouTube`}
-                >
-                  <ExternalLink size={14} />
-                </a>
-              )}
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Playlists tab
-// ---------------------------------------------------------------------------
-
-interface PlaylistsTabProps {
-  playlists: YouTubePlaylist[];
-  loading: boolean;
-  onPlaylistCreated: () => void;
-  channelId?: string;
-}
-
-function PlaylistsTab({
-  playlists,
-  loading,
-  onPlaylistCreated,
-  channelId,
-}: PlaylistsTabProps) {
-  const { toast } = useToast();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [privacy, setPrivacy] = useState<'public' | 'unlisted' | 'private'>('private');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-
-  const handleCreate = useCallback(async () => {
-    if (!title.trim()) return;
-    setCreating(true);
-    setCreateError(null);
-    try {
-      await youtubeApi.createPlaylist(
-        {
-          title: title.trim(),
-          description: description.trim() || undefined,
-          privacy_status: privacy,
-        },
-        channelId,
-      );
-      setTitle('');
-      setDescription('');
-      setPrivacy('private');
-      setCreateOpen(false);
-      onPlaylistCreated();
-      toast.success('Playlist created', { description: title.trim() });
-    } catch (err) {
-      setCreateError(
-        err instanceof Error ? err.message : 'Failed to create playlist.',
-      );
-      toast.error('Failed to create playlist', { description: String(err) });
-    } finally {
-      setCreating(false);
-    }
-  }, [title, description, privacy, onPlaylistCreated, toast]);
-
-  const handleDelete = useCallback(
-    async (playlistId: string) => {
-      setDeletingId(playlistId);
-      try {
-        await youtubeApi.deletePlaylist(playlistId);
-        toast.success('Playlist deleted');
-        onPlaylistCreated(); // reuse refresh callback
-      } catch (err) {
-        toast.error('Failed to delete playlist', { description: String(err) });
-      } finally {
-        setDeletingId(null);
-        setConfirmDeleteId(null);
-      }
-    },
-    [onPlaylistCreated, toast],
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size="md" />
-      </div>
-    );
-  }
-
-  const playlistToDelete = playlists.find((p) => p.id === confirmDeleteId);
-
-  return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-txt-secondary">
-          {playlists.length} playlist{playlists.length !== 1 ? 's' : ''}
-        </p>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => setCreateOpen(true)}
+      {/* Filter row */}
+      <div className="flex items-center gap-2 flex-wrap text-xs">
+        <select
+          value={kind}
+          onChange={(e) =>
+            setKind(e.target.value as 'all' | 'shorts' | 'longform')
+          }
+          className="bg-bg-elevated border border-border rounded px-2 py-1 text-txt-primary"
+          aria-label="Filter by kind"
         >
-          <Plus size={14} />
-          Create Playlist
-        </Button>
+          <option value="all">All kinds</option>
+          <option value="shorts">Shorts</option>
+          <option value="longform">Long-form</option>
+        </select>
+        <select
+          value={sort}
+          onChange={(e) =>
+            setSort(
+              e.target.value as 'views' | 'likes' | 'comments' | 'published',
+            )
+          }
+          className="bg-bg-elevated border border-border rounded px-2 py-1 text-txt-primary"
+          aria-label="Sort by"
+        >
+          <option value="views">Sort: Views</option>
+          <option value="likes">Sort: Likes</option>
+          <option value="comments">Sort: Comments</option>
+          <option value="published">Sort: Recent</option>
+        </select>
+        <span className="text-txt-tertiary ml-auto">
+          {loading ? 'Loading…' : `${formatNumber(videos.length)} of ${formatNumber(total)}`}
+        </span>
       </div>
 
-      {/* List */}
-      {playlists.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <ListVideo size={32} className="text-txt-tertiary" />
-          <p className="text-sm text-txt-secondary">No playlists yet.</p>
+      {loading && videos.length === 0 ? (
+        <div className="flex items-center justify-center py-16">
+          <Spinner size="md" />
         </div>
+      ) : videos.length === 0 ? (
+        <Card padding="md">
+          <p className="text-sm text-txt-tertiary py-6 text-center">
+            No videos found. Sync your channels above to pull the latest
+            list from YouTube.
+          </p>
+        </Card>
       ) : (
-        <div className="space-y-2">
-          {playlists.map((pl) => (
-            <Card key={pl.id} padding="md">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-md bg-accent-muted flex items-center justify-center shrink-0">
-                  <ListVideo size={15} className="text-accent" />
+        <div className="space-y-1">
+          {/* Header */}
+          <div className="grid grid-cols-12 gap-2 px-2 py-1 text-[10px] uppercase tracking-wider text-txt-tertiary">
+            <span className="col-span-5">Video</span>
+            <span className="col-span-2">Channel</span>
+            <span className="col-span-1 text-right">Views</span>
+            <span className="col-span-1 text-right">Likes</span>
+            <span className="col-span-1 text-right">Cmts</span>
+            <span className="col-span-2">Published</span>
+          </div>
+          {videos.map((v) => (
+            <a
+              key={v.id}
+              href={v.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded border border-border hover:border-accent/40 hover:bg-bg-hover transition-colors duration-fast"
+            >
+              <div className="col-span-5 flex items-center gap-2 min-w-0">
+                <div className="w-16 aspect-video rounded overflow-hidden bg-bg-elevated shrink-0">
+                  {v.thumbnail_url ? (
+                    <img
+                      src={v.thumbnail_url}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-txt-tertiary">
+                      <ImageOff size={14} />
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-txt-primary truncate">
-                    {pl.title}
+                <div className="min-w-0">
+                  <p className="text-xs text-txt-primary truncate leading-tight">
+                    {v.title}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-txt-tertiary capitalize">
-                      {pl.privacy_status}
-                    </span>
-                    <span className="text-txt-tertiary text-xs">·</span>
-                    <span className="text-xs text-txt-tertiary">
-                      {pl.item_count} video{pl.item_count !== 1 ? 's' : ''}
-                    </span>
-                    {pl.description && (
-                      <>
-                        <span className="text-txt-tertiary text-xs">·</span>
-                        <span className="text-xs text-txt-tertiary truncate max-w-[200px]">
-                          {pl.description}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <a
-                    href={`https://www.youtube.com/playlist?list=${pl.youtube_playlist_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1.5 rounded text-txt-tertiary hover:text-accent hover:bg-accent-muted transition-colors duration-fast"
-                    aria-label={`Open playlist ${pl.title} on YouTube`}
-                  >
-                    <ExternalLink size={13} />
-                  </a>
-                  <button
-                    onClick={() => setConfirmDeleteId(pl.id)}
-                    disabled={deletingId === pl.id}
-                    className="p-1.5 rounded text-txt-tertiary hover:text-error hover:bg-error-muted transition-colors duration-fast disabled:opacity-50"
-                    aria-label={`Delete playlist ${pl.title}`}
-                  >
-                    {deletingId === pl.id ? (
-                      <Loader2 size={13} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={13} />
-                    )}
-                  </button>
+                  <span className="text-[10px] text-txt-tertiary inline-flex items-center gap-1">
+                    {v.is_short ? 'Short' : 'Long-form'}
+                    {v.duration_seconds ? (
+                      <span>
+                        Â· {Math.floor(v.duration_seconds / 60)}:
+                        {String(v.duration_seconds % 60).padStart(2, '0')}
+                      </span>
+                    ) : null}
+                  </span>
                 </div>
               </div>
-            </Card>
+              <span className="col-span-2 text-xs text-txt-secondary truncate">
+                {v.channel_name}
+              </span>
+              <span className="col-span-1 text-right text-xs text-txt-primary font-medium">
+                {formatNumber(v.view_count)}
+              </span>
+              <span className="col-span-1 text-right text-xs text-txt-secondary">
+                {formatNumber(v.like_count)}
+              </span>
+              <span className="col-span-1 text-right text-xs text-txt-secondary">
+                {formatNumber(v.comment_count)}
+              </span>
+              <span className="col-span-2 text-xs text-txt-tertiary">
+                {v.published_at ? formatDate(v.published_at) : '—'}
+              </span>
+            </a>
           ))}
         </div>
       )}
-
-      {/* Create dialog */}
-      <Dialog
-        open={createOpen}
-        onClose={() => {
-          setCreateOpen(false);
-          setCreateError(null);
-        }}
-        title="Create Playlist"
-        maxWidth="sm"
-      >
-        <div className="space-y-3">
-          <div>
-            <label
-              htmlFor="playlist-title"
-              className="block text-xs font-medium text-txt-secondary mb-1"
-            >
-              Title
-            </label>
-            <Input
-              id="playlist-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="My Shorts Playlist"
-              aria-required="true"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="playlist-description"
-              className="block text-xs font-medium text-txt-secondary mb-1"
-            >
-              Description (optional)
-            </label>
-            <Input
-              id="playlist-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="A collection of shorts..."
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="playlist-privacy"
-              className="block text-xs font-medium text-txt-secondary mb-1"
-            >
-              Privacy
-            </label>
-            <Select
-              id="playlist-privacy"
-              value={privacy}
-              onChange={(e) =>
-                setPrivacy(e.target.value as 'public' | 'unlisted' | 'private')
-              }
-              options={[
-                { value: 'private', label: 'Private' },
-                { value: 'unlisted', label: 'Unlisted' },
-                { value: 'public', label: 'Public' },
-              ]}
-            />
-          </div>
-          {createError && (
-            <div
-              className="flex items-center gap-2 text-sm text-error"
-              role="alert"
-              aria-live="polite"
-            >
-              <AlertTriangle size={14} className="shrink-0" />
-              {createError}
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setCreateOpen(false);
-              setCreateError(null);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            loading={creating}
-            disabled={!title.trim()}
-            onClick={() => void handleCreate()}
-          >
-            Create
-          </Button>
-        </DialogFooter>
-      </Dialog>
-
-      {/* Delete confirm dialog */}
-      <Dialog
-        open={confirmDeleteId !== null}
-        onClose={() => setConfirmDeleteId(null)}
-        title="Delete Playlist"
-        maxWidth="sm"
-      >
-        <p className="text-sm text-txt-secondary">
-          Are you sure you want to delete{' '}
-          <span className="font-medium text-txt-primary">
-            {playlistToDelete?.title}
-          </span>
-          ? This action cannot be undone.
-        </p>
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setConfirmDeleteId(null)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            loading={deletingId === confirmDeleteId}
-            onClick={() =>
-              confirmDeleteId !== null && void handleDelete(confirmDeleteId)
-            }
-          >
-            <Trash2 size={14} />
-            Delete
-          </Button>
-        </DialogFooter>
-      </Dialog>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Analytics tab
+// Performance tab — channel-level analytics from the YouTube Analytics
+// API (views, watch time, retention, subs, card CTR). Different from
+// the synced ``youtube_channel_videos`` aggregate because this hits
+// the live Analytics API (requires the analytics OAuth scope) and
+// surfaces metrics that aren't in the videos.list endpoint.
 // ---------------------------------------------------------------------------
 
-interface AnalyticsTabProps {
-  uploads: YouTubeUpload[];
-  loading: boolean;
-  channelMap?: Record<string, string>;
-  // v0.20.18 — explicit channel scoping. Required when the install
-  // has > 1 connected channel; the backend 400s without it.
-  channelId?: string;
-}
-
-function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: AnalyticsTabProps) {
-  const [stats, setStats] = useState<YouTubeVideoStats[]>([]);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
-
-  const [channelAnalytics, setChannelAnalytics] = useState<YouTubeChannelAnalytics | null>(null);
-  const [channelAnalyticsErr, setChannelAnalyticsErr] = useState<null | { kind: 'scope' | 'other'; msg: string }>(null);
-  const [windowDays, setWindowDays] = useState<7 | 28 | 90 | 365>(28);
-
-  const completedUploads = useMemo(
-    () =>
-      uploads.filter((u) => u.upload_status === 'done' && u.youtube_video_id),
-    [uploads],
+function PerformanceTab({ channelId }: { channelId: string | undefined }) {
+  const [channelAnalytics, setChannelAnalytics] =
+    useState<YouTubeChannelAnalytics | null>(null);
+  const [err, setErr] = useState<null | { kind: 'scope' | 'other'; msg: string }>(
+    null,
   );
+  const [windowDays, setWindowDays] = useState<7 | 28 | 90 | 365>(28);
+  const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
-    if (completedUploads.length === 0) {
-      setStats([]);
-      return;
-    }
-    setStatsLoading(true);
-    setStatsError(null);
-    try {
-      // Group video IDs by their owning channel — every channel's
-      // OAuth token is only valid for its own videos. A request that
-      // mixes channels 500s on the first cross-channel ID. Then chunk
-      // each channel's IDs at 50 (YouTube's videos.list batch limit)
-      // so we don't silently drop everything past the first 50.
-      const byChannel = new Map<string, string[]>();
-      for (const u of completedUploads) {
-        const chId = (u as any).channel_id || channelId;
-        if (!chId || !u.youtube_video_id) continue;
-        if (!byChannel.has(chId)) byChannel.set(chId, []);
-        byChannel.get(chId)!.push(u.youtube_video_id);
-      }
-      if (byChannel.size === 0) {
-        setStats([]);
-        return;
-      }
-
-      const requests = [...byChannel.entries()].flatMap(([chId, ids]) => {
-        const chunks: string[][] = [];
-        for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
-        return chunks.map((chunk) => youtubeApi.getVideoStats(chunk, chId));
-      });
-      const results = await Promise.allSettled(requests);
-
-      const merged: YouTubeVideoStats[] = [];
-      const errors: string[] = [];
-      for (const r of results) {
-        if (r.status === 'fulfilled') merged.push(...r.value);
-        else errors.push(String(r.reason).slice(0, 160));
-      }
-      // Dedupe by video_id in case the same video shows up in two
-      // overlapping batches (unlikely but cheap to guard).
-      const deduped = Array.from(new Map(merged.map((s) => [s.video_id, s])).values());
-      // Sort by views descending so the leaderboard is meaningful at a glance.
-      setStats(deduped.sort((a, b) => b.views - a.views));
-
-      if (errors.length && merged.length === 0) {
-        setStatsError(errors[0] ?? 'Failed to load analytics.');
-      } else if (errors.length) {
-        setStatsError(
-          `${errors.length} channel${errors.length > 1 ? 's' : ''} failed — others loaded.`,
-        );
-      }
-    } catch (err) {
-      setStatsError(
-        err instanceof Error ? err.message : 'Failed to load analytics.',
-      );
-    } finally {
-      setStatsLoading(false);
-    }
-  }, [completedUploads, channelId]);
-
-  const fetchChannelAnalytics = useCallback(async () => {
-    setChannelAnalyticsErr(null);
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(true);
+    setErr(null);
     try {
       let data: YouTubeChannelAnalytics;
       try {
@@ -1587,8 +641,8 @@ function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: Ana
           channelId,
           days: windowDays,
         });
-      } catch (err: any) {
-        const detail = err?.detailRaw || err?.detail;
+      } catch (e: any) {
+        const detail = e?.detailRaw || e?.detail;
         const connected =
           detail?.connected_channels || detail?.detail?.connected_channels;
         if (
@@ -1601,118 +655,36 @@ function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: Ana
             days: windowDays,
           });
         } else {
-          throw err;
+          throw e;
         }
       }
       setChannelAnalytics(data);
-    } catch (err: any) {
-      const raw = err?.detailRaw;
+    } catch (e: any) {
+      const raw = e?.detailRaw;
       if (raw && typeof raw === 'object' && raw.error === 'analytics_scope_missing') {
-        setChannelAnalyticsErr({ kind: 'scope', msg: raw.hint || 'Reconnect required.' });
+        setErr({ kind: 'scope', msg: raw.hint || 'Reconnect required.' });
       } else {
-        setChannelAnalyticsErr({
+        setErr({
           kind: 'other',
-          msg: err?.detail || err?.message || 'Failed to load channel analytics.',
+          msg: e?.detail || e?.message || 'Failed to load channel analytics.',
         });
       }
+    } finally {
+      setLoading(false);
     }
   }, [windowDays, channelId]);
 
   useEffect(() => {
-    void fetchStats();
-  }, [fetchStats]);
-
-  useEffect(() => {
-    void fetchChannelAnalytics();
-  }, [fetchChannelAnalytics]);
-
-  // NOTE — we deliberately do *not* early-return on
-  // ``loading || statsLoading`` or on ``completedUploads.length === 0``
-  // here. Those guards used to short-circuit the entire tab to a
-  // spinner / empty-state, which hid the channel-wide stats from the
-  // synced ``youtube_channel_videos`` table. After a fresh install +
-  // backup-restore + reconnect, the user has zero Drevalis uploads on
-  // record but their channel still has 100s of synced videos — those
-  // numbers must remain visible. The conditional blocks lower down
-  // render the right empty/error/loading states for each section
-  // (Drevalis-only leaderboard, channel-analytics card) without
-  // taking out the whole tab.
-  const hasDrevalisStats = stats.length > 0;
-
-  // Compute averages for trending detection (zero-safe when no stats).
-  const avgViews = hasDrevalisStats
-    ? stats.reduce((s, v) => s + v.views, 0) / stats.length
-    : 0;
-
-  const totalViews = stats.reduce((s, v) => s + v.views, 0);
-  const totalLikes = stats.reduce((s, v) => s + v.likes, 0);
-  const totalComments = stats.reduce((s, v) => s + v.comments, 0);
-  const overallEngagement = engagementRate(totalViews, totalLikes, totalComments);
-
-  // Build a lookup: video ID -> upload record (for channel + thumbnail)
-  const uploadByVideoId = new Map<string, YouTubeUpload>(
-    uploads
-      .filter((u) => u.youtube_video_id)
-      .map((u) => [u.youtube_video_id!, u]),
-  );
-
-  const getChannelForVideo = (videoId: string): string => {
-    const upload = uploadByVideoId.get(videoId);
-    if (upload && channelMap) return channelMap[(upload as any).channel_id] ?? '';
-    return '';
-  };
+    void fetchAnalytics();
+  }, [fetchAnalytics]);
 
   return (
     <div className="space-y-4">
-      {/* Channel-wide aggregates from the youtube_channel_videos sync
-          table. Always shown — even with zero Drevalis uploads — so
-          the user sees their channel state immediately after a sync,
-          not just Drevalis-uploaded videos. */}
-      <ChannelStatsOverview />
-
-      {/* Inline error banner — was previously hidden by the removed
-          full-tab early-return. Surfaced here so a transient
-          /videos-stats failure doesn't take out the whole Analytics
-          tab; the rest of the page still renders. */}
-      {statsError && (
-        <Card padding="md">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-error">
-              <AlertTriangle size={16} />
-              <span>{statsError}</span>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => void fetchStats()}>
-              Retry
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* If the user has NO Drevalis uploads at all, surface a clear
-          explanation rather than rendering the rest of the leaderboard
-          empty. Stops the previous endless-spinner state when a user
-          synced their channels but never published via Drevalis. */}
-      {!hasDrevalisStats && !statsLoading && (
-        <Card padding="md">
-          <div className="text-center py-6 space-y-1">
-            <p className="text-sm text-txt-secondary">
-              No Drevalis uploads on these channels yet.
-            </p>
-            <p className="text-xs text-txt-tertiary">
-              The breakdown above shows everything on your YouTube channels.
-              Once you publish an episode via Drevalis, its per-video stats
-              appear in the leaderboard below.
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* Channel analytics (YouTube Analytics API — CTR, retention, subs) */}
       <Card padding="md">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-semibold text-txt-primary">
-              Channel performance · last {windowDays} days
+              Channel performance Â· last {windowDays} days
             </h3>
             {channelAnalytics && (
               <p className="text-xs text-txt-tertiary mt-0.5">
@@ -1737,17 +709,30 @@ function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: Ana
           </div>
         </div>
 
-        {channelAnalyticsErr?.kind === 'scope' && (
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200">
-            <strong className="text-amber-100">Reconnect required.</strong>{' '}
-            This channel's OAuth token was created before analytics support was added. Disconnect
-            and reconnect it from Settings → YouTube to grant access; existing uploads are unaffected.
+        {loading && !channelAnalytics && (
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="sm" />
           </div>
         )}
-        {channelAnalyticsErr?.kind === 'other' && (
-          <p className="text-xs text-error">{channelAnalyticsErr.msg}</p>
+
+        {err?.kind === 'scope' && (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200">
+            <strong className="text-amber-100">Reconnect required.</strong>{' '}
+            This channel's OAuth token was created before analytics support was
+            added. Disconnect and reconnect it from Settings → YouTube to grant
+            access; existing uploads are unaffected.
+          </div>
         )}
-        {channelAnalytics && !channelAnalyticsErr && (
+        {err?.kind === 'other' && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-error">{err.msg}</p>
+            <Button variant="secondary" size="sm" onClick={() => void fetchAnalytics()}>
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {channelAnalytics && !err && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div>
               <p className="text-[11px] text-txt-tertiary">Views</p>
@@ -1771,10 +756,9 @@ function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: Ana
             <div>
               <p className="text-[11px] text-txt-tertiary">Subscribers</p>
               <p className="text-lg font-semibold text-txt-primary">
-                {(
-                  channelAnalytics.totals.subscribers_gained -
-                  channelAnalytics.totals.subscribers_lost
-                ) >= 0
+                {channelAnalytics.totals.subscribers_gained -
+                  channelAnalytics.totals.subscribers_lost >=
+                0
                   ? '+'
                   : ''}
                 {channelAnalytics.totals.subscribers_gained -
@@ -1797,395 +781,10 @@ function AnalyticsTab({ uploads, loading: _loading, channelMap, channelId }: Ana
           </div>
         )}
       </Card>
-
-      {/* Summary cards — same StatCard as the dashboard tab so the
-          visual treatment is identical across YouTube tabs. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Videos" value={stats.length} />
-        <StatCard label="Total Views" value={formatNumber(totalViews)} />
-        <StatCard label="Total Likes" value={formatNumber(totalLikes)} />
-        <StatCard
-          label="Engagement Rate"
-          value={formatEngagement(overallEngagement)}
-        />
-      </div>
-
-      {/* Video table */}
-      <div className="space-y-2">
-        {/* Header row */}
-        <div className="grid grid-cols-12 gap-3 px-3 py-1.5">
-          <span className="col-span-4 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-            Video
-          </span>
-          <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-            Channel
-          </span>
-          <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-            <Eye size={11} />
-            Views
-          </span>
-          <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-            <ThumbsUp size={11} />
-            Likes
-          </span>
-          <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-            <MessageSquare size={11} />
-            Cmts
-          </span>
-          <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-1">
-            <Percent size={11} />
-            Eng.
-          </span>
-          <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-            Published
-          </span>
-        </div>
-
-        {stats.map((s, idx) => {
-          const isTrending = s.views > avgViews * 1.5;
-          const isTopPerformer = idx < 3;
-          const eng = engagementRate(s.views, s.likes, s.comments);
-          const upload = uploadByVideoId.get(s.video_id);
-          return (
-            <Card
-              key={s.video_id}
-              padding="sm"
-              className={isTrending ? 'ring-1 ring-accent/30 bg-accent/5' : ''}
-            >
-              <div className="grid grid-cols-12 gap-3 items-center">
-                {/* Thumbnail + rank + title */}
-                <div className="col-span-4 flex items-center gap-2 min-w-0">
-                  <span
-                    className={[
-                      'text-xs font-mono w-4 shrink-0 text-center',
-                      isTopPerformer ? 'text-accent font-bold' : 'text-txt-tertiary',
-                    ].join(' ')}
-                  >
-                    {idx + 1}
-                  </span>
-                  <VideoThumbnail
-                    videoId={s.video_id}
-                    title={s.title}
-                    width={64}
-                    height={36}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm text-txt-primary truncate leading-snug">
-                      {s.title}
-                    </p>
-                    {isTrending && (
-                      <span className="inline-flex items-center gap-0.5 text-[9px] text-accent font-medium">
-                        <TrendingUp size={9} /> Trending
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Channel */}
-                <div className="col-span-2 min-w-0">
-                  <p className="text-xs text-txt-secondary truncate">
-                    {getChannelForVideo(s.video_id)}
-                  </p>
-                </div>
-
-                {/* Views */}
-                <div className="col-span-1">
-                  <span
-                    className={[
-                      'text-sm font-medium',
-                      isTrending ? 'text-accent' : 'text-txt-primary',
-                    ].join(' ')}
-                  >
-                    {formatNumber(s.views)}
-                  </span>
-                </div>
-
-                {/* Likes */}
-                <div className="col-span-1">
-                  <span className="text-sm text-txt-primary">
-                    {formatNumber(s.likes)}
-                  </span>
-                </div>
-
-                {/* Comments */}
-                <div className="col-span-1">
-                  <span className="text-sm text-txt-primary">
-                    {formatNumber(s.comments)}
-                  </span>
-                </div>
-
-                {/* Engagement rate */}
-                <div className="col-span-1">
-                  <span
-                    className={[
-                      'text-sm',
-                      eng !== null && eng >= 5
-                        ? 'text-success font-medium'
-                        : eng !== null && eng >= 2
-                        ? 'text-txt-primary'
-                        : 'text-txt-secondary',
-                    ].join(' ')}
-                  >
-                    {formatEngagement(eng)}
-                  </span>
-                </div>
-
-                {/* Published + external link */}
-                <div className="col-span-2 flex items-center gap-2">
-                  <span className="text-xs text-txt-secondary">
-                    {s.published_at ? formatDate(s.published_at) : '—'}
-                  </span>
-                  {upload?.youtube_url && (
-                    <a
-                      href={upload.youtube_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-txt-tertiary hover:text-accent transition-colors duration-fast"
-                      aria-label={`Open ${s.title} on YouTube`}
-                    >
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Social tab
-// ---------------------------------------------------------------------------
-
-interface SocialTabProps {
-  platforms: SocialPlatform[];
-  uploads: SocialUpload[];
-  loading: boolean;
-  // v0.20.49 — YouTube lives in its own data model (the
-  // ``YouTubeChannel`` table), not in the generic ``social_platforms``
-  // store. Without this prop the All-Platforms tab said "No platforms
-  // connected" even when 9 YouTube channels were active.
-  youtubeChannels?: YouTubeChannel[];
-}
-
-function SocialTab({
-  platforms,
-  uploads,
-  loading,
-  youtubeChannels = [],
-}: SocialTabProps) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size="md" />
-      </div>
-    );
-  }
-
-  const sortedUploads = [...uploads].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
-
-  return (
-    <div className="space-y-6">
-      {/* Connected platforms */}
-      <Card padding="md">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Globe size={16} className="text-txt-secondary" />
-            <CardTitle>Connected Platforms</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {platforms.length === 0 && youtubeChannels.length === 0 ? (
-            <p className="text-sm text-txt-tertiary py-4 text-center">
-              No platforms connected. Connect accounts in Settings.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {/* Synthetic YouTube entries — one card per channel.
-                  YouTube isn't in the social_platforms table, but
-                  channels listed here are exactly the OAuth-connected
-                  ones the user manages from Settings → YouTube. */}
-              {youtubeChannels.map((ch) => {
-                const ytConfig = getPlatformConfig('youtube');
-                return (
-                  <div
-                    key={`yt-${ch.id}`}
-                    className={[
-                      'flex items-center gap-3 px-4 py-3 rounded-lg border border-border',
-                      ytConfig.bgClass,
-                    ].join(' ')}
-                  >
-                    <span className={['w-2.5 h-2.5 rounded-full shrink-0', ytConfig.dotClass].join(' ')} />
-                    <div className="min-w-0 flex-1">
-                      <p className={['text-sm font-semibold truncate', ytConfig.textClass].join(' ')}>
-                        YouTube · {ch.channel_name}
-                      </p>
-                      <p className="text-xs text-txt-tertiary truncate">
-                        {ch.channel_id}
-                      </p>
-                    </div>
-                    <Badge variant="success" dot>
-                      Active
-                    </Badge>
-                  </div>
-                );
-              })}
-              {platforms.map((p) => {
-                const config = getPlatformConfig(p.platform);
-                return (
-                  <div
-                    key={p.id}
-                    className={[
-                      'flex items-center gap-3 px-4 py-3 rounded-lg border border-border',
-                      config.bgClass,
-                    ].join(' ')}
-                  >
-                    <span className={['w-2.5 h-2.5 rounded-full shrink-0', config.dotClass].join(' ')} />
-                    <div className="min-w-0 flex-1">
-                      <p className={['text-sm font-semibold truncate', config.textClass].join(' ')}>
-                        {config.label}
-                      </p>
-                      {p.account_name && (
-                        <p className="text-xs text-txt-tertiary truncate">
-                          @{p.account_name}
-                        </p>
-                      )}
-                    </div>
-                    <Badge variant="success" dot>
-                      Active
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* All uploads across platforms */}
-      <Card padding="md">
-        <CardHeader>
-          <CardTitle>All Platform Uploads</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sortedUploads.length === 0 ? (
-            <p className="text-sm text-txt-tertiary py-4 text-center">
-              No uploads found across platforms.
-            </p>
-          ) : (
-            <>
-              {/* Column headers */}
-              <div className="grid grid-cols-12 gap-3 px-1 pb-2 mb-1 border-b border-border">
-                <span className="col-span-4 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-                  Title
-                </span>
-                <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-                  Platform
-                </span>
-                <span className="col-span-2 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-                  Status
-                </span>
-                <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-0.5">
-                  <Eye size={10} />
-                </span>
-                <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-0.5">
-                  <ThumbsUp size={10} />
-                </span>
-                <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider flex items-center gap-0.5">
-                  <MessageSquare size={10} />
-                </span>
-                <span className="col-span-1 text-xs font-medium text-txt-tertiary uppercase tracking-wider">
-                  Date
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                {sortedUploads.map((u) => (
-                  <div
-                    key={u.id}
-                    className="grid grid-cols-12 gap-3 items-center px-1 py-2 rounded hover:bg-bg-hover transition-colors duration-fast"
-                  >
-                    {/* Title */}
-                    <div className="col-span-4 min-w-0">
-                      <p className="text-sm text-txt-primary truncate font-medium">
-                        {u.title}
-                      </p>
-                    </div>
-
-                    {/* Platform */}
-                    <div className="col-span-2">
-                      <PlatformBadge platform={u.platform} />
-                    </div>
-
-                    {/* Status */}
-                    <div className="col-span-2">
-                      <Badge
-                        variant={
-                          u.upload_status === 'done'
-                            ? 'done'
-                            : u.upload_status === 'failed'
-                            ? 'failed'
-                            : 'neutral'
-                        }
-                        dot
-                      >
-                        {u.upload_status}
-                      </Badge>
-                    </div>
-
-                    {/* Views */}
-                    <div className="col-span-1">
-                      <span className="text-xs text-txt-secondary">
-                        {formatNumber(u.views)}
-                      </span>
-                    </div>
-
-                    {/* Likes */}
-                    <div className="col-span-1">
-                      <span className="text-xs text-txt-secondary">
-                        {formatNumber(u.likes)}
-                      </span>
-                    </div>
-
-                    {/* Comments */}
-                    <div className="col-span-1">
-                      <span className="text-xs text-txt-secondary">
-                        {formatNumber(u.comments)}
-                      </span>
-                    </div>
-
-                    {/* Date + link */}
-                    <div className="col-span-1 flex items-center gap-1 min-w-0">
-                      <span className="text-xs text-txt-tertiary truncate">
-                        {formatDate(u.created_at)}
-                      </span>
-                      {u.remote_url && (
-                        <a
-                          href={u.remote_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 text-txt-tertiary hover:text-accent transition-colors duration-fast"
-                          aria-label={`Open ${u.title} on ${u.platform}`}
-                        >
-                          <ExternalLink size={11} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // YouTube Page
@@ -2195,14 +794,15 @@ function YouTubePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [connected, setConnected] = useState(false);
   const [channel, setChannel] = useState<YouTubeChannel | null>(null);
   const [allChannels, setAllChannels] = useState<YouTubeChannel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string>('all');
   const [uploads, setUploads] = useState<YouTubeUpload[]>([]);
   const [playlists, setPlaylists] = useState<YouTubePlaylist[]>([]);
-  const [stats, setStats] = useState<YouTubeVideoStats[]>([]);
+  const [_stats, setStats] = useState<YouTubeVideoStats[]>([]);
+  void _stats;
 
   // Social state
   const [socialPlatforms, setSocialPlatforms] = useState<SocialPlatform[]>([]);
@@ -2212,9 +812,11 @@ function YouTubePage() {
   const [socialStatsLoading, setSocialStatsLoading] = useState(false);
 
   const [statusLoading, setStatusLoading] = useState(true);
-  const [uploadsLoading, setUploadsLoading] = useState(false);
+  const [_uploadsLoading, setUploadsLoading] = useState(false);
+  void _uploadsLoading;
   const [playlistsLoading, setPlaylistsLoading] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, _setConnecting] = useState(false);
+  void _setConnecting;
   const [syncingAll, setSyncingAll] = useState(false);
 
   // Fire ``/channels/{id}/resync`` for every channel currently in
@@ -2626,65 +1228,36 @@ function YouTubePage() {
               allChannels.map((c) => [c.id, c.channel_name]),
             );
 
+            void filteredPlaylists;
+            void filteredUploads;
+            void channelMap;
+            void socialStats;
+            void socialPlatforms;
+            void socialUploads;
+            void socialStatsLoading;
+            void socialLoading;
+            void playlistsLoading;
+            void fetchUploads;
+            void fetchPlaylists;
+            const channelFilterId =
+              selectedChannelId === 'all' ? undefined : selectedChannelId;
             return (
               <div>
-                {activeTab === 'dashboard' && activeChannel && (
-                  <DashboardTab
-                    channel={activeChannel}
+                {activeTab === 'overview' && activeChannel && (
+                  <OverviewTab
                     allChannels={
                       selectedChannelId === 'all'
                         ? allChannels
                         : allChannels.filter((c) => c.id === selectedChannelId)
                     }
-                    uploads={filteredUploads}
-                    stats={stats.filter((s) => {
-                      if (selectedChannelId === 'all') return true;
-                      const upload = uploads.find(
-                        (u) => u.youtube_video_id === s.video_id,
-                      );
-                      return upload && (upload as any).channel_id === selectedChannelId;
-                    })}
-                    socialStats={socialStats}
-                    socialStatsLoading={socialStatsLoading}
+                    channelFilterId={channelFilterId}
                   />
                 )}
-                {activeTab === 'uploads' && (
-                  <UploadsTab
-                    uploads={filteredUploads}
-                    loading={uploadsLoading}
-                    channelMap={channelMap}
-                    onUploadsChanged={() => void fetchUploads()}
-                  />
+                {activeTab === 'videos' && (
+                  <VideosTab channelFilterId={channelFilterId} />
                 )}
-                {activeTab === 'playlists' && (
-                  <PlaylistsTab
-                    playlists={filteredPlaylists}
-                    loading={playlistsLoading}
-                    channelId={resolvedChannelId}
-                    onPlaylistCreated={() => {
-                      void fetchPlaylists();
-                    }}
-                  />
-                )}
-                {activeTab === 'analytics' && (
-                  <AnalyticsTab
-                    uploads={filteredUploads}
-                    loading={uploadsLoading}
-                    channelMap={channelMap}
-                    channelId={resolvedChannelId}
-                  />
-                )}
-                {activeTab === 'social' && (
-                  <SocialTab
-                    platforms={socialPlatforms}
-                    uploads={socialUploads}
-                    loading={socialLoading}
-                    youtubeChannels={
-                      selectedChannelId === 'all'
-                        ? allChannels
-                        : allChannels.filter((c) => c.id === selectedChannelId)
-                    }
-                  />
+                {activeTab === 'performance' && (
+                  <PerformanceTab channelId={resolvedChannelId} />
                 )}
               </div>
             );

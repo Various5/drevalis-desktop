@@ -865,6 +865,91 @@ async def channels_stats_overview(
 
 
 @router.get(
+    "/videos",
+    status_code=status.HTTP_200_OK,
+    summary="Flat list of every synced video across every connected channel",
+)
+async def list_all_videos(
+    kind: Literal["all", "shorts", "longform"] = Query(default="all"),
+    channel_id: UUID | None = Query(
+        default=None,
+        description="Optional channel filter. Omitted = all channels.",
+    ),
+    sort: Literal["views", "likes", "comments", "published"] = Query(
+        default="views",
+        description="Column to sort by — always descending.",
+    ),
+    limit: int = Query(default=500, ge=1, le=2000),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """One-shot fetch for the new Videos tab. Returns every synced
+    video joined to its channel name + id, no per-channel round trip.
+    Assumes the synced channel videos *are* the user's Drevalis-
+    produced content — the cross-match flag on YouTubeUpload is no
+    longer surfaced here, because users on pre-current versions
+    don't necessarily have those rows and the cross-match was
+    causing every video to appear as ``external``.
+    """
+    from sqlalchemy import func as _func, select as _select
+
+    from drevalis.models.youtube_channel import YouTubeChannel, YouTubeChannelVideo
+
+    q = (
+        _select(YouTubeChannelVideo, YouTubeChannel.channel_name)
+        .join(YouTubeChannel, YouTubeChannel.id == YouTubeChannelVideo.channel_id)
+    )
+    if channel_id is not None:
+        q = q.where(YouTubeChannelVideo.channel_id == channel_id)
+    if kind == "shorts":
+        q = q.where(YouTubeChannelVideo.is_short.is_(True))
+    elif kind == "longform":
+        q = q.where(YouTubeChannelVideo.is_short.is_(False))
+
+    sort_col = {
+        "views": YouTubeChannelVideo.view_count.desc(),
+        "likes": YouTubeChannelVideo.like_count.desc(),
+        "comments": YouTubeChannelVideo.comment_count.desc(),
+        "published": YouTubeChannelVideo.published_at.desc().nulls_last(),
+    }[sort]
+    q = q.order_by(sort_col)
+
+    total_q = _select(_func.count(YouTubeChannelVideo.id)).select_from(
+        YouTubeChannelVideo,
+    )
+    if channel_id is not None:
+        total_q = total_q.where(YouTubeChannelVideo.channel_id == channel_id)
+    if kind == "shorts":
+        total_q = total_q.where(YouTubeChannelVideo.is_short.is_(True))
+    elif kind == "longform":
+        total_q = total_q.where(YouTubeChannelVideo.is_short.is_(False))
+    total = int((await db.execute(total_q)).scalar_one() or 0)
+
+    rows = (await db.execute(q.limit(limit).offset(offset))).all()
+    return {
+        "total": total,
+        "videos": [
+            {
+                "id": str(v.id),
+                "channel_id": str(v.channel_id),
+                "channel_name": ch_name,
+                "youtube_video_id": v.youtube_video_id,
+                "title": v.title,
+                "thumbnail_url": v.thumbnail_url,
+                "published_at": v.published_at.isoformat() if v.published_at else None,
+                "duration_seconds": v.duration_seconds,
+                "is_short": v.is_short,
+                "view_count": v.view_count,
+                "like_count": v.like_count,
+                "comment_count": v.comment_count,
+                "url": f"https://www.youtube.com/watch?v={v.youtube_video_id}",
+            }
+            for v, ch_name in rows
+        ],
+    }
+
+
+@router.get(
     "/recent-videos",
     status_code=status.HTTP_200_OK,
     summary="Most-recent videos across all connected channels",
