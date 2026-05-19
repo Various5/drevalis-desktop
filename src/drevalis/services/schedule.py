@@ -340,6 +340,143 @@ class ScheduleService:
 
     # ── Manual retry ─────────────────────────────────────────────────────
 
+    async def check_duplicate(self, post_id: UUID) -> dict[str, Any]:
+        """Pre-flight check for the Calendar's per-post Retry button.
+
+        Returns the same duplicate-detection result the
+        ``publish_scheduled_posts`` worker uses internally — so the
+        operator sees *before* hitting Retry whether the post would
+        upload, get blocked, or auto-link to an existing video.
+
+        Two checks, in order:
+
+        1. ``existing_upload`` — is there already a ``YouTubeUpload``
+           row with ``status='done'`` for the same (episode, channel)
+           pair? If yes, retrying would safely no-op (worker
+           short-circuits and marks the scheduled post as published
+           via the existing upload), no YouTube quota burned.
+
+        2. ``title_similar`` — does this title match any video on the
+           channel at ≥85% SequenceMatcher ratio? If yes, retry would
+           hard-fail with a permanent error. The operator should
+           reschedule + edit the title, or set
+           ``metadata.skip_duplicate_check``.
+
+        Result shape::
+
+          {
+            "post_id": "...",
+            "is_duplicate": bool,
+            "reason": "existing_upload" | "title_similar" | "none",
+            "existing_video_id": "yt-id-or-null",
+            "existing_video_url": "https://...",
+            "match_title": "Foo",
+            "match_ratio": 0.92,   # only for title_similar
+            "safe_to_retry": bool, # true when nothing or only existing_upload
+          }
+        """
+        from drevalis.models.scheduled_post import ScheduledPost as _Sched
+        from drevalis.models.youtube_channel import YouTubeChannelVideo as _Vid
+
+        post = (
+            await self._db.execute(select(_Sched).where(_Sched.id == post_id))
+        ).scalar_one_or_none()
+        if post is None:
+            raise ValueError(f"Scheduled post {post_id} not found")
+
+        # Only meaningful for YouTube — other platforms don't have a
+        # ``YouTubeChannelVideo`` table to cross-check against. Return
+        # a "no match" result so the UI can render a generic "safe"
+        # state without surprising the user with mysterious errors.
+        if post.platform != "youtube" or post.youtube_channel_id is None:
+            return {
+                "post_id": str(post.id),
+                "is_duplicate": False,
+                "reason": "none",
+                "existing_video_id": None,
+                "existing_video_url": None,
+                "match_title": None,
+                "match_ratio": None,
+                "safe_to_retry": True,
+            }
+
+        # Check 1 — existing done upload for (episode, channel). Mirror
+        # the worker's lookup so the answer is consistent with what the
+        # worker would actually do at retry time.
+        from drevalis.repositories.youtube import YouTubeUploadRepository
+
+        upload_repo = YouTubeUploadRepository(self._db)
+        existing = await upload_repo.get_existing_done(post.content_id, post.youtube_channel_id)
+        if existing is not None:
+            return {
+                "post_id": str(post.id),
+                "is_duplicate": True,
+                "reason": "existing_upload",
+                "existing_video_id": existing.youtube_video_id,
+                "existing_video_url": (
+                    f"https://www.youtube.com/watch?v={existing.youtube_video_id}"
+                    if existing.youtube_video_id
+                    else None
+                ),
+                "match_title": None,
+                "match_ratio": None,
+                # Safe in the sense that retry won't waste quota — the
+                # worker will short-circuit and just promote the post
+                # to ``published`` linked to the existing upload row.
+                "safe_to_retry": True,
+            }
+
+        # Check 2 — title-similarity against every video on the channel.
+        # Same threshold (0.85) and same SequenceMatcher as the worker.
+        if post.title:
+            import difflib as _difflib
+
+            ch_vids = list(
+                (
+                    await self._db.execute(
+                        select(_Vid).where(_Vid.channel_id == post.youtube_channel_id)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            norm = (post.title or "").lower()
+            best: tuple[float, str, str] | None = None
+            for v in ch_vids:
+                r = _difflib.SequenceMatcher(
+                    None, norm, (v.title or "").lower()
+                ).ratio()
+                if r >= 0.85 and (best is None or r > best[0]):
+                    best = (r, v.title or "", v.youtube_video_id)
+            if best is not None:
+                return {
+                    "post_id": str(post.id),
+                    "is_duplicate": True,
+                    "reason": "title_similar",
+                    "existing_video_id": best[2],
+                    "existing_video_url": (
+                        f"https://www.youtube.com/watch?v={best[2]}"
+                        if best[2]
+                        else None
+                    ),
+                    "match_title": best[1],
+                    "match_ratio": round(best[0], 3),
+                    # NOT safe — worker would hard-fail with the same
+                    # title-similarity error.
+                    "safe_to_retry": False,
+                }
+
+        return {
+            "post_id": str(post.id),
+            "is_duplicate": False,
+            "reason": "none",
+            "existing_video_id": None,
+            "existing_video_url": None,
+            "match_title": None,
+            "match_ratio": None,
+            "safe_to_retry": True,
+        }
+
     async def retry_failed(self, payload: RetryFailedRequest) -> tuple[list[UUID], list[UUID]]:
         now = datetime.now(UTC)
         cutoff = now - timedelta(hours=payload.within_hours)

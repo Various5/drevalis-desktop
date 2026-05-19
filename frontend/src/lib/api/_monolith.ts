@@ -1253,6 +1253,22 @@ export const schedule = {
         post_ids: params.post_ids ?? null,
       },
     ),
+
+  // Pre-flight duplicate-check for the Calendar's per-post Retry button.
+  // Doesn't burn YouTube quota — uses the synced youtube_channel_videos
+  // cache + the local youtube_uploads table. Mirrors the dup-detection
+  // the publish worker runs at upload time.
+  duplicateCheck: (postId: string) =>
+    get<{
+      post_id: string;
+      is_duplicate: boolean;
+      reason: 'existing_upload' | 'title_similar' | 'none';
+      existing_video_id: string | null;
+      existing_video_url: string | null;
+      match_title: string | null;
+      match_ratio: number | null;
+      safe_to_retry: boolean;
+    }>(`/api/v1/schedule/posts/${postId}/duplicate-check`),
 };
 
 // ---------------------------------------------------------------------------

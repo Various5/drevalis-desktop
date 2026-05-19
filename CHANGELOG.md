@@ -11,6 +11,40 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Added (alpha.53 — Calendar quota-safety: pre-flight dup-check + bulk reschedule)
+- **Pre-flight duplicate check** auto-runs whenever the operator opens
+  a failed or missed post on the Calendar (YouTube only). Surfaces
+  one of three states above the action buttons in the drawer:
+  - 🛡 *Already uploaded — Retry will link the existing video*
+    (matches a ``YouTubeUpload`` row with ``status='done'`` for the
+    same episode/channel — worker will short-circuit instead of
+    re-uploading, so quota is preserved).
+  - 🚫 *Won't upload — title too similar to existing video* (matches
+    a video on the channel at ≥85% SequenceMatcher ratio — the
+    worker would hard-fail anyway). Retry button switches to
+    secondary and prompts confirmation.
+  - ✅ *Safe to retry — no duplicate found on the channel*.
+- **Quick-reschedule buttons** in the post detail drawer for failed/
+  missed: ``Next free slot`` (asks the backend for the next allowed
+  channel slot, respecting ``upload_days`` + clash-avoid) and
+  ``+24h`` (same time tomorrow). Failed posts flip back to
+  ``scheduled`` automatically so the cron picks them up.
+- **Reschedule all** button on the top banner — walks every failed +
+  missed post and PATCHes each onto the next free slot sequentially
+  (the sequential walk matters so two posts don't both land on the
+  same slot). Useful when YouTube has hard-failed for the day (quota
+  exhausted, account flagged) and you want to defer everything to
+  tomorrow rather than retrying in-place.
+- **Backend** ``GET /api/v1/schedule/posts/{id}/duplicate-check``
+  exposes the same dup-detection the publish worker runs internally,
+  read-only — no YouTube quota burned, only reads the synced
+  ``youtube_channel_videos`` cache + the local ``youtube_uploads``
+  table.
+- Retry button copy now explicitly tells the operator that the
+  worker's quota-safe dup-check runs before each upload — addresses
+  the legitimate worry that bulk-retry could double-publish content
+  whose original upload succeeded but whose API response was lost.
+
 ### Added (alpha.52 — Calendar overhaul: surface failed/missed uploads + per-post actions)
 - **Problems banner at the top of the Calendar** — red when there are
   any ``failed`` posts, amber when there are only ``missed`` ones

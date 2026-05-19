@@ -271,3 +271,29 @@ async def retry_failed(
     """
     requeued, skipped = await svc.retry_failed(payload)
     return RetryFailedResponse(requeued=requeued, skipped=skipped)
+
+
+@router.get(
+    "/posts/{post_id}/duplicate-check",
+    status_code=status.HTTP_200_OK,
+    summary="Pre-flight duplicate detection for a single scheduled post",
+)
+async def duplicate_check(
+    post_id: UUID,
+    svc: ScheduleService = Depends(_service),
+) -> dict[str, Any]:
+    """Same dup-detection the publish worker runs internally — but
+    exposed read-only so the Calendar's per-post Retry button can
+    surface the result BEFORE the operator pulls the trigger.
+
+    Burns no YouTube quota: only reads ``youtube_channel_videos`` (the
+    synced cache) and the local ``youtube_uploads`` table. The sync
+    cache is whatever the last sync wrote, so freshness is bounded by
+    the operator's sync cadence — that's fine for a pre-flight check
+    because the worker re-runs the same logic at upload time with the
+    latest sync state.
+    """
+    try:
+        return await svc.check_duplicate(post_id)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc

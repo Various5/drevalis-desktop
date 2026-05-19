@@ -10,6 +10,9 @@ import {
   Clock,
   Copy,
   Loader2,
+  ShieldCheck,
+  ShieldAlert,
+  CalendarPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -61,9 +64,11 @@ function statusBadge(status: string) {
   }
 }
 
+type DuplicateCheck = Awaited<ReturnType<typeof scheduleApi.duplicateCheck>>;
+
 export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerProps) {
   const { toast } = useToast();
-  const [busy, setBusy] = useState<'retry' | 'cancel' | 'save' | null>(null);
+  const [busy, setBusy] = useState<'retry' | 'cancel' | 'save' | 'reschedule' | null>(null);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editScheduledAt, setEditScheduledAt] = useState('');
@@ -71,6 +76,13 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
   const [editPrivacy, setEditPrivacy] = useState('public');
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
+
+  // Pre-flight duplicate check. Auto-runs on drawer open for any
+  // failed/missed post — the result drives the Retry button's
+  // confirmation copy (and explicit warning if the worker would
+  // refuse to upload anyway).
+  const [dupCheck, setDupCheck] = useState<DuplicateCheck | null>(null);
+  const [dupChecking, setDupChecking] = useState(false);
 
   // Reset edit state when the drawer's post changes.
   useEffect(() => {
@@ -82,8 +94,37 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
       setEditDescription(post.description ?? '');
       setEditTags(post.tags ?? '');
       setEditing(false);
+      setDupCheck(null);
     }
   }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-run the dup-check when the drawer opens on a failed/missed
+  // post — the user shouldn't have to click an extra "Check" button
+  // before deciding whether to retry.
+  useEffect(() => {
+    if (!post) return;
+    const status = effectiveStatus(post);
+    if (status !== 'failed' && status !== 'missed') return;
+    if (post.platform !== 'youtube') return;
+    let cancelled = false;
+    setDupChecking(true);
+    scheduleApi
+      .duplicateCheck(post.id)
+      .then((result) => {
+        if (!cancelled) setDupCheck(result);
+      })
+      .catch(() => {
+        // Best-effort — if the check fails the user can still hit
+        // Retry, the worker will run the same check at upload time.
+        if (!cancelled) setDupCheck(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDupChecking(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [post?.id, post?.status, post?.scheduled_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close on Escape.
   useEffect(() => {
@@ -101,12 +142,26 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
 
   const handleRetry = useCallback(async () => {
     if (!post) return;
+    // Hard-stop: if dup-check found a title-match the worker would
+    // refuse to upload (permanent failure). Force the user to
+    // reschedule + edit instead of burning a cron tick.
+    if (dupCheck && dupCheck.reason === 'title_similar') {
+      const ok = confirm(
+        `Title is ${Math.round((dupCheck.match_ratio ?? 0) * 100)}% similar to "${
+          dupCheck.match_title
+        }" already on the channel. The worker will refuse to upload. Retry anyway?`,
+      );
+      if (!ok) return;
+    }
     setBusy('retry');
     try {
       const res = await scheduleApi.retryFailed({ post_ids: [post.id] });
       if (res.requeued.length > 0) {
         toast.success('Requeued for retry', {
-          description: 'The next worker tick will pick this up.',
+          description:
+            dupCheck?.reason === 'existing_upload'
+              ? 'Already-uploaded video found — worker will link it without re-uploading.'
+              : 'The next worker tick will pick this up.',
         });
       } else {
         toast.info('Already in queue or not in a retry-able state.');
@@ -117,7 +172,65 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
     } finally {
       setBusy(null);
     }
-  }, [post, toast, onMutated]);
+  }, [post, dupCheck, toast, onMutated]);
+
+  /** Move the post forward in time without burning a retry slot. Two
+   *  presets the user actually wants: tomorrow same time + the next
+   *  free channel slot. Both flip the post back to ``scheduled`` so
+   *  the cron picks it up at the new time. */
+  const handleQuickReschedule = useCallback(
+    async (mode: 'tomorrow' | 'next-slot') => {
+      if (!post) return;
+      setBusy('reschedule');
+      try {
+        let nextIso: string;
+        if (mode === 'tomorrow') {
+          const d = new Date(post.scheduled_at);
+          d.setDate(d.getDate() + 1);
+          // If the original was already in the past, bump from now
+          // instead so we don't reschedule into another past slot.
+          if (d.getTime() < Date.now()) {
+            const now = new Date();
+            now.setDate(now.getDate() + 1);
+            now.setSeconds(0, 0);
+            nextIso = now.toISOString();
+          } else {
+            nextIso = d.toISOString();
+          }
+        } else {
+          // next-slot — ask the backend for the next allowed slot on
+          // this platform/channel. Honours the channel's upload_days +
+          // upload_time and avoids clashes with other pending posts.
+          const slot = await scheduleApi.nextSlot({
+            platform: post.platform as
+              | 'youtube'
+              | 'tiktok'
+              | 'instagram'
+              | 'facebook'
+              | 'x',
+            channelId: post.youtube_channel_id ?? undefined,
+          });
+          nextIso = slot.scheduled_at;
+        }
+        await scheduleApi.update(post.id, {
+          scheduled_at: nextIso,
+          // If the post was failed, flip it back to scheduled so the
+          // cron picks it up at the new time. Missed posts are already
+          // ``scheduled`` so this is a no-op for them.
+          ...(post.status === 'failed' ? { status: 'scheduled', error_message: null } : {}),
+        });
+        toast.success('Rescheduled', {
+          description: `New time: ${new Date(nextIso).toLocaleString()}`,
+        });
+        onMutated();
+      } catch (err) {
+        toast.error('Reschedule failed', { description: String(err) });
+      } finally {
+        setBusy(null);
+      }
+    },
+    [post, toast, onMutated],
+  );
 
   const handleCancel = useCallback(async () => {
     if (!post) return;
@@ -231,6 +344,91 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
               </button>
             </section>
           )}
+
+          {/* Pre-flight duplicate check — only shown for failed/missed
+              on YouTube. Three states: checking, clean, blocked. */}
+          {(status === 'failed' || status === 'missed') &&
+            post.platform === 'youtube' && (
+              <section
+                className={[
+                  'rounded-md border p-3 text-xs',
+                  dupChecking
+                    ? 'border-border bg-bg-elevated/50'
+                    : dupCheck?.reason === 'title_similar'
+                      ? 'border-error/35 bg-error/5'
+                      : dupCheck?.reason === 'existing_upload'
+                        ? 'border-success/30 bg-success/5'
+                        : 'border-success/25 bg-success/4',
+                ].join(' ')}
+              >
+                {dupChecking ? (
+                  <div className="flex items-center gap-2 text-txt-secondary">
+                    <Loader2 size={13} className="animate-spin" />
+                    Checking for duplicates on the channel…
+                  </div>
+                ) : !dupCheck ? (
+                  <div className="text-txt-tertiary">
+                    Couldn't run the duplicate check — Retry will still run the
+                    same check at upload time.
+                  </div>
+                ) : dupCheck.reason === 'existing_upload' ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-success font-semibold">
+                      <ShieldCheck size={13} />
+                      Already uploaded — Retry will link the existing video
+                    </div>
+                    <p className="text-txt-secondary">
+                      A previous upload for this episode is already done on this
+                      channel. Hitting Retry will mark the scheduled post as
+                      published without consuming a fresh upload slot.
+                    </p>
+                    {dupCheck.existing_video_url && (
+                      <a
+                        href={dupCheck.existing_video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-success hover:underline"
+                      >
+                        <ExternalLink size={11} />
+                        Open existing video
+                      </a>
+                    )}
+                  </div>
+                ) : dupCheck.reason === 'title_similar' ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-error font-semibold">
+                      <ShieldAlert size={13} />
+                      Won't upload — title too similar to existing video
+                    </div>
+                    <p className="text-txt-secondary">
+                      Title matches{' '}
+                      <strong className="text-txt-primary">
+                        "{dupCheck.match_title}"
+                      </strong>{' '}
+                      at {Math.round((dupCheck.match_ratio ?? 0) * 100)}% on this
+                      channel. The worker will permanently fail on retry —
+                      reschedule and edit the title instead.
+                    </p>
+                    {dupCheck.existing_video_url && (
+                      <a
+                        href={dupCheck.existing_video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-error hover:underline"
+                      >
+                        <ExternalLink size={11} />
+                        Open conflicting video
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-success">
+                    <ShieldCheck size={13} />
+                    Safe to retry — no duplicate found on the channel
+                  </div>
+                )}
+              </section>
+            )}
 
           {/* Missed explanation */}
           {status === 'missed' && (
@@ -430,16 +628,44 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
           ) : (
             <>
               {(post.status === 'failed' || status === 'missed') && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleRetry}
-                  loading={busy === 'retry'}
-                  disabled={busy !== null}
-                >
-                  <RotateCw size={13} className="mr-1.5" />
-                  Retry now
-                </Button>
+                <>
+                  <Button
+                    variant={dupCheck?.reason === 'title_similar' ? 'secondary' : 'primary'}
+                    size="sm"
+                    onClick={handleRetry}
+                    loading={busy === 'retry'}
+                    disabled={busy !== null}
+                    title={
+                      dupCheck?.reason === 'title_similar'
+                        ? 'Worker will refuse to upload — reschedule + edit title instead'
+                        : 'Mark as scheduled so the next worker tick publishes it'
+                    }
+                  >
+                    <RotateCw size={13} className="mr-1.5" />
+                    Retry now
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleQuickReschedule('next-slot')}
+                    loading={busy === 'reschedule'}
+                    disabled={busy !== null}
+                    title="Move to the next allowed slot on this channel (respects upload_days + clash-avoid)"
+                  >
+                    <CalendarPlus size={13} className="mr-1.5" />
+                    Next free slot
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleQuickReschedule('tomorrow')}
+                    loading={busy === 'reschedule'}
+                    disabled={busy !== null}
+                    title="Reschedule to the same time tomorrow"
+                  >
+                    +24h
+                  </Button>
+                </>
               )}
               {!isTerminal && (
                 <Button
