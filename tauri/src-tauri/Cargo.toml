@@ -1,6 +1,6 @@
 [package]
 name = "drevalis-shell"
-version = "0.1.0-alpha.47"
+version = "0.1.0-alpha.48"
 description = "Tauri shell for Drevalis Creator Studio."
 authors = ["Drevalis"]
 edition = "2021"
@@ -32,7 +32,7 @@ serde_json = "1"
 # Python backend errors. DSN is read at *compile time* via the
 # ``DREVALIS_TELEMETRY_DSN`` env var so CI release builds embed the
 # production DSN while dev builds stay quiet.
-sentry = { version = "0.34", default-features = false, features = [
+sentry = { version = "0.48", default-features = false, features = [
     "backtrace",
     "contexts",
     "panic",

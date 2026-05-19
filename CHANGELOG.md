@@ -11,6 +11,22 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Security (alpha.48 — close 4 open Dependabot alerts)
+- **Bump ``sentry`` 0.34 → 0.48** in the Tauri shell. The old version
+  pinned ``rustls 0.22.4`` which pulled the unpatched ``rustls-webpki
+  0.102.8``; updating drops the second rustls tree entirely so the
+  whole binary now goes through ``rustls 0.23 + rustls-webpki
+  0.103.13``. Closes:
+  - GHSA "DoS via panic on malformed CRL BIT STRING" (**high**)
+  - Three medium/low webpki cert-validation advisories
+    (name-constraint wildcard, URI-name constraint, CRL distribution
+    point matching).
+- **Bump ``idna`` 3.13 → 3.15** in ``uv.lock``. Closes the medium
+  alert on ``idna.encode()`` input bypass of the CVE-2024-3651 fix.
+- API surface for the Tauri ``init_telemetry()`` is unchanged across
+  the sentry 0.34→0.48 jump (we only use ``sentry::init`` +
+  ``ClientOptions`` + ``ClientInitGuard``). No code changes required.
+
 ### Fixed (alpha.47 — synced channel totals drive the Dashboard rollup; dedupe per-channel sections)
 - **The YouTube → Dashboard per-channel rollup cards now show
   channel-wide numbers** (videos / views / likes / comments) from the
