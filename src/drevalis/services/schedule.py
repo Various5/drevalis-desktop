@@ -203,15 +203,34 @@ class ScheduleService:
         if not series:
             raise NotFoundError("Series", series_id)
 
-        channel_id = payload.youtube_channel_id or getattr(series, "youtube_channel_id", None)
-        if channel_id is None:
-            raise ValidationError(
-                "Series has no YouTube channel assigned and the request did not "
-                "supply ``youtube_channel_id``. Set one before auto-scheduling."
-            )
-        channel = await self._channels.get_by_id(channel_id)
+        # Resolve the target channel with graceful fallback. Order:
+        #   1. explicit ``payload.youtube_channel_id``
+        #   2. the series' assigned ``youtube_channel_id``
+        #   3. any connected channel (active first, else the newest)
+        # Steps 1 and 2 can point at a stale UUID — e.g. after a
+        # backup-restore + reconnect minted fresh channel rows, or the
+        # channel was deleted. Rather than hard-failing with
+        # "YouTubeChannel not found" (the operator's "doesn't matter
+        # which channel" case), we fall back to a real connected
+        # channel and only error when there are genuinely zero channels.
+        channel = None
+        requested_id = payload.youtube_channel_id or getattr(
+            series, "youtube_channel_id", None
+        )
+        if requested_id is not None:
+            channel = await self._channels.get_by_id(requested_id)
+
         if channel is None:
-            raise NotFoundError("YouTubeChannel", channel_id)
+            channel = await self._channels.get_active()
+        if channel is None:
+            all_channels = await self._channels.get_all_channels()
+            channel = all_channels[0] if all_channels else None
+        if channel is None:
+            raise ValidationError(
+                "No YouTube channel is connected. Connect a channel in "
+                "Settings → YouTube before auto-scheduling."
+            )
+        channel_id = channel.id
 
         review_eps = await self._episodes.get_by_series(
             series_id, status_filter="review", limit=500

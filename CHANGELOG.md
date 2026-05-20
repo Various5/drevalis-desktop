@@ -11,6 +11,20 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.57 — Auto-schedule no longer dies on a stale channel id)
+- **Auto-schedule a series now falls back to any connected channel**
+  instead of hard-failing with "YouTubeChannel ID not found". The
+  resolver order is: explicit request channel → the series' assigned
+  channel → the active channel → the newest connected channel. The
+  first two can point at a UUID that no longer exists (after a
+  backup-restore + reconnect mints fresh channel rows, or a channel
+  was deleted), which is exactly when the old code 404'd. Now it
+  only errors when there are genuinely zero channels connected.
+- **Auto-schedule dialog gains a channel picker** (defaults to
+  "Auto — series channel, or any connected") so you can pin a
+  specific channel when it matters, or leave it on Auto and let the
+  fallback pick.
+
 ### Fixed (alpha.56 — series load crash + multi-channel scheduling)
 - **Series detail page no longer 500s on older series.**
   ``GET /series/{id}`` raised a Pydantic ``ValidationError`` —

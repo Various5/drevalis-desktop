@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
-import { schedule as scheduleApi, series as seriesApi } from '@/lib/api';
-import type { SeriesListItem } from '@/types';
+import { schedule as scheduleApi, series as seriesApi, youtube as youtubeApi } from '@/lib/api';
+import type { SeriesListItem, YouTubeChannel } from '@/types';
 
 type Cadence = 'daily' | 'every_n_days' | 'weekly';
 
@@ -92,6 +92,10 @@ export function AutoScheduleDialog({
   const [tagsTemplate, setTagsTemplate] = useState('');
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<AutoScheduleResponse | null>(null);
+  // Channel target. '' = auto (backend picks the series' channel, or
+  // any connected channel as fallback). Otherwise a specific channel id.
+  const [channelId, setChannelId] = useState<string>('');
+  const [channels, setChannels] = useState<YouTubeChannel[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,6 +110,10 @@ export function AutoScheduleDialog({
         }),
       )
       .finally(() => setSeriesLoading(false));
+    youtubeApi
+      .listChannels()
+      .then(setChannels)
+      .catch(() => setChannels([]));
   }, [open, toast]);
 
   useEffect(() => {
@@ -131,6 +139,7 @@ export function AutoScheduleDialog({
         description_template: descTemplate || undefined,
         tags_template: tagsTemplate || undefined,
         dry_run: dryRun,
+        ...(channelId ? { youtube_channel_id: channelId } : {}),
       });
       if (dryRun) {
         setPreview(result as AutoScheduleResponse);
@@ -241,6 +250,20 @@ export function AutoScheduleDialog({
             }
             options={PRIVACY_OPTIONS}
           />
+
+          {channels.length > 0 && (
+            <div className="col-span-2">
+              <Select
+                label="YouTube channel"
+                value={channelId}
+                onChange={(e) => setChannelId(e.target.value)}
+                options={[
+                  { value: '', label: 'Auto — series channel, or any connected' },
+                  ...channels.map((c) => ({ value: c.id, label: c.channel_name })),
+                ]}
+              />
+            </div>
+          )}
 
           <div className="col-span-2">
             <Input
