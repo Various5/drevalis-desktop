@@ -297,3 +297,48 @@ async def duplicate_check(
         return await svc.check_duplicate(post_id)
     except ValueError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+
+
+@router.post(
+    "/posts/{post_id}/publish-now",
+    response_model=ScheduleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Re-arm a failed/missed post to upload on the next worker tick",
+)
+async def publish_now(
+    post_id: UUID,
+    svc: ScheduleService = Depends(_service),
+) -> ScheduleResponse:
+    """Manually re-run a missed/failed upload at its original intent —
+    no new slot, no future date. Clamps ``scheduled_at`` to just-past
+    and flips status back to ``scheduled`` so the 5-minute publish cron
+    picks it up immediately. Honours the worker's duplicate check + the
+    platform's daily upload cap (a quota-blocked upload fails again
+    rather than silently vanishing).
+    """
+    try:
+        post = await svc.publish_now(post_id)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return to_response(post)
+
+
+@router.post(
+    "/reschedule-failed",
+    status_code=status.HTTP_200_OK,
+    summary="Spread every failed + missed post across the next free slots",
+)
+async def reschedule_failed(
+    within_hours: int = Query(default=720, ge=1, le=8760),
+    svc: ScheduleService = Depends(_service),
+) -> dict[str, Any]:
+    """Bulk companion to the per-post reschedule. Walks every failed +
+    missed post (scheduled_at within ``within_hours``) and assigns each
+    the next free slot for its channel — respecting ``upload_days`` +
+    the clash-avoidance window — so 100+ stuck posts get spread across
+    future days instead of all retrying at once and tripping the
+    platform's daily upload cap. One request, one transaction.
+    """
+    return await svc.reschedule_failed(within_hours=within_hours)

@@ -19,7 +19,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from drevalis.core.exceptions import NotFoundError, ValidationError
@@ -116,15 +116,67 @@ class ScheduleService:
         post = await self._sched.get_by_id(post_id)
         if not post:
             raise NotFoundError("ScheduledPost", post_id)
-        if post.status != "scheduled":
+
+        # Editable states: ``scheduled`` (normal edit/reschedule) and
+        # ``failed`` (reschedule = give it another go). ``publishing``
+        # is mid-flight, ``published``/``cancelled`` are terminal — those
+        # stay locked. Rescheduling a *failed* post is the documented way
+        # to retry it at a new time, so we reset it back to ``scheduled``
+        # and clear the stale error here. Without this reset the bulk
+        # "Reschedule all" on the calendar silently no-ops on failed
+        # posts (the old code raised, so 100+ failed posts never moved).
+        if post.status in ("publishing", "published", "cancelled"):
             raise ValidationError(f"Cannot update post with status '{post.status}'")
 
         updates = payload.model_dump(exclude_unset=True)
         if "scheduled_at" in updates and updates["scheduled_at"] is not None:
             updates["scheduled_at"] = _normalize_to_utc(updates["scheduled_at"], self._tz)
+
+        # Rescheduling (or editing) a failed post implies "try again" —
+        # flip it back into the publishable queue and drop the error.
+        if post.status == "failed":
+            updates["status"] = "scheduled"
+            updates["error_message"] = None
+
         updated = await self._sched.update(post_id, **updates)
         await self._db.commit()
         assert updated is not None
+        return updated
+
+    async def publish_now(self, post_id: UUID) -> ScheduledPost:
+        """Re-arm a failed/missed post to upload on the next worker tick
+        **without** moving it to a future slot.
+
+        The publish cron picks up any ``status='scheduled'`` post whose
+        ``scheduled_at <= now`` (it runs every 5 minutes). So "publish
+        now" is: clamp ``scheduled_at`` to one minute ago, flip status
+        back to ``scheduled``, and clear the error. The very next tick
+        uploads it — no slot picking, no waiting for a future date.
+
+        This is what the operator wants for a missed day: "just upload
+        the thing, I don't care about the schedule anymore." It does NOT
+        bypass the worker's duplicate-check or the platform's daily
+        upload cap — if the channel is already at its YouTube quota for
+        the day the upload will fail again, which is the correct
+        behaviour (better than silently dropping it).
+        """
+        post = await self._sched.get_by_id(post_id)
+        if not post:
+            raise NotFoundError("ScheduledPost", post_id)
+        if post.status in ("publishing", "published", "cancelled"):
+            raise ValidationError(
+                f"Cannot publish post with status '{post.status}' now"
+            )
+        one_min_ago = datetime.now(UTC) - timedelta(minutes=1)
+        updated = await self._sched.update(
+            post_id,
+            status="scheduled",
+            scheduled_at=one_min_ago,
+            error_message=None,
+        )
+        await self._db.commit()
+        assert updated is not None
+        logger.info("schedule.publish_now", post_id=str(post_id))
         return updated
 
     async def delete(self, post_id: UUID) -> None:
@@ -476,6 +528,86 @@ class ScheduleService:
             "match_ratio": None,
             "safe_to_retry": True,
         }
+
+    async def reschedule_failed(
+        self, *, within_hours: int = 720
+    ) -> dict[str, Any]:
+        """Spread every failed + missed post across the next free slots,
+        server-side, in one transaction.
+
+        "Missed" = ``status='scheduled'`` with ``scheduled_at`` more than
+        15 minutes in the past (the worker hasn't picked it up). "Failed"
+        = ``status='failed'``. Both get walked in chronological order and
+        each is assigned the next free slot via ``find_next_free_slot``,
+        flushing between iterations so slot N+1 sees slot N as occupied —
+        otherwise they'd all pile onto the same slot.
+
+        Why server-side: the calendar's old client-side loop fired two
+        round-trips per post (``/next-slot`` + ``/update``). With 100+
+        failed posts that's 200+ sequential requests — slow and fragile.
+        Doing it here is one request, one transaction.
+
+        Returns ``{"rescheduled": N, "skipped": M, "details": [...]}``.
+        """
+        from datetime import timedelta as _td
+
+        from drevalis.models.scheduled_post import ScheduledPost as _Sched
+        from drevalis.services.schedule_slot import find_next_free_slot
+
+        now = datetime.now(UTC)
+        missed_cutoff = now - _td(minutes=15)
+        window_cutoff = now - _td(hours=within_hours)
+
+        stmt = (
+            select(_Sched)
+            .where(
+                or_(
+                    _Sched.status == "failed",
+                    and_(
+                        _Sched.status == "scheduled",
+                        _Sched.scheduled_at < missed_cutoff,
+                    ),
+                ),
+                _Sched.scheduled_at >= window_cutoff,
+            )
+            .order_by(_Sched.scheduled_at)
+        )
+        posts = list((await self._db.execute(stmt)).scalars().all())
+
+        rescheduled = 0
+        skipped = 0
+        details: list[dict[str, Any]] = []
+        for post in posts:
+            try:
+                slot = await find_next_free_slot(
+                    platform=post.platform,
+                    channel_id=post.youtube_channel_id,
+                    after_utc=now,
+                    db=self._db,
+                )
+                post.scheduled_at = slot
+                post.status = "scheduled"
+                post.error_message = None
+                # Flush (not commit) so the next find_next_free_slot call
+                # sees this row's new slot as occupied via _conflicts.
+                await self._db.flush()
+                rescheduled += 1
+                details.append(
+                    {"post_id": str(post.id), "scheduled_at": slot.isoformat()}
+                )
+            except ValueError:
+                # No free slot within the lookahead horizon — leave the
+                # post as-is and report it.
+                skipped += 1
+
+        await self._db.commit()
+        logger.info(
+            "schedule.reschedule_failed",
+            rescheduled=rescheduled,
+            skipped=skipped,
+            within_hours=within_hours,
+        )
+        return {"rescheduled": rescheduled, "skipped": skipped, "details": details}
 
     async def retry_failed(self, payload: RetryFailedRequest) -> tuple[list[UUID], list[UUID]]:
         now = datetime.now(UTC)

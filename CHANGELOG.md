@@ -11,6 +11,38 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.55 — Calendar: rescheduling failed posts now actually works + Publish-now)
+- **Rescheduling a failed post now clears the failed state.** The
+  ``update`` service used to hard-reject any post that wasn't
+  ``scheduled`` (``Cannot update post with status 'failed'``), so the
+  calendar's bulk "Reschedule all" silently no-op'd on every failed
+  post — that's why 126 failed posts stayed failed after a reschedule.
+  Now rescheduling (or editing) a ``failed`` post resets it to
+  ``scheduled`` and clears ``error_message``, which is the documented
+  "give it another go at a new time" semantic. ``publishing`` /
+  ``published`` / ``cancelled`` stay locked.
+- **New "Publish now" action** (per post, in the detail drawer) —
+  re-runs a missed/failed upload at its original intent without
+  picking a new slot. Clamps ``scheduled_at`` to one minute ago and
+  flips status to ``scheduled``; the 5-minute publish cron uploads it
+  on the next tick. Backed by ``POST /schedule/posts/{id}/publish-now``.
+  Honours the worker's dup-check + the platform daily cap (a
+  quota-blocked upload fails again rather than silently vanishing).
+  This replaces the old "Retry now" button, which did the same thing
+  but was confusingly named.
+- **"Reschedule all" is now a single server-side call** —
+  ``POST /schedule/reschedule-failed`` walks every failed + missed
+  post and assigns each the next free channel slot in one
+  transaction (flushing between each so slot N+1 sees slot N as
+  taken). The old client-side version fired 2 requests per post —
+  250+ sequential round-trips for a 126-post backlog, slow and prone
+  to partial failure.
+- **Removed the "Retry all" banner button.** As the user noted, flipping
+  100+ posts to scheduled-in-the-past just makes the next worker tick
+  try to upload them all at once and trip YouTube's daily upload cap.
+  "Reschedule all" (spread across days) + per-post "Publish now" cover
+  the real workflows; bulk-retry never made sense under a daily cap.
+
 ### Fixed (alpha.54 — version-stamp the webview URL to defeat WebView2 caching for good)
 - **The Tauri shell now navigates to ``http://127.0.0.1:8000/?v=<version>``**
   instead of the bare root. The alpha.51 no-cache header fixed the

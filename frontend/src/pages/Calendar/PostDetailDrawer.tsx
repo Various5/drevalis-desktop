@@ -140,7 +140,7 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
   const badge = statusBadge(status);
   const isTerminal = status === 'published' || status === 'cancelled' || status === 'done';
 
-  const handleRetry = useCallback(async () => {
+  const handlePublishNow = useCallback(async () => {
     if (!post) return;
     // Hard-stop: if dup-check found a title-match the worker would
     // refuse to upload (permanent failure). Force the user to
@@ -149,26 +149,22 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
       const ok = confirm(
         `Title is ${Math.round((dupCheck.match_ratio ?? 0) * 100)}% similar to "${
           dupCheck.match_title
-        }" already on the channel. The worker will refuse to upload. Retry anyway?`,
+        }" already on the channel. The worker will refuse to upload. Publish anyway?`,
       );
       if (!ok) return;
     }
     setBusy('retry');
     try {
-      const res = await scheduleApi.retryFailed({ post_ids: [post.id] });
-      if (res.requeued.length > 0) {
-        toast.success('Requeued for retry', {
-          description:
-            dupCheck?.reason === 'existing_upload'
-              ? 'Already-uploaded video found — worker will link it without re-uploading.'
-              : 'The next worker tick will pick this up.',
-        });
-      } else {
-        toast.info('Already in queue or not in a retry-able state.');
-      }
+      await scheduleApi.publishNow(post.id);
+      toast.success('Queued to upload now', {
+        description:
+          dupCheck?.reason === 'existing_upload'
+            ? 'Already-uploaded video found — worker will link it without re-uploading.'
+            : 'Uploads on the next worker tick (within ~5 min). Subject to the platform\'s daily upload cap.',
+      });
       onMutated();
     } catch (err) {
-      toast.error('Retry failed', { description: String(err) });
+      toast.error('Publish-now failed', { description: String(err) });
     } finally {
       setBusy(null);
     }
@@ -212,13 +208,10 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
           });
           nextIso = slot.scheduled_at;
         }
-        await scheduleApi.update(post.id, {
-          scheduled_at: nextIso,
-          // If the post was failed, flip it back to scheduled so the
-          // cron picks it up at the new time. Missed posts are already
-          // ``scheduled`` so this is a no-op for them.
-          ...(post.status === 'failed' ? { status: 'scheduled', error_message: null } : {}),
-        });
+        // The backend resets failed→scheduled + clears the error
+        // automatically when a failed post is rescheduled, so we only
+        // need to send the new time.
+        await scheduleApi.update(post.id, { scheduled_at: nextIso });
         toast.success('Rescheduled', {
           description: `New time: ${new Date(nextIso).toLocaleString()}`,
         });
@@ -632,17 +625,17 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
                   <Button
                     variant={dupCheck?.reason === 'title_similar' ? 'secondary' : 'primary'}
                     size="sm"
-                    onClick={handleRetry}
+                    onClick={handlePublishNow}
                     loading={busy === 'retry'}
                     disabled={busy !== null}
                     title={
                       dupCheck?.reason === 'title_similar'
                         ? 'Worker will refuse to upload — reschedule + edit title instead'
-                        : 'Mark as scheduled so the next worker tick publishes it'
+                        : 'Upload at the original time now — the next worker tick (~5 min) publishes it'
                     }
                   >
                     <RotateCw size={13} className="mr-1.5" />
-                    Retry now
+                    Publish now
                   </Button>
                   <Button
                     variant="ghost"

@@ -1269,6 +1269,23 @@ export const schedule = {
       match_ratio: number | null;
       safe_to_retry: boolean;
     }>(`/api/v1/schedule/posts/${postId}/duplicate-check`),
+
+  // Re-arm a failed/missed post to upload on the next worker tick
+  // *without* moving it to a future slot. Clamps scheduled_at to
+  // just-past + flips status back to scheduled. Upload happens within
+  // ~5 min (the publish cron cadence).
+  publishNow: (postId: string) =>
+    post<any>(`/api/v1/schedule/posts/${postId}/publish-now`, {}),
+
+  // Bulk-reschedule every failed + missed post across the next free
+  // slots, server-side in one transaction. Returns counts. Use this
+  // for the "Reschedule all" banner button — far more robust than
+  // looping per-post from the client when there are 100+ stuck posts.
+  rescheduleFailed: (withinHours = 720) =>
+    post<{ rescheduled: number; skipped: number; details: unknown[] }>(
+      `/api/v1/schedule/reschedule-failed?within_hours=${withinHours}`,
+      {},
+    ),
 };
 
 // ---------------------------------------------------------------------------

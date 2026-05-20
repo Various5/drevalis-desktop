@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Clock, RotateCw, CalendarPlus } from 'lucide-react';
+import { AlertTriangle, Clock, CalendarPlus } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { schedule as scheduleApi } from '@/lib/api';
@@ -41,7 +41,7 @@ interface ProblemsBannerProps {
 
 export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBannerProps) {
   const { toast } = useToast();
-  const [busy, setBusy] = useState<'retry' | 'reschedule' | null>(null);
+  const [busy, setBusy] = useState<'reschedule' | null>(null);
 
   const failed = posts.filter((p) => p.status === 'failed');
   const missed = posts.filter((p) => isMissed(p));
@@ -49,83 +49,30 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
 
   const total = failed.length + missed.length;
 
-  const handleRetryAll = async () => {
-    setBusy('retry');
-    try {
-      // Only requeue ``failed`` — missed posts are already
-      // ``scheduled`` and will be picked up automatically on the
-      // next cron tick.
-      const ids = failed.map((p) => p.id);
-      if (ids.length === 0) {
-        toast.info('Nothing to retry', {
-          description: 'Missed posts will retry automatically on the next worker tick.',
-        });
-        onRetried();
-        return;
-      }
-      const res = await scheduleApi.retryFailed({ post_ids: ids });
-      toast.success(
-        `${res.requeued.length} post${res.requeued.length === 1 ? '' : 's'} requeued`,
-        {
-          description:
-            res.skipped.length > 0
-              ? `${res.skipped.length} skipped (already past window or in flight).`
-              : 'Worker checks for duplicates before each upload — quota-safe.',
-        },
-      );
-      onRetried();
-    } catch (err) {
-      toast.error('Retry failed', { description: String(err) });
-    } finally {
-      setBusy(null);
-    }
-  };
-
   /**
-   * Bulk reschedule: walk every failed + missed post and PATCH each
-   * onto the next free slot the backend gives us. We resolve slots
-   * sequentially (not in parallel) so each call to ``/next-slot``
-   * sees the already-rescheduled posts from this batch as occupied
-   * — otherwise three posts would all land on the same slot.
+   * Bulk reschedule — one server-side call that walks every failed +
+   * missed post and assigns each the next free slot for its channel
+   * (respecting upload_days + clash-avoid). This is the right action
+   * for a backlog of stuck posts: spreading them across future days
+   * means they don't all retry at once and trip the platform's daily
+   * upload cap. (A naive "retry all" would flip 100+ posts to
+   * scheduled-in-the-past, and the next worker tick would try to
+   * upload all of them and burn through the daily quota — which is
+   * exactly why the old Retry-all button was removed.)
    */
   const handleRescheduleAll = async () => {
     setBusy('reschedule');
-    const problemPosts = [...failed, ...missed];
-    let moved = 0;
-    let skipped = 0;
     try {
-      for (const post of problemPosts) {
-        try {
-          // ``next-slot`` is per-platform; non-YouTube platforms still
-          // honour their weekday-09:00-UTC default so this works for
-          // TikTok / IG / FB / X too.
-          const slot = await scheduleApi.nextSlot({
-            platform: post.platform as
-              | 'youtube'
-              | 'tiktok'
-              | 'instagram'
-              | 'facebook'
-              | 'x',
-            channelId: post.youtube_channel_id ?? undefined,
-          });
-          await scheduleApi.update(post.id, {
-            scheduled_at: slot.scheduled_at,
-            ...(post.status === 'failed'
-              ? { status: 'scheduled', error_message: null }
-              : {}),
-          });
-          moved++;
-        } catch {
-          skipped++;
-        }
-      }
-      toast.success(`Rescheduled ${moved} of ${problemPosts.length} posts`, {
+      const res = await scheduleApi.rescheduleFailed();
+      toast.success(`Rescheduled ${res.rescheduled} post${res.rescheduled === 1 ? '' : 's'}`, {
         description:
-          skipped > 0
-            ? `${skipped} could not be rescheduled — check them individually.`
-            : 'New slots respect each channel\'s upload_days + clash-avoid window.',
+          res.skipped > 0
+            ? `${res.skipped} couldn't be placed within the lookahead window — reschedule those manually.`
+            : "New slots respect each channel's upload days + clash-avoid window, so they won't trip the daily upload cap.",
       });
       onRetried();
+    } catch (err) {
+      toast.error('Reschedule failed', { description: String(err) });
     } finally {
       setBusy(null);
     }
@@ -163,10 +110,12 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
             {summary} · {total === 1 ? 'upload needs attention' : 'uploads need attention'}
           </p>
           <p className="text-[11px] text-txt-tertiary mt-0.5">
-            Retry runs the worker's duplicate check before every upload — if
-            the post already published successfully, it links the existing
-            video instead of consuming a daily-upload slot. Reschedule moves
-            everything to the next free slot per channel.
+            Reschedule spreads everything across the next free slots per
+            channel so they don't all hit the platform's daily upload cap
+            at once. To force a single post up immediately, open it and use
+            "Publish now". The worker runs a duplicate check before each
+            upload, so an already-published video is linked, never
+            re-uploaded.
           </p>
         </div>
       </div>
@@ -180,30 +129,15 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
           View only
         </Button>
         <Button
-          variant="ghost"
+          variant="primary"
           size="sm"
           onClick={handleRescheduleAll}
           loading={busy === 'reschedule'}
           disabled={busy !== null}
-          title="Move every failed + missed post onto the next allowed slot on its channel"
+          title="Spread every failed + missed post across the next free slots on each channel"
         >
           <CalendarPlus size={13} className="mr-1.5" />
-          Reschedule all
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleRetryAll}
-          loading={busy === 'retry'}
-          disabled={busy !== null || failed.length === 0}
-          title={
-            failed.length === 0
-              ? 'Only failed posts need a manual retry — missed posts will retry on the next worker tick'
-              : 'Requeue every failed post for the next worker tick'
-          }
-        >
-          <RotateCw size={13} className="mr-1.5" />
-          Retry all
+          Reschedule all ({total})
         </Button>
       </div>
     </div>
