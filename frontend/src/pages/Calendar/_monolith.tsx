@@ -18,8 +18,8 @@ import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
-import { schedule as scheduleApi, episodes as episodesApi } from '@/lib/api';
-import type { EpisodeListItem } from '@/types';
+import { schedule as scheduleApi, episodes as episodesApi, youtube as youtubeApi } from '@/lib/api';
+import type { EpisodeListItem, YouTubeChannel } from '@/types';
 import { usePreferences } from '@/lib/usePreferences';
 import { useConnectedPlatforms } from '@/lib/useConnectedPlatforms';
 
@@ -90,6 +90,42 @@ function ScheduleDialog({
   const [error, setError] = useState('');
   const [findingSlot, setFindingSlot] = useState(false);
 
+  // ── Multi-channel selection (YouTube only) ─────────────────────────
+  // The dialog used to send no channel at all, so a YouTube post
+  // landed on whatever the backend treated as default (and threw "no
+  // channel assigned" when there were several). Now the user picks
+  // one, several, or all connected channels — we create one
+  // ScheduledPost per selected channel.
+  const [ytChannels, setYtChannels] = useState<YouTubeChannel[]>([]);
+  const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
+  // When scheduling to >1 channel at the same instant there's no clash
+  // (different channels), but the operator may want them staggered so
+  // the uploads don't all fire on one worker tick. 0 = same time.
+  const [staggerMinutes, setStaggerMinutes] = useState(0);
+
+  useEffect(() => {
+    if (!open || platform !== 'youtube') return;
+    let cancelled = false;
+    youtubeApi
+      .listChannels()
+      .then((chs) => {
+        if (cancelled) return;
+        setYtChannels(chs);
+        // Default: select all channels so "post everywhere" is one
+        // click. The user can deselect down to a single channel.
+        setSelectedChannelIds(chs.map((c) => c.id));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setYtChannels([]);
+          setSelectedChannelIds([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, platform]);
+
   useEffect(() => {
     if (open) {
       const base = preselectedDate ?? new Date();
@@ -103,6 +139,7 @@ function ScheduleDialog({
       setTags('');
       setPrivacy('public');
       setError('');
+      setStaggerMinutes(0);
     }
   }, [open, preselectedDate]);
 
@@ -118,22 +155,56 @@ function ScheduleDialog({
     if (!title.trim()) { setError('Title is required.'); return; }
     if (!scheduledAt) { setError('Scheduled date/time is required.'); return; }
 
+    // For YouTube, require at least one channel selected — otherwise the
+    // backend can't resolve which channel to publish to.
+    const isYouTube = platform === 'youtube';
+    if (isYouTube && ytChannels.length > 0 && selectedChannelIds.length === 0) {
+      setError('Select at least one YouTube channel.');
+      return;
+    }
+
     setSaving(true);
     setError('');
     try {
-      await scheduleApi.create({
-        content_type: 'episode',
-        content_id: contentId,
-        platform,
-        scheduled_at: new Date(scheduledAt).toISOString(),
-        title: title.trim(),
-        description: description.trim() || undefined,
-        tags: tags.trim() || undefined,
-        privacy,
-      });
+      const baseTime = new Date(scheduledAt).getTime();
+      // Targets: one create per selected YouTube channel, or a single
+      // create for non-YouTube platforms (or YouTube with no channels
+      // connected, which falls back to the old single-post behaviour).
+      const targets: Array<string | null> =
+        isYouTube && selectedChannelIds.length > 0
+          ? selectedChannelIds
+          : [null];
+
+      let created = 0;
+      for (let i = 0; i < targets.length; i++) {
+        const channelId = targets[i];
+        const when = new Date(baseTime + i * staggerMinutes * 60_000);
+        await scheduleApi.create({
+          content_type: 'episode',
+          content_id: contentId,
+          platform,
+          scheduled_at: when.toISOString(),
+          title: title.trim(),
+          description: description.trim() || undefined,
+          tags: tags.trim() || undefined,
+          privacy,
+          ...(channelId ? { youtube_channel_id: channelId } : {}),
+        });
+        created++;
+      }
       onCreated();
       onClose();
-      toast.success('Post scheduled', { description: `${title.trim()} on ${platform}` });
+      toast.success(
+        created === 1 ? 'Post scheduled' : `Scheduled on ${created} channels`,
+        {
+          description:
+            created === 1
+              ? `${title.trim()} on ${platform}`
+              : `${title.trim()} — ${created} ${platform} channels${
+                  staggerMinutes > 0 ? `, ${staggerMinutes} min apart` : ''
+                }`,
+        },
+      );
     } catch (err: unknown) {
       const e = err as { detail?: string; message?: string };
       const msg = e?.detail ?? e?.message ?? 'Failed to schedule post.';
@@ -166,6 +237,82 @@ function ScheduleDialog({
           onChange={(e) => setPlatform(e.target.value)}
           options={PLATFORM_OPTIONS}
         />
+
+        {/* YouTube channel multi-select — pick one, several, or all.
+            Creates one scheduled post per channel. Only shown when
+            YouTube is the platform and >1 channel is connected (with a
+            single channel there's nothing to choose). */}
+        {platform === 'youtube' && ytChannels.length > 1 && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-txt-secondary">
+                Channels ({selectedChannelIds.length}/{ytChannels.length})
+              </label>
+              <div className="flex items-center gap-2 text-[11px]">
+                <button
+                  type="button"
+                  className="text-accent hover:underline"
+                  onClick={() => setSelectedChannelIds(ytChannels.map((c) => c.id))}
+                >
+                  All
+                </button>
+                <span className="text-txt-tertiary">·</span>
+                <button
+                  type="button"
+                  className="text-accent hover:underline"
+                  onClick={() => setSelectedChannelIds([])}
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="max-h-36 overflow-y-auto rounded-md border border-border divide-y divide-border/60">
+              {ytChannels.map((ch) => {
+                const checked = selectedChannelIds.includes(ch.id);
+                return (
+                  <label
+                    key={ch.id}
+                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-bg-hover text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedChannelIds((prev) =>
+                          e.target.checked
+                            ? [...prev, ch.id]
+                            : prev.filter((id) => id !== ch.id),
+                        );
+                      }}
+                      className="accent-accent"
+                    />
+                    <span className="truncate text-txt-primary">{ch.channel_name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {selectedChannelIds.length > 1 && (
+              <div className="mt-2 flex items-center gap-2">
+                <label className="text-[11px] text-txt-tertiary">Stagger</label>
+                <select
+                  value={staggerMinutes}
+                  onChange={(e) => setStaggerMinutes(Number(e.target.value))}
+                  className="bg-bg-elevated border border-border rounded px-2 py-1 text-xs text-txt-primary"
+                >
+                  <option value={0}>Same time</option>
+                  <option value={5}>5 min apart</option>
+                  <option value={15}>15 min apart</option>
+                  <option value={30}>30 min apart</option>
+                  <option value={60}>1 hour apart</option>
+                </select>
+                <span className="text-[11px] text-txt-tertiary">
+                  across {selectedChannelIds.length} channels
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <Input
             label="Scheduled date & time"

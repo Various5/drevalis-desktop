@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ToneProfile(BaseModel):
@@ -187,6 +187,15 @@ class SeriesResponse(BaseModel):
     tone_profile: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("tone_profile", mode="before")
+    @classmethod
+    def _coerce_none_tone_profile(cls, v: Any) -> Any:
+        # ``series.tone_profile`` is a nullable JSONB column, so older
+        # rows (created before the field existed) come back as NULL.
+        # The API contract is "always a dict", so coerce NULL → {} here
+        # rather than making every consumer handle the null case.
+        return {} if v is None else v
 
 
 class SeriesListResponse(BaseModel):

@@ -11,6 +11,31 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.56 — series load crash + multi-channel scheduling)
+- **Series detail page no longer 500s on older series.**
+  ``GET /series/{id}`` raised a Pydantic ``ValidationError`` —
+  ``tone_profile: Input should be a valid dictionary [input_value=None]``
+  — for any series row whose nullable ``tone_profile`` JSONB column
+  was NULL (every series created before that field existed). Added a
+  ``before`` validator that coerces NULL → ``{}`` so the API contract
+  stays "always a dict" without every series row needing a backfill.
+
+### Added (alpha.56 — schedule one episode to several / all YouTube channels at once)
+- **The Schedule dialog now has a YouTube channel multi-select.**
+  Previously it only picked a *platform* and sent no channel at all —
+  so on a multi-channel install the backend couldn't resolve which
+  channel to publish to (the source of the recurring "no channel
+  assigned" errors). Now, when YouTube is selected and more than one
+  channel is connected, you get a checkbox list (defaults to all
+  channels selected) with All / None shortcuts.
+- **One episode → many channels in one action.** Picking N channels
+  creates N scheduled posts, each tagged with its
+  ``youtube_channel_id``. Optional **stagger** (same time / 5 / 15 /
+  30 / 60 min apart) so the uploads don't all fire on a single worker
+  tick — useful under the daily upload cap.
+- No backend change needed — ``ScheduleCreate`` already accepted
+  ``youtube_channel_id``; the frontend just never sent it.
+
 ### Fixed (alpha.55 — Calendar: rescheduling failed posts now actually works + Publish-now)
 - **Rescheduling a failed post now clears the failed state.** The
   ``update`` service used to hard-reject any post that wasn't
