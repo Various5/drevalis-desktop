@@ -11,6 +11,22 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+### Fixed (alpha.54 — version-stamp the webview URL to defeat WebView2 caching for good)
+- **The Tauri shell now navigates to ``http://127.0.0.1:8000/?v=<version>``**
+  instead of the bare root. The alpha.51 no-cache header fixed the
+  problem going *forward*, but anyone whose WebView2 had cached a
+  pre-alpha.51 ``index.html`` (which carries no cache header) was
+  stuck — that shell never revalidated, so the new bundle URLs were
+  never requested. A per-version query string sidesteps the HTTP
+  cache entirely: every release points the webview at a URL it has
+  never seen, forcing a fresh ``index.html`` fetch that then loads
+  the correct content-hashed bundles. After this lands, updates take
+  effect on first relaunch with zero manual cache clearing — even
+  across the one-time upgrade from a poisoned cache.
+- If you're on a pre-alpha.54 build and still see a stale UI, the
+  one-time escape hatch still works: quit via the tray, delete
+  ``%LOCALAPPDATA%\com.drevalis.studio\EBWebView``, relaunch.
+
 ### Added (alpha.53 — Calendar quota-safety: pre-flight dup-check + bulk reschedule)
 - **Pre-flight duplicate check** auto-runs whenever the operator opens
   a failed or missed post on the Calendar (YouTube only). Surfaces

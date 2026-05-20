@@ -268,7 +268,18 @@ fn main() {
             #[cfg(not(debug_assertions))]
             {
                 if let Some(win) = app.get_webview_window("main") {
-                    let target = "http://127.0.0.1:8000/".parse().unwrap();
+                    // Version-stamp the URL so WebView2 can never serve a
+                    // stale ``index.html`` across an update. Even with the
+                    // backend's no-cache header on index.html (added in
+                    // alpha.51), a *pre*-alpha.51 cached shell has no such
+                    // header and never revalidates — chicken-and-egg. A
+                    // per-version query string sidesteps the HTTP cache
+                    // entirely: every release navigates to a URL WebView2
+                    // has never seen, forcing a fresh fetch that then
+                    // pulls the correct hashed bundle URLs.
+                    let version = option_env!("CARGO_PKG_VERSION").unwrap_or("dev");
+                    let url = format!("http://127.0.0.1:8000/?v={version}");
+                    let target = url.parse().unwrap();
                     if let Err(err) = win.navigate(target) {
                         eprintln!("[drevalis-shell] navigate failed: {err}");
                     }
