@@ -48,6 +48,10 @@ class OptionalAPIKeyMiddleware(BaseHTTPMiddleware):
 
     def __init__(self, app: Any, token: str | None = None) -> None:
         super().__init__(app)
+        # Loopback peers bypass the token ONLY when the active token is the
+        # LAN-access token (the desktop case). Stays False for an explicit
+        # API_AUTH_TOKEN — see ``_loopback_exempt`` below.
+        loopback_exempt = False
         if token is not None:
             raw: str | None = token
         else:
@@ -61,6 +65,7 @@ class OptionalAPIKeyMiddleware(BaseHTTPMiddleware):
                     from drevalis.core import network_config
 
                     raw = network_config.peek_api_token()
+                    loopback_exempt = bool(raw and raw.strip())
                 except Exception:
                     raw = None
         # Treat empty/whitespace same as unset. The installer writes
@@ -69,6 +74,11 @@ class OptionalAPIKeyMiddleware(BaseHTTPMiddleware):
         # empty expected value, fail every request, and lock out the IP
         # with 429 after 10 failures — bricking a fresh install.
         self._token: str | None = raw.strip() if (raw and raw.strip()) else None
+        # The loopback exemption applies ONLY to the LAN-access token. With
+        # an explicit API_AUTH_TOKEN (team/web mode) the backend sits behind
+        # a reverse proxy on loopback, so exempting loopback would bypass
+        # auth for every proxied request — a critical hole. Keep it off there.
+        self._loopback_exempt: bool = loopback_exempt and self._token is not None
 
     def _is_loopback(self, request: Request) -> bool:
         """True when the request's socket peer is the local machine.
@@ -98,10 +108,11 @@ class OptionalAPIKeyMiddleware(BaseHTTPMiddleware):
         if not any(path.startswith(p) for p in guarded_prefixes):
             return await call_next(request)
 
-        # Local machine (the desktop webview/UI) is always allowed without a
-        # token. The token exists to gate *remote* callers once LAN API
-        # access is enabled — so the local UI never has to carry it.
-        if self._is_loopback(request):
+        # Local machine (the desktop webview/UI) is allowed without a token,
+        # but ONLY under the LAN-access token (see __init__). The token gates
+        # *remote* callers once LAN API access is enabled, so the local UI
+        # never has to carry it. In team/web mode loopback is NOT exempt.
+        if self._loopback_exempt and self._is_loopback(request):
             return await call_next(request)
 
         # ------------------------------------------------------------------

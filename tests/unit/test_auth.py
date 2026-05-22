@@ -284,6 +284,10 @@ class TestEnvironmentTokenResolution:
 
     def test_no_env_var_means_auth_disabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("API_AUTH_TOKEN", raising=False)
+        # No env token AND no persisted LAN token -> auth fully disabled.
+        # Mock peek so the result can't depend on a network.json left behind
+        # by a prior LAN-enable on the dev/CI machine.
+        monkeypatch.setattr("drevalis.core.network_config.peek_api_token", lambda: None)
 
         from starlette.testclient import TestClient
 
@@ -293,4 +297,57 @@ class TestEnvironmentTokenResolution:
         client = TestClient(app, raise_server_exceptions=True)
 
         response = client.get("/api/v1/test")
+        assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# LAN-access token: loopback exempt, remote gated (desktop scenario)
+# ---------------------------------------------------------------------------
+
+
+class TestLanLoopbackExemption:
+    """When the token comes from the LAN-access config (not API_AUTH_TOKEN),
+    the local webview (a loopback peer) is exempt but remote callers are gated.
+
+    The exemption must NOT apply to an explicit API_AUTH_TOKEN (team/web mode
+    behind a loopback reverse proxy); that path is covered by TestAuthRequired.
+    """
+
+    @staticmethod
+    def _lan_app(monkeypatch: pytest.MonkeyPatch) -> Starlette:
+        monkeypatch.delenv("API_AUTH_TOKEN", raising=False)
+        monkeypatch.setattr(
+            "drevalis.core.network_config.peek_api_token", lambda: _VALID_TOKEN
+        )
+        app = Starlette(routes=[Route("/api/v1/series", _dummy_api_endpoint)])
+        app.add_middleware(OptionalAPIKeyMiddleware)  # token resolved from LAN config
+        return app
+
+    async def test_loopback_peer_exempt_without_token(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        app = self._lan_app(monkeypatch)
+        transport = ASGITransport(app=app, client=("127.0.0.1", 54321))
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            response = await ac.get("/api/v1/series")
+        assert response.status_code == 200
+
+    async def test_remote_peer_without_token_rejected(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        app = self._lan_app(monkeypatch)
+        transport = ASGITransport(app=app, client=("10.0.1.40", 54321))
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            response = await ac.get("/api/v1/series")
+        assert response.status_code == 401
+
+    async def test_remote_peer_with_valid_token_passes(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        app = self._lan_app(monkeypatch)
+        transport = ASGITransport(app=app, client=("10.0.1.40", 54321))
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            response = await ac.get(
+                "/api/v1/series", headers={"Authorization": f"Bearer {_VALID_TOKEN}"}
+            )
         assert response.status_code == 200
