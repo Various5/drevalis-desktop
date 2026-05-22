@@ -17,6 +17,8 @@ screenshots/
 .claude-plan.md
 .claude/
 *.zip
+# Local backup archives (hand-made / recovery snapshots) — never source.
+*.tar.gz
 test.db
 drevalis-dev.db
 drevalis-dev.db-journal
