@@ -20,6 +20,7 @@ bootstrap path can read it before the DB/event-loop exist, and an explicit
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import secrets
@@ -125,22 +126,49 @@ def runtime_bind_host() -> str | None:
     return _runtime_bind_host
 
 
+# Address ranges never worth advertising as a reachable LAN URL: loopback,
+# APIPA link-local, and the 172.16/12 block that Docker, WSL2 and Hyper-V
+# "vEthernet" switches carve their virtual adapters out of. Filtering by
+# range (not adapter name) keeps this stdlib-only and cross-platform.
+_HIDDEN_LAN_NETS = (
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("172.16.0.0/12"),
+)
+
+
+def _is_advertisable(ip: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return not any(addr in net for net in _HIDDEN_LAN_NETS)
+
+
 def lan_ipv4_addresses() -> list[str]:
-    """Best-effort list of this host's non-loopback IPv4 addresses.
+    """Best-effort list of this host's advertisable LAN IPv4 addresses.
 
     Used purely to show the operator the reachable URLs in the UI. Both
     lookups are wrapped — neither is allowed to break the settings page.
+
+    Loopback, link-local (169.254/16) and the 172.16/12 block used by
+    Docker / WSL2 / Hyper-V vEthernet adapters are filtered out so the panel
+    lists only addresses another machine can actually reach. The primary
+    outbound interface (the UDP-connect probe below) is kept regardless of
+    range — it is by definition the reachable default route.
     """
     addrs: set[str] = set()
     try:
         for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
             ip = info[4][0]
-            if not ip.startswith("127."):
+            if _is_advertisable(ip):
                 addrs.add(ip)
     except OSError:
         pass
     # UDP-connect trick: no packets sent, but the socket picks the primary
-    # outbound interface, which getaddrinfo sometimes misses.
+    # outbound interface, which getaddrinfo sometimes misses. This is the
+    # genuine default route, so keep it even if it falls in a filtered range
+    # (only loopback is meaningless to advertise).
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
