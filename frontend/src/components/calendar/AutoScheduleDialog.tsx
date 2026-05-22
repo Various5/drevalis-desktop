@@ -86,7 +86,7 @@ export function AutoScheduleDialog({
     'all_unuploaded',
   );
   const [privacy, setPrivacy] = useState<'public' | 'unlisted' | 'private'>(
-    'private',
+    'public',
   );
   const [descTemplate, setDescTemplate] = useState('');
   const [tagsTemplate, setTagsTemplate] = useState('');

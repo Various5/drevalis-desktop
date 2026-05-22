@@ -24,6 +24,17 @@ class NoChannelAssignedError(RuntimeError):
     """
 
 
+class DuplicateBlockedError(RuntimeError):
+    """Raised when the title-similarity guard refuses to publish a post.
+
+    A *handled business rule*, not a backend fault: the post is marked
+    ``failed`` with an actionable hint and the operator fixes the title
+    or sets ``skip_duplicate_check``. Typed so the outer ``except`` logs
+    it at ``warning`` (keeps it out of Glitchtip's error stream) instead
+    of the generic ``post_publish_failed`` error path.
+    """
+
+
 async def publish_scheduled_posts(ctx: dict[str, Any]) -> dict[str, Any]:
     """Periodic job: check for scheduled posts that are due and publish them.
 
@@ -206,7 +217,7 @@ async def _publish_scheduled_posts_locked(
                             if r >= 0.85 and (best is None or r > best[0]):
                                 best = (r, v.title or "", v.youtube_video_id)
                         if best is not None:
-                            raise RuntimeError(
+                            raise DuplicateBlockedError(
                                 "Duplicate-block: title is "
                                 f"{int(best[0] * 100)}% similar to existing "
                                 f"video '{best[1][:80]}' (youtube.com/watch?v="
@@ -541,6 +552,27 @@ async def _publish_scheduled_posts_locked(
                     )
                 failed += 1
                 _ = exc  # silenced via the fixed log message above
+            except DuplicateBlockedError as exc:
+                # Handled business rule, not a fault: the title-similarity
+                # guard refused to publish. Mark the post failed with the
+                # actionable hint, but log at ``warning`` so it stays out
+                # of Glitchtip's error stream (the operator fixes the
+                # title or sets metadata.skip_duplicate_check=true).
+                log.warning("post_publish_duplicate_blocked", post_id=str(post.id))
+                try:
+                    await repo.update(
+                        post.id,
+                        status="failed",
+                        error_message=str(exc)[:500],
+                    )
+                    await session.commit()
+                except Exception as nested:
+                    log.exception(
+                        "post_fail_record_failed",
+                        post_id=str(post.id),
+                        nested_error=str(nested)[:200],
+                    )
+                failed += 1
             except Exception as exc:
                 log.error("post_publish_failed", post_id=str(post.id), error=str(exc)[:200])
                 try:

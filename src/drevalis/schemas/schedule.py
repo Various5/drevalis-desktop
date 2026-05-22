@@ -17,7 +17,7 @@ class ScheduleCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     description: str = ""
     tags: str = ""
-    privacy: Literal["public", "unlisted", "private"] = "private"
+    privacy: Literal["public", "unlisted", "private"] = "public"
     youtube_channel_id: UUID | None = None
 
 
@@ -84,7 +84,7 @@ class AutoScheduleRequest(BaseModel):
             "scheduled_post on YouTube."
         ),
     )
-    privacy: Literal["public", "unlisted", "private"] = "private"
+    privacy: Literal["public", "unlisted", "private"] = "public"
     description_template: str = Field(
         default="",
         description="Static description applied to every scheduled post.",

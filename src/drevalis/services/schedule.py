@@ -54,6 +54,21 @@ def _normalize_to_utc(dt: datetime, tz_name: str) -> datetime:
     return dt.astimezone(UTC)
 
 
+def _as_utc(dt: datetime) -> datetime:
+    """Coerce a datetime *read back from the DB* to UTC-aware.
+
+    ``TIMESTAMP(timezone=True)`` columns come back tz-aware on
+    PostgreSQL but **tz-naive on SQLite** (the desktop port) — the
+    SQLite dialect drops tzinfo on read. Every value we write is UTC
+    wall-clock, so a naive read *is* UTC; just attach it. Unlike
+    :func:`_normalize_to_utc`, a naive value is treated as UTC, not
+    local. Without this, comparing/subtracting a naive DB value against
+    an aware ``datetime.now(UTC)`` raises ``TypeError: can't compare
+    offset-naive and offset-aware datetimes``.
+    """
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
+
+
 class ScheduleService:
     def __init__(self, db: AsyncSession, app_timezone: str = "UTC") -> None:
         self._db = db
@@ -108,7 +123,7 @@ class ScheduleService:
 
         grouped: dict[str, list[ScheduledPost]] = defaultdict(list)
         for p in posts:
-            local = p.scheduled_at.astimezone(app_tz)
+            local = _as_utc(p.scheduled_at).astimezone(app_tz)
             grouped[local.strftime("%Y-%m-%d")].append(p)
         return dict(grouped)
 
@@ -325,7 +340,7 @@ class ScheduleService:
             has_access = bool(getattr(ch, "access_token_encrypted", None))
             has_refresh = bool(getattr(ch, "refresh_token_encrypted", None))
             expiry = getattr(ch, "token_expiry", None)
-            expired = bool(expiry and expiry <= now)
+            expired = bool(expiry and _as_utc(expiry) <= now)
             if not has_access:
                 issues.append("No access token stored — channel needs to be reconnected.")
             if expired and not has_refresh:
@@ -376,7 +391,7 @@ class ScheduleService:
         def _diag(post: ScheduledPost, kind: str) -> UploadDiagnostic:
             issues: list[str] = []
             if kind == "overdue":
-                mins_late = int((now - post.scheduled_at).total_seconds() / 60)
+                mins_late = int((now - _as_utc(post.scheduled_at)).total_seconds() / 60)
                 issues.append(
                     f"Scheduled {mins_late} min ago and still 'scheduled' — "
                     "worker may not be running."
@@ -642,7 +657,7 @@ class ScheduleService:
         requeued: list[UUID] = []
         skipped: list[UUID] = []
         for post in rows:
-            if post.scheduled_at < cutoff:
+            if _as_utc(post.scheduled_at) < cutoff:
                 skipped.append(post.id)
                 continue
             await self._sched.update(post.id, status="scheduled", error_message=None)
