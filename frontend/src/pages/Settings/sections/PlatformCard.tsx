@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { SocialConnectWizard } from '@/components/social/SocialConnectWizard';
-import { social as socialApi } from '@/lib/api';
 import type { SocialPlatform } from '@/lib/api';
 
 // ---------------------------------------------------------------------------

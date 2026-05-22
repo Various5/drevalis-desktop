@@ -199,11 +199,11 @@ function SeriesDetail() {
     Array<{
       id: string;
       name: string;
-      description?: string;
+      description?: string | null;
       is_default?: boolean;
-      caption_style?: string;
-      music_mood?: string;
-      target_duration_seconds?: number;
+      caption_style?: string | null;
+      music_mood?: string | null;
+      target_duration_seconds?: number | null;
     }>
   >([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
