@@ -1,0 +1,8 @@
+## Phase 5 — Performance, accessibility, i18n                                                                                                                                                                                       
+- Bundle analysis (Vite rollup-plugin-visualizer) → trim or lazy-load anything >50kb gzipped that isn't on the critical path                                                                                                        
+- Route-level code-splitting for editor, audio studio, settings sub-pages                                                                                                                                                           
+- TanStack Query: audit `staleTime` and `gcTime` settings — the WS channel is the source of truth for live data; queries should be cached aggressively                                                                              
+- Accessibility pass with axe-core: ARIA landmarks per route, focus management on dialogs (focus trap, restore on close), `prefers-reduced-motion` honoured by every animation, contrast ratios ≥4.5:1                              
+- Keyboard nav: every interactive element reachable; tab order matches visual order; skip-to-content link                                                                                                                           
+- i18n with `react-i18next`: extract every user-facing string; ship de-DE and en-US; locale switcher in Settings → Appearance; detect OS locale on first run                                                                        
+   

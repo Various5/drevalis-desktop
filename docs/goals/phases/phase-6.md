@@ -1,0 +1,9 @@
+                                                                                                                                                                                                                                    
+## Phase 6 — Release readiness                                                                                                                                                                                                      
+- Bump version scheme: drop `alpha.X`, cut `1.0.0-rc.1` via hatch-vcs tag                                                                                                                                                           
+- Generate `CHANGELOG.md` from conventional commits since alpha.57                                                                                                                                                                  
+- Update `README.md` and the in-app Help → Getting Started to match the new IA                                                                                                                                                      
+- Updater channel: introduce an `rc` channel separate from `stable` in `latest.json`; default new installs to `stable`, opt-in to `rc` via Settings → Maintenance → Updates                                                         
+- Sentry/GlitchTip: confirm release tagging on the Rust + Python + frontend sides matches the new version                                                                                                                           
+- One-page launch checklist in `docs/release-checklist.md`: build artefacts signed, installer tested on a clean Win11 VM, macOS DMG notarised, AppImage smoke-tested on Ubuntu 24.04, auto-updater dry-run from rc.0 → rc.1         
+        
