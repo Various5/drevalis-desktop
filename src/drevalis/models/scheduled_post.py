@@ -46,7 +46,7 @@ class ScheduledPost(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(TEXT, nullable=False)
     description: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     tags: Mapped[str | None] = mapped_column(TEXT, nullable=True)
-    privacy: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="private")
+    privacy: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="public")
     status: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="scheduled")
     error_message: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
