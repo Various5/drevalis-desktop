@@ -39,15 +39,45 @@ class OptionalAPIKeyMiddleware(BaseHTTPMiddleware):
       (S-4, CWE-307, OWASP A07:2021).
     """
 
+    # Socket-peer addresses that count as "the local machine". The local
+    # webview/UI talks to the backend over one of these, so they are always
+    # exempt from the token even when LAN access is on.
+    _LOOPBACK_HOSTS: frozenset[str] = frozenset(
+        {"127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"}
+    )
+
     def __init__(self, app: Any, token: str | None = None) -> None:
         super().__init__(app)
-        raw = token if token is not None else os.environ.get("API_AUTH_TOKEN")
+        if token is not None:
+            raw: str | None = token
+        else:
+            # Explicit env token wins; otherwise fall back to the LAN-access
+            # token persisted by Settings → LAN API Access. Read once at
+            # construction (process start) — same lifecycle as the bind
+            # host, which also only changes on restart.
+            raw = os.environ.get("API_AUTH_TOKEN")
+            if not (raw and raw.strip()):
+                try:
+                    from drevalis.core import network_config
+
+                    raw = network_config.peek_api_token()
+                except Exception:
+                    raw = None
         # Treat empty/whitespace same as unset. The installer writes
         # `API_AUTH_TOKEN=` to seed a blank slot for future hardening;
         # without this coercion the middleware would enforce against an
         # empty expected value, fail every request, and lock out the IP
         # with 429 after 10 failures — bricking a fresh install.
         self._token: str | None = raw.strip() if (raw and raw.strip()) else None
+
+    def _is_loopback(self, request: Request) -> bool:
+        """True when the request's socket peer is the local machine.
+
+        Uses the real peer address only — never ``X-Forwarded-For``, which
+        a remote caller could spoof to ``127.0.0.1`` to bypass the token.
+        """
+        client = request.client
+        return bool(client and client.host in self._LOOPBACK_HOSTS)
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         # If no token is configured, allow everything (local dev mode).
@@ -66,6 +96,12 @@ class OptionalAPIKeyMiddleware(BaseHTTPMiddleware):
         # accessible when an auth token is configured (S-8).
         guarded_prefixes = ("/api/", "/ws/", "/storage/")
         if not any(path.startswith(p) for p in guarded_prefixes):
+            return await call_next(request)
+
+        # Local machine (the desktop webview/UI) is always allowed without a
+        # token. The token exists to gate *remote* callers once LAN API
+        # access is enabled — so the local UI never has to carry it.
+        if self._is_loopback(request):
             return await call_next(request)
 
         # ------------------------------------------------------------------

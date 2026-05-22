@@ -15,6 +15,8 @@ from drevalis.core.deps import get_db, get_redis, get_settings
 from drevalis.schemas.settings import (
     FFmpegInfoResponse,
     HealthCheckResponse,
+    NetworkSettingsResponse,
+    NetworkSettingsUpdate,
     ServiceHealth,
     StorageUsageResponse,
 )
@@ -190,6 +192,63 @@ async def storage_usage(
         subdir_sizes=subdir_sizes,
         mountinfo_lines=mountinfo_lines,
     )
+
+
+# ── LAN API access ─────────────────────────────────────────────────────────
+
+
+def _network_state() -> NetworkSettingsResponse:
+    """Assemble the current LAN-access state for the UI."""
+    import os as _os
+
+    from drevalis.core import network_config
+
+    enabled = network_config.is_lan_enabled()
+    configured = network_config.get_bind_host()
+    runtime = network_config.runtime_bind_host()
+    port = int(_os.environ.get("DREVALIS_API_PORT", "8000"))
+    return NetworkSettingsResponse(
+        lan_api_enabled=enabled,
+        # Surface a token whenever LAN access is on (generating one if
+        # needed) so the operator can copy it; keep it hidden otherwise.
+        api_token=network_config.get_api_token() if enabled else None,
+        bind_host=configured,
+        runtime_bind_host=runtime,
+        restart_required=bool(runtime is not None and runtime != configured),
+        port=port,
+        lan_urls=[f"http://{ip}:{port}" for ip in network_config.lan_ipv4_addresses()],
+    )
+
+
+@router.get(
+    "/network",
+    response_model=NetworkSettingsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="LAN API access state (bind host + token)",
+)
+async def get_network_settings() -> NetworkSettingsResponse:
+    """Return whether the backend is exposed on the LAN + the access token.
+
+    The token is only readable from the local machine — remote callers hit
+    the auth middleware first, which requires the very token they'd be
+    trying to read.
+    """
+    return _network_state()
+
+
+@router.put(
+    "/network",
+    response_model=NetworkSettingsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Enable/disable LAN API access (takes effect on app restart)",
+)
+async def set_network_settings(payload: NetworkSettingsUpdate) -> NetworkSettingsResponse:
+    """Toggle LAN API access. Persisted immediately; the bind host only
+    changes when the app restarts (``restart_required`` flags this)."""
+    from drevalis.core import network_config
+
+    network_config.set_lan_enabled(payload.lan_api_enabled)
+    return _network_state()
 
 
 # ── System health check ──────────────────────────────────────────────────

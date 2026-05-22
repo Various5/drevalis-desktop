@@ -54,3 +54,29 @@ class FFmpegInfoResponse(BaseModel):
     available: bool
     version: str | None = None
     message: str = ""
+
+
+class NetworkSettingsResponse(BaseModel):
+    """LAN API exposure state for Settings → LAN API Access."""
+
+    lan_api_enabled: bool
+    # Bearer token remote callers must present (``Authorization: Bearer
+    # <token>``). The local UI is loopback-exempt and never sends it.
+    api_token: str | None = None
+    # Host the toggle says the backend *should* bind on next start.
+    bind_host: str
+    # Host the running process actually bound to (``None`` in dev/source
+    # mode where it isn't recorded).
+    runtime_bind_host: str | None = None
+    # True when the persisted toggle no longer matches the live bind — the
+    # UI shows a "restart the app to apply" banner.
+    restart_required: bool = False
+    port: int
+    # Reachable URLs for other machines, e.g. ``http://10.0.1.40:8000``.
+    lan_urls: list[str] = []
+
+
+class NetworkSettingsUpdate(BaseModel):
+    """Toggle LAN API access on/off."""
+
+    lan_api_enabled: bool

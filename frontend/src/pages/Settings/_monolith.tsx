@@ -18,6 +18,7 @@ import {
   FileArchive,
   History,
   ShieldCheck,
+  Network,
 } from 'lucide-react';
 import { LicenseSection } from '@/pages/Settings/sections/LicenseSection';
 import { UpdatesSection } from '@/pages/Settings/sections/UpdatesSection';
@@ -35,6 +36,7 @@ import { SocialSection } from '@/pages/Settings/sections/SocialSection';
 import { ApiKeysSection } from '@/pages/Settings/sections/ApiKeysSection';
 import { TemplatesSection } from '@/pages/Settings/sections/TemplatesSection';
 import { DiagnosticsSection } from '@/pages/Settings/sections/DiagnosticsSection';
+import { NetworkSection } from '@/pages/Settings/sections/NetworkSection';
 import { LoginHistorySection } from '@/pages/Settings/sections/LoginHistorySection';
 import { TwoFactorSection } from '@/pages/Settings/sections/TwoFactorSection';
 
@@ -60,6 +62,7 @@ type SectionId =
   | 'updates'
   | 'templates'
   | 'privacy'
+  | 'network'
   | 'diagnostics';
 
 interface SectionDef {
@@ -117,6 +120,7 @@ const SECTION_GROUPS: SectionGroupDef[] = [
       { id: 'ffmpeg', label: 'FFmpeg', icon: Film },
       { id: 'backup', label: 'Backup', icon: Archive },
       { id: 'updates', label: 'Updates', icon: ArrowUpCircle },
+      { id: 'network', label: 'LAN API Access', icon: Network },
       { id: 'diagnostics', label: 'Diagnostics', icon: FileArchive },
     ],
   },
@@ -245,6 +249,7 @@ function Settings() {
           {activeSection === 'social' && <SocialSection />}
           {activeSection === 'apikeys' && <ApiKeysSection onNavigateToApiKeys={() => setActiveSection('apikeys')} />}
           {activeSection === 'diagnostics' && <DiagnosticsSection />}
+          {activeSection === 'network' && <NetworkSection />}
           {activeSection === 'two-factor' && <TwoFactorSection />}
           {activeSection === 'login-history' && <LoginHistorySection />}
         </div>

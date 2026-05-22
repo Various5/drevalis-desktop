@@ -51,7 +51,9 @@ def _api_command() -> list[str]:
     """
     if _is_frozen():
         return [sys.executable, "api"]
-    host = os.environ.get("DREVALIS_API_HOST", "127.0.0.1")
+    from drevalis.core import network_config
+
+    host = network_config.get_bind_host()
     port = os.environ.get("DREVALIS_API_PORT", "8000")
     return [
         sys.executable,
@@ -328,10 +330,15 @@ def _run_api_inproc() -> int:
     """
     import uvicorn
 
+    from drevalis.core import network_config
     from drevalis.main import app
 
-    host = os.environ.get("DREVALIS_API_HOST", "127.0.0.1")
+    # Bind host follows the LAN-access toggle (Settings → LAN API Access),
+    # unless DREVALIS_API_HOST is set explicitly. Recorded so the settings
+    # route can flag "restart required" when the toggle is changed live.
+    host = network_config.get_bind_host()
     port = int(os.environ.get("DREVALIS_API_PORT", "8000"))
+    network_config.record_runtime_bind_host(host)
     uvicorn.run(app, host=host, port=port, server_header=False)
     return 0
 
