@@ -180,16 +180,43 @@ export function installTauriBridges(): void {
   if (_installed || !isTauri()) return;
   _installed = true;
 
+  // WebView2 (Windows) opens ``<a target="_blank">`` links natively in
+  // the system browser *in addition to* the click interception below —
+  // so every external link opened twice. ``preventDefault`` on the DOM
+  // click doesn't reliably cancel WebView2's new-window request once the
+  // anchor is flagged ``target="_blank"``. Stripping the ``target``
+  // downgrades the click to an ordinary same-frame navigation, which the
+  // handler below then cancels and re-routes through ``openExternal``.
+  // Net: exactly one open. We sweep links React mounts via a observer
+  // (the initial sweep below catches anything present before render).
+  const stripBlankTargets = (root: ParentNode): void => {
+    root.querySelectorAll?.('a[target="_blank"]').forEach((a) => {
+      if (/^https?:\/\//i.test((a as HTMLAnchorElement).href)) {
+        a.removeAttribute('target');
+      }
+    });
+  };
+  stripBlankTargets(document);
+  new MutationObserver((records) => {
+    for (const rec of records) {
+      rec.addedNodes.forEach((n) => {
+        if (n.nodeType === Node.ELEMENT_NODE) stripBlankTargets(n as Element);
+      });
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
   document.addEventListener(
     'click',
     (e) => {
-      const target = (e.target as Element | null)?.closest?.('a') as
+      const anchor = (e.target as Element | null)?.closest?.('a') as
         | HTMLAnchorElement
         | null;
-      if (!target) return;
-      if (target.target !== '_blank') return;
-      const href = target.href;
+      if (!anchor) return;
+      const href = anchor.href;
       if (!/^https?:\/\//i.test(href)) return;
+      // Any external http(s) link clicked inside the webview: never let
+      // the webview navigate to it (it would replace the SPA) or spawn a
+      // native popup — open it in the OS browser exactly once.
       e.preventDefault();
       openExternal(href).catch((err) => {
         console.error('[tauri] openExternal failed', err);
