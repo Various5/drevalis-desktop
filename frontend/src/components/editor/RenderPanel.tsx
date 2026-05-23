@@ -34,11 +34,13 @@ export function RenderPanel({
   inPoint,
   outPoint,
   queue,
+  mode = 'simulation',
 }: {
   timeline: ProjectTimeline;
   inPoint: number | null;
   outPoint: number | null;
   queue: RenderQueue;
+  mode?: 'simulation' | 'backend';
 }) {
   const [presetId, setPresetId] = useState(RENDER_PRESETS[0]!.id);
   const [useRegion, setUseRegion] = useState(false);
@@ -131,8 +133,9 @@ export function RenderPanel({
       )}
 
       <p className="text-[10px] text-txt-tertiary leading-snug border-t border-border/60 pt-2">
-        Preview build: rendering is simulated. Real FFmpeg export is wired with the
-        media backend.
+        {mode === 'backend'
+          ? 'Renders the saved timeline through the backend (FFmpeg). Preset/region aren’t sent yet — the backend renders the full timeline; the finished MP4 lands in the episode output.'
+          : 'Sample timeline: rendering is simulated. Open from an episode to run a real FFmpeg export.'}
       </p>
     </div>
   );

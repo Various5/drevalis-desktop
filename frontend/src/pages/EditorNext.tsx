@@ -9,6 +9,8 @@ import { findClip } from '@/lib/editor/operations';
 import { sampleTimeline } from '@/lib/editor/sample';
 import { timelineDurationFrames, framesToSeconds, type ProjectTimeline } from '@/lib/editor/timeline';
 import { editTimelineToProject, projectToEditTimeline } from '@/lib/editor/bridge';
+import { createBackendRenderer } from '@/lib/editor/backendRenderer';
+import { simulationRenderer } from '@/lib/editor/render';
 import { editor as editorApi } from '@/lib/api';
 import { createPlayback, type PlaybackController } from '@/lib/editor/engine/playback';
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
@@ -45,12 +47,21 @@ function EditorNext() {
   const [inPoint, setInPoint] = useState<number | null>(null);
   const [outPoint, setOutPoint] = useState<number | null>(null);
   const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null);
-  const renderQueue = useRenderQueue();
 
-  // Keep the latest store reachable from the once-created playback controller.
+  // Keep the latest store reachable from once-created controllers/renderers.
   const storeRef = useRef(store);
   storeRef.current = store;
   const pbRef = useRef<PlaybackController | null>(null);
+
+  // Real backend FFmpeg render when an episode is loaded; simulation for the sample.
+  const renderer = useMemo(
+    () =>
+      episodeId
+        ? createBackendRenderer({ episodeId, getTimeline: () => storeRef.current.timeline })
+        : simulationRenderer,
+    [episodeId],
+  );
+  const renderQueue = useRenderQueue(renderer);
 
   useEffect(() => {
     const pb = createPlayback({
@@ -422,7 +433,13 @@ function EditorNext() {
           <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
             Render
           </div>
-          <RenderPanel timeline={store.timeline} inPoint={inPoint} outPoint={outPoint} queue={renderQueue} />
+          <RenderPanel
+            timeline={store.timeline}
+            inPoint={inPoint}
+            outPoint={outPoint}
+            queue={renderQueue}
+            mode={episodeId ? 'backend' : 'simulation'}
+          />
         </div>
 
         <div className="border border-border rounded-lg bg-bg-surface w-60">
