@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { type Clip, type Track, type ProjectTimeline, clipTimelineLength } from './timeline';
+import { type Clip, type Track, type ProjectTimeline, clipTimelineLength, clipSpeed } from './timeline';
 import {
   addTrack,
   removeTrack,
@@ -19,6 +19,7 @@ import {
   addMarker,
   removeMarker,
   updateMarkerNote,
+  setClipSpeed,
 } from './operations';
 
 /** Build a video track of back-to-back clips with the given timeline lengths. */
@@ -103,6 +104,20 @@ describe('split (razor)', () => {
     const base = tl(videoTrack([30]));
     expect(splitClip(base, 'c0', 30, 'x').tracks[0]!.clips).toHaveLength(1);
     expect(splitClip(base, 'c0', 0, 'x').tracks[0]!.clips).toHaveLength(1);
+  });
+});
+
+describe('speed remap', () => {
+  it('resizes the timeline span to hit the target speed', () => {
+    const fast = get(setClipSpeed(tl(videoTrack([60])), 'c0', 2), 'c0');
+    expect(clipTimelineLength(fast)).toBe(30);
+    expect(clipSpeed(fast)).toBe(2);
+    const slow = get(setClipSpeed(tl(videoTrack([60])), 'c0', 0.5), 'c0');
+    expect(clipTimelineLength(slow)).toBe(120);
+  });
+  it('clamps to 0.25–4×', () => {
+    expect(clipSpeed(get(setClipSpeed(tl(videoTrack([100])), 'c0', 99), 'c0'))).toBeCloseTo(4, 1);
+    expect(clipSpeed(get(setClipSpeed(tl(videoTrack([100])), 'c0', 0.01), 'c0'))).toBeCloseTo(0.25, 1);
   });
 });
 

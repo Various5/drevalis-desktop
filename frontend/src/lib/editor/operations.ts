@@ -193,6 +193,19 @@ export function splitAllAtFrame(
   return out;
 }
 
+/**
+ * Set a clip's playback speed (0.25×–4×) by resizing its TIMELINE span to fit
+ * the same source window at the new rate. `clipSpeed()` then reflects it.
+ */
+export function setClipSpeed(tl: ProjectTimeline, clipId: string, speed: number): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => {
+    const s = Math.min(4, Math.max(0.25, speed));
+    const sourceLen = c.outFrame - c.inFrame;
+    const newLen = Math.max(1, Math.round(sourceLen / s));
+    return { ...c, endFrame: c.startFrame + newLen };
+  });
+}
+
 // ── NLE edits: ripple / roll / slip / slide ─────────────────────────────────-
 
 /** Remove a clip and shift every later clip on the same track left to close the gap. */

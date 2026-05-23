@@ -12,6 +12,7 @@ import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
 import { TimelineView, type EditorTool } from '@/components/editor/TimelineView';
 import { MarkerList } from '@/components/editor/MarkerList';
 import { MinimapView } from '@/components/editor/MinimapView';
+import { ClipInspector } from '@/components/editor/ClipInspector';
 
 /**
  * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
@@ -171,6 +172,9 @@ function EditorNext() {
   }, [togglePlay, shuttle, pausePlayback, seek, splitAtPlayhead, deleteSelected, trimStartToPlayhead, trimEndToPlayhead, bladeAllAtPlayhead]);
 
   const duration = timelineDurationFrames(store.timeline);
+  const selectedClip = store.selectedClipId
+    ? findClip(store.timeline, store.selectedClipId)?.clip ?? null
+    : null;
 
   return (
     <div className="p-4 space-y-3">
@@ -266,17 +270,26 @@ function EditorNext() {
         onViewportChange={onViewportChange}
       />
 
-      <div className="border border-border rounded-lg bg-bg-surface max-w-md">
-        <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-          Markers
+      <div className="flex flex-wrap gap-3">
+        <div className="border border-border rounded-lg bg-bg-surface w-72">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            Clip
+          </div>
+          <ClipInspector clip={selectedClip} fps={store.timeline.fps} onSetSpeed={store.setClipSpeed} />
         </div>
-        <MarkerList
-          markers={store.timeline.markers ?? []}
-          fps={store.timeline.fps}
-          onSeek={seek}
-          onRemove={store.removeMarker}
-          onEditNote={store.updateMarkerNote}
-        />
+
+        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[18rem] max-w-md">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            Markers
+          </div>
+          <MarkerList
+            markers={store.timeline.markers ?? []}
+            fps={store.timeline.fps}
+            onSeek={seek}
+            onRemove={store.removeMarker}
+            onEditNote={store.updateMarkerNote}
+          />
+        </div>
       </div>
     </div>
   );
