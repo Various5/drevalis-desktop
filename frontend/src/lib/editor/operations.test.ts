@@ -1,0 +1,153 @@
+import { describe, it, expect } from 'vitest';
+import { type Clip, type Track, type ProjectTimeline, clipTimelineLength } from './timeline';
+import {
+  addTrack,
+  removeTrack,
+  setTrackFlag,
+  addClip,
+  removeClip,
+  moveClip,
+  trimClipStart,
+  trimClipEnd,
+  splitClip,
+  rippleDelete,
+  slip,
+  roll,
+  slide,
+  findClip,
+} from './operations';
+
+/** Build a video track of back-to-back clips with the given timeline lengths. */
+function videoTrack(lengths: number[]): Track {
+  let start = 0;
+  const clips: Clip[] = lengths.map((len, i) => {
+    const c: Clip = {
+      id: `c${i}`,
+      trackId: 'v',
+      kind: 'video',
+      sourceId: `s${i}`,
+      inFrame: 0,
+      outFrame: len,
+      startFrame: start,
+      endFrame: start + len,
+    };
+    start += len;
+    return c;
+  });
+  return { id: 'v', kind: 'video', name: 'V1', locked: false, muted: false, solo: false, clips };
+}
+
+function tl(track: Track): ProjectTimeline {
+  return { fps: 30, tracks: [track] };
+}
+
+const get = (t: ProjectTimeline, id: string): Clip => findClip(t, id)!.clip;
+
+describe('track operations', () => {
+  it('adds, removes, and flags tracks immutably', () => {
+    const base = tl(videoTrack([30]));
+    const audio: Track = { id: 'a', kind: 'audio', name: 'A1', locked: false, muted: false, solo: false, clips: [] };
+    const added = addTrack(base, audio);
+    expect(added.tracks).toHaveLength(2);
+    expect(base.tracks).toHaveLength(1); // original untouched
+
+    const muted = setTrackFlag(added, 'a', 'muted', true);
+    expect(muted.tracks.find((t) => t.id === 'a')?.muted).toBe(true);
+    expect(removeTrack(muted, 'a').tracks).toHaveLength(1);
+  });
+});
+
+describe('clip placement', () => {
+  it('addClip inserts sorted; removeClip drops it', () => {
+    let t = tl(videoTrack([30]));
+    t = addClip(t, { id: 'x', trackId: 'v', kind: 'video', sourceId: 'sx', inFrame: 0, outFrame: 10, startFrame: 100, endFrame: 110 });
+    expect(t.tracks[0]!.clips.map((c) => c.id)).toEqual(['c0', 'x']);
+    expect(removeClip(t, 'x').tracks[0]!.clips).toHaveLength(1);
+  });
+
+  it('moveClip preserves length and clamps to >= 0', () => {
+    const t = tl(videoTrack([30, 30]));
+    const moved = get(moveClip(t, 'c1', 100), 'c1');
+    expect([moved.startFrame, moved.endFrame]).toEqual([100, 130]);
+    const clamped = get(moveClip(t, 'c1', -50), 'c1');
+    expect([clamped.startFrame, clamped.endFrame]).toEqual([0, 30]);
+  });
+});
+
+describe('trim', () => {
+  it('trimClipStart moves the left edge and consumes source', () => {
+    const c = get(trimClipStart(tl(videoTrack([30])), 'c0', 10), 'c0');
+    expect([c.startFrame, c.endFrame, c.inFrame, c.outFrame]).toEqual([10, 30, 10, 30]);
+  });
+  it('trimClipEnd moves the right edge and consumes source', () => {
+    const c = get(trimClipEnd(tl(videoTrack([30])), 'c0', 20), 'c0');
+    expect([c.startFrame, c.endFrame, c.inFrame, c.outFrame]).toEqual([0, 20, 0, 20]);
+  });
+});
+
+describe('split (razor)', () => {
+  it('splits a clip at a frame into two contiguous halves', () => {
+    const out = splitClip(tl(videoTrack([30])), 'c0', 10, 'c0b');
+    const clips = out.tracks[0]!.clips;
+    expect(clips).toHaveLength(2);
+    const [left, right] = clips;
+    expect([left!.startFrame, left!.endFrame, left!.inFrame, left!.outFrame]).toEqual([0, 10, 0, 10]);
+    expect([right!.startFrame, right!.endFrame, right!.inFrame, right!.outFrame]).toEqual([10, 30, 10, 30]);
+    expect(right!.id).toBe('c0b');
+  });
+  it('is a no-op when the cut is outside the clip', () => {
+    const base = tl(videoTrack([30]));
+    expect(splitClip(base, 'c0', 30, 'x').tracks[0]!.clips).toHaveLength(1);
+    expect(splitClip(base, 'c0', 0, 'x').tracks[0]!.clips).toHaveLength(1);
+  });
+});
+
+describe('ripple delete', () => {
+  it('removes a clip and shifts later clips left by its length', () => {
+    const out = rippleDelete(tl(videoTrack([30, 30, 30])), 'c1');
+    const clips = out.tracks[0]!.clips;
+    expect(clips.map((c) => c.id)).toEqual(['c0', 'c2']);
+    expect([clips[0]!.startFrame, clips[0]!.endFrame]).toEqual([0, 30]);
+    expect([clips[1]!.startFrame, clips[1]!.endFrame]).toEqual([30, 60]); // was 60..90
+  });
+});
+
+describe('slip', () => {
+  it('shifts the source window, keeping timeline position + length', () => {
+    const c = get(slip(tl(videoTrack([30, 30])), 'c1', 5), 'c1');
+    expect([c.startFrame, c.endFrame]).toEqual([30, 60]); // unchanged
+    expect([c.inFrame, c.outFrame]).toEqual([5, 35]);
+  });
+  it('clamps so source in stays >= 0', () => {
+    const c = get(slip(tl(videoTrack([30])), 'c0', -10), 'c0');
+    expect([c.inFrame, c.outFrame]).toEqual([0, 30]);
+  });
+});
+
+describe('roll', () => {
+  it('moves the cut between adjacent clips; total span unchanged', () => {
+    const out = roll(tl(videoTrack([30, 30])), 'c0', 10);
+    const left = get(out, 'c0');
+    const right = get(out, 'c1');
+    expect([left.startFrame, left.endFrame, left.outFrame]).toEqual([0, 40, 40]);
+    expect([right.startFrame, right.endFrame, right.inFrame]).toEqual([40, 60, 10]);
+    expect(clipTimelineLength(left) + clipTimelineLength(right)).toBe(60);
+  });
+  it("clamps so the right clip can't collapse", () => {
+    const out = roll(tl(videoTrack([30, 30])), 'c0', 999);
+    expect(clipTimelineLength(get(out, 'c1'))).toBe(1);
+  });
+});
+
+describe('slide', () => {
+  it('moves a clip; neighbours absorb so the sequence length is unchanged', () => {
+    const out = slide(tl(videoTrack([30, 30, 30])), 'c1', 10);
+    const a = get(out, 'c0');
+    const b = get(out, 'c1');
+    const c = get(out, 'c2');
+    expect([a.startFrame, a.endFrame]).toEqual([0, 40]); // prev tail extended
+    expect([b.startFrame, b.endFrame]).toEqual([40, 70]); // slid +10
+    expect([c.startFrame, c.endFrame, c.inFrame]).toEqual([70, 90, 10]); // next head pulled in
+    expect(c.endFrame).toBe(90); // overall sequence length preserved
+  });
+});
