@@ -1,0 +1,93 @@
+import { describe, it, expect } from 'vitest';
+import { type Clip, type Track, type ProjectTimeline, type TrackKind } from '../timeline';
+import { buildDrawList } from './compositor';
+
+function clip(over: Partial<Clip> & { id: string; trackId: string }): Clip {
+  return {
+    kind: 'video',
+    sourceId: `src-${over.id}`,
+    inFrame: 0,
+    outFrame: 30,
+    startFrame: 0,
+    endFrame: 30,
+    ...over,
+  };
+}
+
+function track(
+  id: string,
+  kind: TrackKind,
+  clips: Clip[],
+  flags: { muted?: boolean; solo?: boolean } = {},
+): Track {
+  return {
+    id,
+    kind,
+    name: id,
+    locked: false,
+    muted: flags.muted ?? false,
+    solo: flags.solo ?? false,
+    clips,
+  };
+}
+
+const tl = (tracks: Track[]): ProjectTimeline => ({ fps: 30, tracks });
+
+describe('buildDrawList', () => {
+  it('emits one command per visual track, bottom track first', () => {
+    const t = tl([
+      track('v1', 'video', [clip({ id: 'a', trackId: 'v1' })]),
+      track('v2', 'overlay', [clip({ id: 'b', trackId: 'v2', kind: 'overlay' })]),
+    ]);
+    expect(buildDrawList(t, 10).map((d) => d.clipId)).toEqual(['a', 'b']);
+  });
+
+  it('skips audio and caption tracks (no pixels)', () => {
+    const t = tl([
+      track('a1', 'audio', [clip({ id: 'a', trackId: 'a1', kind: 'audio' })]),
+      track('c1', 'caption', [clip({ id: 'c', trackId: 'c1', kind: 'caption' })]),
+    ]);
+    expect(buildDrawList(t, 10)).toEqual([]);
+  });
+
+  it('skips muted tracks', () => {
+    const t = tl([track('v1', 'video', [clip({ id: 'a', trackId: 'v1' })], { muted: true })]);
+    expect(buildDrawList(t, 10)).toEqual([]);
+  });
+
+  it('honours solo: only soloed visual tracks draw', () => {
+    const t = tl([
+      track('v1', 'video', [clip({ id: 'a', trackId: 'v1' })]),
+      track('v2', 'video', [clip({ id: 'b', trackId: 'v2' })], { solo: true }),
+    ]);
+    expect(buildDrawList(t, 10).map((d) => d.clipId)).toEqual(['b']);
+  });
+
+  it('emits nothing in a gap', () => {
+    const t = tl([track('v1', 'video', [clip({ id: 'a', trackId: 'v1', startFrame: 0, endFrame: 30 })])]);
+    expect(buildDrawList(t, 50)).toEqual([]);
+  });
+
+  it('uses the overlay box, and full-frame for video', () => {
+    const overlayBox: [number, number, number, number] = [0.1, 0.2, 0.5, 0.3];
+    const t = tl([
+      track('v1', 'video', [clip({ id: 'a', trackId: 'v1' })]),
+      track('o1', 'overlay', [
+        clip({ id: 'o', trackId: 'o1', kind: 'overlay', data: { overlay: { overlay: 'text', text: 'hi', box: overlayBox } } }),
+      ]),
+    ]);
+    const list = buildDrawList(t, 10);
+    expect(list[0]!.box).toEqual([0, 0, 1, 1]);
+    expect(list[1]!.box).toEqual(overlayBox);
+  });
+
+  it('maps timeline frame to source frame, accounting for speed', () => {
+    // speed 1: source = in + (frame - start)
+    const t1 = tl([track('v1', 'video', [clip({ id: 'a', trackId: 'v1', startFrame: 100, endFrame: 130, inFrame: 10, outFrame: 40 })])]);
+    expect(buildDrawList(t1, 130 - 1)[0]!.sourceFrame).toBe(10 + 29);
+
+    // speed 2: source window twice the timeline span
+    const t2 = tl([track('v1', 'video', [clip({ id: 'a', trackId: 'v1', startFrame: 0, endFrame: 30, inFrame: 0, outFrame: 60 })])]);
+    expect(buildDrawList(t2, 10)[0]!.sourceFrame).toBe(20); // round(10 * 2)
+  });
+});
