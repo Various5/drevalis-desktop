@@ -31,6 +31,8 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { CardGridSkeleton } from '@/components/ui/Skeletons';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { audiobooks as audiobooksApi, voiceProfiles as voiceProfilesApi, ApiError } from '@/lib/api';
 import { TierGatePlaceholder } from '@/components/TierGatePlaceholder';
@@ -508,8 +510,9 @@ function Audiobooks() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Spinner size="lg" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" rounded="md" />
+        <CardGridSkeleton count={6} gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" />
       </div>
     );
   }

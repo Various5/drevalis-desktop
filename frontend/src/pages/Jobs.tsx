@@ -14,7 +14,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { ListSkeleton } from '@/components/ui/Skeletons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { jobs as jobsApi } from '@/lib/api';
 import { useAllJobs, queryKeys } from '@/lib/queries';
@@ -177,8 +178,9 @@ function Jobs() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Spinner size="lg" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-40" rounded="md" />
+        <ListSkeleton count={6} />
       </div>
     );
   }

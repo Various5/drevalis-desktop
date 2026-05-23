@@ -3,7 +3,7 @@ import { Settings2, Check } from 'lucide-react';
 import { SetupChecklist } from '@/components/SetupChecklist';
 import { SystemHealthCard } from '@/components/SystemHealthCard';
 import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError, formatError } from '@/lib/api';
 import { useActiveJobsProgress } from '@/lib/websocket';
@@ -215,8 +215,14 @@ function Dashboard() {
   // --- Loading states ---
   if (loading || layoutLoading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Spinner size="lg" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" rounded="lg" />
+          ))}
+        </div>
+        <Skeleton className="h-48" rounded="lg" />
+        <Skeleton className="h-64" rounded="lg" />
       </div>
     );
   }

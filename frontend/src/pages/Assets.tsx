@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/Input';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CardGridSkeleton } from '@/components/ui/Skeletons';
 import { useToast } from '@/components/ui/Toast';
 import {
   assets as assetsApi,
@@ -180,9 +181,11 @@ export default function AssetsPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Spinner size="lg" />
-        </div>
+        <CardGridSkeleton
+          count={10}
+          square
+          gridClassName="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
+        />
       ) : items.length === 0 ? (
         <EmptyState
           icon={Upload}

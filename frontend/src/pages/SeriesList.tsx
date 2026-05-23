@@ -7,6 +7,8 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Spinner } from '@/components/ui/Spinner';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { CardGridSkeleton } from '@/components/ui/Skeletons';
 import { SeriesCard } from '@/components/series/SeriesCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
@@ -200,8 +202,9 @@ function SeriesList() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Spinner size="lg" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" rounded="md" />
+        <CardGridSkeleton count={6} gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" />
       </div>
     );
   }

@@ -19,7 +19,8 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Input';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
-import { Spinner } from '@/components/ui/Spinner';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { CardGridSkeleton } from '@/components/ui/Skeletons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EpisodeCard } from '@/components/episodes/EpisodeCard';
 import { useActiveJobsProgress } from '@/lib/websocket';
@@ -447,8 +448,9 @@ function EpisodesList() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Spinner size="lg" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" rounded="md" />
+        <CardGridSkeleton count={8} gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" />
       </div>
     );
   }
