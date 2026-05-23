@@ -62,14 +62,24 @@ backend that already works, rather than building a parallel pipeline.
 - **C4** — entry point + route/nav switch (link from episodes; make this the
   editor), verified live in the Tauri webview before any release tag.
 
-## Fidelity note (tracked follow-up)
+## Render fidelity (incremental)
 
-`render_from_edit` today supports trim / concat / **speed** / overlays / audio
-envelopes / captions. It does **not** yet honour the NLE's per-clip **transform**
-(scale / position / rotation), **colour filters**, or opacity **fades**. Those
-persist losslessly (extra JSONB keys) but are ignored on render until the FFmpeg
-filtergraph in `edit_render.py` is extended — a backend follow-up, out of scope
-for the initial cutover. The editor surfaces this so users aren't surprised.
+`render_from_edit` trims each video clip to its source window and concatenates
+the single video track, then burns in overlays and applies audio envelopes.
+
+**Now rendered** — per-clip `-vf` chain via `build_clip_vf`
+(`services/ffmpeg/clip_filters.py`, pure + unit-tested), applied in the trim
+pass: opacity **fades** (`fade`, timed to the clip's source-window duration) and
+**colour filters** (`eq`; CSS-style values mapped — contrast/saturation
+pass through, brightness approximated as additive `b − 1`). A clip with no
+effects yields `None` and renders byte-for-byte as before.
+
+**Not yet rendered** — preview-only, persisted losslessly as extra JSONB keys:
+per-clip **transform** (scale / position / rotation) and **transform keyframes**,
+and clip **speed**. Transform needs canvas compositing + ffprobe'd output
+dimensions, and keyframes need time-varying FFmpeg expressions — the next
+backend increment, gated on FFmpeg verification. The editor surfaces this so
+users aren't surprised.
 
 ## Consequences
 

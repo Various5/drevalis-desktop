@@ -44,7 +44,7 @@ async def render_from_edit(
     from drevalis.repositories.episode import EpisodeRepository
     from drevalis.repositories.media_asset import MediaAssetRepository
     from drevalis.repositories.video_edit_session import VideoEditSessionRepository
-    from drevalis.services.ffmpeg import FFmpegService
+    from drevalis.services.ffmpeg import FFmpegService, build_clip_vf
     from drevalis.services.storage import LocalStorage
 
     log = logger.bind(episode_id=episode_id, job="render_from_edit", proxy=proxy)
@@ -73,6 +73,8 @@ async def render_from_edit(
 
         timeline = edit_session.timeline or {}
         tracks: list[dict[str, Any]] = timeline.get("tracks") or []
+        # The frontend bridge stamps the project fps; editor fades are in frames.
+        fps = float(timeline.get("fps") or 30)
         video_track = next((t for t in tracks if t.get("id") == "video"), None)
         if not video_track or not video_track.get("clips"):
             log.warning("no_video_clips")
@@ -98,7 +100,12 @@ async def render_from_edit(
             out_s = float(clip.get("out_s") or 0.0)
             dest = work_dir / f"clip_{i:03d}.mp4"
             if out_s > in_s:
-                await ffmpeg.trim_video(src, dest, start_seconds=in_s, end_seconds=out_s)
+                # Per-clip colour grade + fades from the editor (None when the
+                # clip has no effects → identical to the previous render path).
+                vf = build_clip_vf(clip, fps)
+                await ffmpeg.trim_video(
+                    src, dest, start_seconds=in_s, end_seconds=out_s, video_filters=vf
+                )
                 trimmed_paths.append(dest)
             else:
                 # Image or zero-duration — copy as-is; ffmpeg concat

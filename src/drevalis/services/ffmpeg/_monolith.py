@@ -1662,11 +1662,14 @@ class FFmpegService:
         *,
         start_seconds: float | None = None,
         end_seconds: float | None = None,
+        video_filters: str | None = None,
     ) -> Path:
         """Trim a video to the specified start/end times.
 
         Uses ``-ss`` / ``-to`` with re-encoding so filters and keyframes
-        are clean.  Returns the output path.
+        are clean.  An optional ``video_filters`` ``-vf`` chain (e.g. per-clip
+        colour grade + fades from the editor) is applied in the same pass.
+        Returns the output path.
         """
         cmd: list[str] = [self.ffmpeg_path, "-y"]
 
@@ -1677,6 +1680,9 @@ class FFmpegService:
 
         if end_seconds is not None and end_seconds > 0:
             cmd += ["-to", f"{end_seconds - (start_seconds or 0):.3f}"]
+
+        if video_filters:
+            cmd += ["-vf", video_filters]
 
         cmd += [
             "-c:v",

@@ -134,7 +134,7 @@ export function RenderPanel({
 
       <p className="text-[10px] text-txt-tertiary leading-snug border-t border-border/60 pt-2">
         {mode === 'backend'
-          ? 'Renders the saved timeline through the backend (FFmpeg). Preset/region aren’t sent yet — the backend renders the full timeline; the finished MP4 lands in the episode output.'
+          ? 'Renders the full saved timeline through the backend (FFmpeg) — fades and colour filters bake in; transform, keyframes and speed are preview-only for now. Preset/region aren’t sent yet. The finished MP4 lands in the episode output.'
           : 'Sample timeline: rendering is simulated. Open from an episode to run a real FFmpeg export.'}
       </p>
     </div>
