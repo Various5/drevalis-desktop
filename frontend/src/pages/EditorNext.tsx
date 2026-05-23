@@ -22,7 +22,19 @@ import { CaptionsPanel } from '@/components/editor/CaptionsPanel';
 import { ScenesPanel } from '@/components/editor/ScenesPanel';
 import { RenderPanel } from '@/components/editor/RenderPanel';
 import { HistoryPanel } from '@/components/editor/HistoryPanel';
+import { SnapshotsPanel } from '@/components/editor/SnapshotsPanel';
 import { useRenderQueue } from '@/lib/editor/useRenderQueue';
+import {
+  type EditorSnapshot,
+  type RecoveryDraft,
+  editorScope,
+  loadSnapshots,
+  addSnapshot,
+  removeSnapshot,
+  saveRecovery,
+  loadRecovery,
+  clearRecovery,
+} from '@/lib/editor/persistence';
 
 /**
  * EditorNext — the rebuilt NLE (`/editor-next`, ADR 002/003). Wires the store +
@@ -126,6 +138,57 @@ function EditorNext() {
     const id = window.setTimeout(saveNow, 800);
     return () => window.clearTimeout(id);
   }, [episodeId, store.timeline, saveNow]);
+
+  // ── Snapshots + crash-recovery (PR 9b) ─────────────────────────────────────
+  const scope = editorScope(episodeId);
+  const [snapshots, setSnapshots] = useState<EditorSnapshot[]>(() => loadSnapshots(scope));
+  const [recovery, setRecovery] = useState<RecoveryDraft | null>(null);
+  const recoveryArmedRef = useRef(false);
+
+  useEffect(() => {
+    setSnapshots(loadSnapshots(scope));
+  }, [scope]);
+
+  // Once the session settles, offer recovery if a newer local draft differs.
+  useEffect(() => {
+    if (loadStatus !== 'loaded' && loadStatus !== 'sample') return;
+    const draft = loadRecovery(scope);
+    if (draft && JSON.stringify(draft.timeline) !== JSON.stringify(storeRef.current.timeline)) {
+      setRecovery(draft);
+    }
+    recoveryArmedRef.current = true;
+  }, [loadStatus, scope]);
+
+  // Roll the crash-recovery draft forward as edits happen.
+  useEffect(() => {
+    if (!recoveryArmedRef.current) return;
+    const id = window.setTimeout(() => saveRecovery(scope, storeRef.current.timeline), 1000);
+    return () => window.clearTimeout(id);
+  }, [scope, store.timeline]);
+
+  const createSnapshot = useCallback(
+    (name: string) => setSnapshots(addSnapshot(scope, name, storeRef.current.timeline)),
+    [scope],
+  );
+  const restoreSnapshot = useCallback(
+    (id: string) => {
+      const snap = snapshots.find((s) => s.id === id);
+      if (snap) storeRef.current.setTimeline(snap.timeline);
+    },
+    [snapshots],
+  );
+  const deleteSnapshot = useCallback((id: string) => setSnapshots(removeSnapshot(scope, id)), [scope]);
+
+  const restoreRecovery = useCallback(() => {
+    setRecovery((r) => {
+      if (r) storeRef.current.setTimeline(r.timeline);
+      return null;
+    });
+  }, []);
+  const discardRecovery = useCallback(() => {
+    clearRecovery(scope);
+    setRecovery(null);
+  }, [scope]);
 
   const seek = useCallback((f: number) => pbRef.current?.seekFrame(f), []);
   const onViewportChange = useCallback((from: number, to: number) => setViewport({ from, to }), []);
@@ -288,6 +351,22 @@ function EditorNext() {
         )}
       </div>
 
+      {recovery && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+          <span className="text-amber-300">
+            Recovered unsaved changes from {new Date(recovery.savedAt).toLocaleString()}.
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={restoreRecovery} className="px-2 py-1 rounded bg-amber-500/20 text-amber-200 hover:bg-amber-500/30">
+              Restore
+            </button>
+            <button onClick={discardRecovery} className="px-2 py-1 rounded text-txt-tertiary hover:text-txt-primary">
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
       <PreviewCanvas timeline={store.timeline} frame={store.frame} className="max-w-3xl mx-auto" />
 
       {/* Transport */}
@@ -447,6 +526,18 @@ function EditorNext() {
             History
           </div>
           <HistoryPanel count={store.historyCount} index={store.historyIndex} onJump={store.jumpTo} />
+        </div>
+
+        <div className="border border-border rounded-lg bg-bg-surface w-60">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            Snapshots
+          </div>
+          <SnapshotsPanel
+            snapshots={snapshots}
+            onCreate={createSnapshot}
+            onRestore={restoreSnapshot}
+            onRemove={deleteSnapshot}
+          />
         </div>
       </div>
     </div>

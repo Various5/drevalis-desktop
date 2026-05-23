@@ -75,6 +75,9 @@ export interface EditorStore {
   redo: () => void;
   jumpTo: (index: number) => void;
   load: (timeline: ProjectTimeline) => void;
+  /** Commit an arbitrary timeline as a new revision (undoable) — used to
+   *  restore a snapshot or recovery draft without wiping history. */
+  setTimeline: (timeline: ProjectTimeline) => void;
 
   // transient UI
   select: (clipId: string | null) => void;
@@ -137,6 +140,7 @@ export function useEditorStore(initial: ProjectTimeline): EditorStore {
       redo: () => dispatch({ type: 'redo' }),
       jumpTo: (index) => dispatch({ type: 'jump', index }),
       load: (tl) => dispatch({ type: 'load', timeline: tl }),
+      setTimeline: (tl) => dispatch({ type: 'commit', next: tl }),
       select: (clipId) => dispatch({ type: 'select', clipId }),
       setFrame: (frame) => dispatch({ type: 'setFrame', frame }),
 
