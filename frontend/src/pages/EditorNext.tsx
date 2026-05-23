@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Undo2, Redo2, ZoomIn, ZoomOut, Scissors, Trash2 } from 'lucide-react';
+import { Play, Pause, Undo2, Redo2, ZoomIn, ZoomOut, Scissors, Trash2, MousePointer2, Magnet } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/useEditorStore';
 import { sampleTimeline } from '@/lib/editor/sample';
 import { timelineDurationFrames, framesToSeconds } from '@/lib/editor/timeline';
 import { createPlayback, type PlaybackController } from '@/lib/editor/engine/playback';
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
-import { TimelineView } from '@/components/editor/TimelineView';
+import { TimelineView, type EditorTool } from '@/components/editor/TimelineView';
 
 /**
  * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
@@ -18,6 +18,8 @@ function EditorNext() {
   const store = useEditorStore(initial);
   const [pxPerFrame, setPxPerFrame] = useState(1.2);
   const [playing, setPlaying] = useState(false);
+  const [tool, setTool] = useState<EditorTool>('select');
+  const [snapEnabled, setSnapEnabled] = useState(true);
 
   // Keep the latest store reachable from the once-created playback controller.
   const storeRef = useRef(store);
@@ -74,6 +76,10 @@ function EditorNext() {
         seek(s.frame + (e.shiftKey ? 10 : 1));
       } else if (e.key === 's' || e.key === 'S') {
         splitAtPlayhead();
+      } else if (e.key === 'v' || e.key === 'V') {
+        setTool('select');
+      } else if (e.key === 'b' || e.key === 'B') {
+        setTool('razor');
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         deleteSelected();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -113,8 +119,15 @@ function EditorNext() {
         <button onClick={() => store.redo()} disabled={!store.canRedo} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary disabled:opacity-40" aria-label="Redo">
           <Redo2 size={16} />
         </button>
-        <button onClick={splitAtPlayhead} disabled={!store.selectedClipId} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary disabled:opacity-40" aria-label="Split at playhead (S)">
+        <div className="w-px h-5 bg-border mx-1" />
+        <button onClick={() => setTool('select')} className={`p-2 rounded-md ${tool === 'select' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Select tool (V)" title="Select (V)">
+          <MousePointer2 size={16} />
+        </button>
+        <button onClick={() => setTool('razor')} className={`p-2 rounded-md ${tool === 'razor' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Razor tool (B)" title="Razor (B)">
           <Scissors size={16} />
+        </button>
+        <button onClick={() => setSnapEnabled((s) => !s)} className={`p-2 rounded-md ${snapEnabled ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Toggle snapping" title="Snapping">
+          <Magnet size={16} />
         </button>
         <button onClick={deleteSelected} disabled={!store.selectedClipId} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary disabled:opacity-40" aria-label="Ripple delete selected (Del)">
           <Trash2 size={16} />
@@ -136,10 +149,16 @@ function EditorNext() {
         frame={store.frame}
         selectedClipId={store.selectedClipId}
         pxPerFrame={pxPerFrame}
+        tool={tool}
+        snapEnabled={snapEnabled}
         onSeek={seek}
         onSelectClip={store.select}
         onZoom={setPxPerFrame}
         onToggleTrackFlag={store.setTrackFlag}
+        onMoveClip={store.moveClip}
+        onTrimStart={store.trimStart}
+        onTrimEnd={store.trimEnd}
+        onSplitAt={(clipId, at) => store.splitClip(clipId, at, crypto.randomUUID())}
       />
     </div>
   );
