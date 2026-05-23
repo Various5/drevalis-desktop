@@ -21,6 +21,7 @@ import {
   type OverlayData,
   clipAtFrame,
   clipSpeed,
+  clipOpacityAt,
 } from '../timeline';
 
 /** One layer to draw at the current frame. */
@@ -72,7 +73,7 @@ export function buildDrawList(timeline: ProjectTimeline, frame: number): DrawCom
       sourceFrame,
       overlay: clip.data?.overlay,
       box: clip.data?.overlay?.box ?? FULL_FRAME,
-      opacity: 1,
+      opacity: clipOpacityAt(clip, frame),
     });
   }
 

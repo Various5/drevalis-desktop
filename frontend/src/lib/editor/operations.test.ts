@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { type Clip, type Track, type ProjectTimeline, clipTimelineLength, clipSpeed } from './timeline';
+import { type Clip, type Track, type ProjectTimeline, clipTimelineLength, clipSpeed, clipOpacityAt } from './timeline';
 import {
   addTrack,
   removeTrack,
@@ -20,6 +20,7 @@ import {
   removeMarker,
   updateMarkerNote,
   setClipSpeed,
+  setClipFade,
 } from './operations';
 
 /** Build a video track of back-to-back clips with the given timeline lengths. */
@@ -118,6 +119,26 @@ describe('speed remap', () => {
   it('clamps to 0.25–4×', () => {
     expect(clipSpeed(get(setClipSpeed(tl(videoTrack([100])), 'c0', 99), 'c0'))).toBeCloseTo(4, 1);
     expect(clipSpeed(get(setClipSpeed(tl(videoTrack([100])), 'c0', 0.01), 'c0'))).toBeCloseTo(0.25, 1);
+  });
+});
+
+describe('fades', () => {
+  it('setClipFade sets the edge and clamps to clip length', () => {
+    let t = setClipFade(tl(videoTrack([60])), 'c0', 'in', 10);
+    t = setClipFade(t, 'c0', 'out', 999);
+    const c = get(t, 'c0');
+    expect(c.fadeInFrames).toBe(10);
+    expect(c.fadeOutFrames).toBe(60); // clamped to length
+  });
+  it('clipOpacityAt ramps 0→1 in, 1→0 out, full in the middle', () => {
+    let t = setClipFade(tl(videoTrack([100])), 'c0', 'in', 10);
+    t = setClipFade(t, 'c0', 'out', 10);
+    const c = get(t, 'c0');
+    expect(clipOpacityAt(c, 0)).toBe(0);
+    expect(clipOpacityAt(c, 5)).toBeCloseTo(0.5, 2);
+    expect(clipOpacityAt(c, 50)).toBe(1);
+    expect(clipOpacityAt(c, 95)).toBeCloseTo(0.5, 2);
+    expect(clipOpacityAt(c, 100)).toBe(0);
   });
 });
 

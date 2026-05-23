@@ -309,6 +309,18 @@ export function TimelineView(props: TimelineViewProps) {
                       <span className="truncate block px-1.5 pointer-events-none leading-[40px]">
                         {clip.kind === 'overlay' ? clip.data?.overlay?.text ?? 'overlay' : clip.sourceId ?? clip.kind}
                       </span>
+                      {(clip.fadeInFrames ?? 0) > 0 && (
+                        <div
+                          className="absolute left-0 top-0 bottom-0 pointer-events-none"
+                          style={{ width: (clip.fadeInFrames ?? 0) * pxPerFrame, background: 'linear-gradient(to right, rgba(0,0,0,0.7), transparent)' }}
+                        />
+                      )}
+                      {(clip.fadeOutFrames ?? 0) > 0 && (
+                        <div
+                          className="absolute right-0 top-0 bottom-0 pointer-events-none"
+                          style={{ width: (clip.fadeOutFrames ?? 0) * pxPerFrame, background: 'linear-gradient(to left, rgba(0,0,0,0.7), transparent)' }}
+                        />
+                      )}
                       {tool === 'select' && !track.locked && (
                         <>
                           <div

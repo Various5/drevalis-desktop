@@ -206,6 +206,22 @@ export function setClipSpeed(tl: ProjectTimeline, clipId: string, speed: number)
   });
 }
 
+/**
+ * Set a clip's fade-in or fade-out length, in timeline frames. Clamped to
+ * [0, clip length] so a fade can't run past the clip. `clipOpacityAt()` reads it.
+ */
+export function setClipFade(
+  tl: ProjectTimeline,
+  clipId: string,
+  edge: 'in' | 'out',
+  frames: number,
+): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => {
+    const f = Math.max(0, Math.min(Math.round(frames), clipTimelineLength(c)));
+    return edge === 'in' ? { ...c, fadeInFrames: f } : { ...c, fadeOutFrames: f };
+  });
+}
+
 // ── NLE edits: ripple / roll / slip / slide ─────────────────────────────────-
 
 /** Remove a clip and shift every later clip on the same track left to close the gap. */

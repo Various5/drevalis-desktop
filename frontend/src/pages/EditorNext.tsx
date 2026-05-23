@@ -275,7 +275,12 @@ function EditorNext() {
           <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
             Clip
           </div>
-          <ClipInspector clip={selectedClip} fps={store.timeline.fps} onSetSpeed={store.setClipSpeed} />
+          <ClipInspector
+            clip={selectedClip}
+            fps={store.timeline.fps}
+            onSetSpeed={store.setClipSpeed}
+            onSetFade={store.setClipFade}
+          />
         </div>
 
         <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[18rem] max-w-md">

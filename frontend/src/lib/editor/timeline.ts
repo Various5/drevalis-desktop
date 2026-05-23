@@ -66,6 +66,10 @@ export interface Clip {
   /** Timeline placement, in timeline frames. `endFrame` is exclusive. */
   startFrame: number;
   endFrame: number;
+  /** Opacity ramp up over the first N timeline frames (fade in / from black). */
+  fadeInFrames?: number;
+  /** Opacity ramp down over the last N timeline frames (fade out / to black). */
+  fadeOutFrames?: number;
   data?: ClipData;
 }
 
@@ -142,6 +146,21 @@ export function timelineDurationFrames(timeline: ProjectTimeline): number {
 /** Whether two clips overlap on the timeline (share any frame). */
 export function clipsOverlap(a: Clip, b: Clip): boolean {
   return a.startFrame < b.endFrame && b.startFrame < a.endFrame;
+}
+
+/**
+ * Clip opacity at a timeline `frame` from its fade-in/out ramps (0..1).
+ * Fade-in ramps 0→1 over the first `fadeInFrames`; fade-out ramps 1→0 over the
+ * last `fadeOutFrames`. With no fades it's always 1. When ramps overlap on a
+ * short clip the lower of the two wins (a clean V dip rather than a sum).
+ */
+export function clipOpacityAt(clip: Clip, frame: number): number {
+  let a = 1;
+  const fin = clip.fadeInFrames ?? 0;
+  const fout = clip.fadeOutFrames ?? 0;
+  if (fin > 0) a = Math.min(a, (frame - clip.startFrame) / fin);
+  if (fout > 0) a = Math.min(a, (clip.endFrame - frame) / fout);
+  return Math.max(0, Math.min(1, a));
 }
 
 /** The clip under the playhead on a track, or null in a gap. */
