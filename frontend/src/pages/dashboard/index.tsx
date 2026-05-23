@@ -16,6 +16,7 @@ import {
 import type { EpisodeListItem, GenerationJobListItem, ProgressMessage } from '@/types';
 
 import { useDashboardLayout } from './useDashboardLayout';
+import { FirstRunCard } from './FirstRunCard';
 import { WidgetWrapper } from './WidgetWrapper';
 import { DashboardCustomizeDialog } from './DashboardCustomizeDialog';
 import { StatCardsWidget } from './widgets/StatCardsWidget';
@@ -241,6 +242,9 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* First-run guidance until the first series exists (Phase 3). */}
+      {totalSeries === 0 && <FirstRunCard />}
+
       {/* Top bar: customize button */}
       <div className="flex items-center justify-end">
         {!editMode ? (

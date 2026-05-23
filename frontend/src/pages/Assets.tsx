@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Spinner } from '@/components/ui/Spinner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
 import {
   assets as assetsApi,
@@ -183,9 +184,11 @@ export default function AssetsPage() {
           <Spinner size="lg" />
         </div>
       ) : items.length === 0 ? (
-        <Card className="p-12 text-center text-sm text-txt-muted">
-          No {activeKind}s yet. Drop files above to upload.
-        </Card>
+        <EmptyState
+          icon={Upload}
+          title={`No ${activeKind}s yet`}
+          description="Drop files in the upload area above to add them to your library."
+        />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {items.map((a) => (

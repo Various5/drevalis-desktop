@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Layers, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
@@ -84,6 +84,23 @@ function SeriesList() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiResult, setAiResult] = useState<SeriesGenerateResponse | null>(null);
+
+  // Open a creation dialog when arrived from a "Start here" CTA (?create / ?ai),
+  // then clear the param so a refresh doesn't reopen it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const which =
+      searchParams.get('create') === 'true' ? 'create' : searchParams.get('ai') === 'true' ? 'ai' : null;
+    if (!which) return;
+    if (which === 'create') {
+      setDialogOpen(true);
+    } else {
+      setAiDialogOpen(true);
+      const idea = searchParams.get('idea');
+      if (idea) setAiIdea(idea);
+    }
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Phase 3.3: Query-driven loading. Mutations call ``invalidateQueries``
   // on the same keys so this list refreshes automatically.
