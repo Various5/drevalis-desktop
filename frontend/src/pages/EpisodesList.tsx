@@ -171,7 +171,7 @@ function EpisodesList() {
   const showCreate = searchParams.get('create') === 'true';
   const [createDialogOpen, setCreateDialogOpen] = useState(showCreate);
   const [creating, setCreating] = useState(false);
-  const [newSeriesId, setNewSeriesId] = useState('');
+  const [newSeriesId, setNewSeriesId] = useState(searchParams.get('series') ?? '');
   const [newTitle, setNewTitle] = useState('');
   const [newTopic, setNewTopic] = useState('');
 

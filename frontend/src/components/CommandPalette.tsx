@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSeries, useRecentEpisodes } from '@/lib/queries';
 import {
   Search,
   X,
@@ -48,6 +49,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Dynamic actions indexed from the current project (Phase 3).
+  const seriesList = useSeries().data ?? [];
+  const lastEpisode = useRecentEpisodes(1).data?.[0];
+
   const entries: PaletteEntry[] = useMemo(() => {
     const goto = (path: string) => () => {
       navigate(path);
@@ -88,12 +93,50 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         hint: 'Create a new content series',
         icon: Plus,
         go: () => {
-          navigate('/series');
+          navigate('/series?create=true');
           onClose();
         },
       },
+      {
+        id: 'a-connect-youtube',
+        kind: 'action',
+        label: 'Connect YouTube',
+        hint: 'Link a channel',
+        icon: Youtube,
+        go: goto('/youtube'),
+        keywords: ['oauth', 'channel', 'publish'],
+      },
+      ...(lastEpisode
+        ? [
+            {
+              id: 'a-last-episode',
+              kind: 'action' as const,
+              label: 'Open last episode',
+              hint: lastEpisode.title,
+              icon: Film,
+              go: () => {
+                navigate(`/episodes/${lastEpisode.id}/edit`);
+                onClose();
+              },
+              keywords: ['edit', 'editor', 'recent', 'resume'],
+            },
+          ]
+        : []),
+      // "Create episode in <series>" — one per series, indexed dynamically.
+      ...seriesList.map((s) => ({
+        id: `a-new-ep-${s.id}`,
+        kind: 'action' as const,
+        label: `New episode in ${s.name}`,
+        hint: 'Create + queue',
+        icon: Plus,
+        go: () => {
+          navigate(`/episodes?create=true&series=${s.id}`);
+          onClose();
+        },
+        keywords: ['create', 'episode', s.name],
+      })),
     ];
-  }, [navigate, onClose]);
+  }, [navigate, onClose, seriesList, lastEpisode]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

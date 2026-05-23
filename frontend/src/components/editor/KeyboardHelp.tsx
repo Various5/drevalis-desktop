@@ -1,23 +1,10 @@
 import { Fragment, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { EDITOR_SHORTCUTS } from '@/lib/editor/shortcuts';
 
 /** Keyboard-shortcut help overlay (Phase 2, PR 10). Toggled with `?`; closes on
- *  Escape or backdrop click. The list mirrors EditorNext's key handler. */
-
-const SHORTCUTS: ReadonlyArray<readonly [string, string]> = [
-  ['Space', 'Play / pause'],
-  ['J / K / L', 'Shuttle reverse / pause / forward (2×, 4×)'],
-  ['← / →', 'Step 1 frame (Shift: 10)'],
-  [', / .', 'Step 1 frame back / forward'],
-  ['I / O', 'Set in / out point'],
-  ['M', 'Add marker (Shift+M: with note)'],
-  ['S', 'Split at playhead (Shift+S: blade all tracks)'],
-  ['[ / ]', 'Trim start / end to playhead'],
-  ['V / B', 'Select / Razor tool'],
-  ['Del', 'Ripple-delete selected clip'],
-  ['Ctrl+Z / Ctrl+Y', 'Undo / Redo (Ctrl+Shift+Z also redoes)'],
-  ['?', 'Toggle this help'],
-];
+ *  Escape or backdrop click. Rendered from the single shortcuts source so it
+ *  can't drift from EditorNext's key handler (Phase 3, item 7). */
 
 export function KeyboardHelp({ open, onClose }: { open: boolean; onClose: () => void }) {
   useEffect(() => {
@@ -50,14 +37,14 @@ export function KeyboardHelp({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs items-center">
-          {SHORTCUTS.map(([keys, desc]) => (
-            <Fragment key={desc}>
+          {EDITOR_SHORTCUTS.map(({ keys, description }) => (
+            <Fragment key={description}>
               <dt>
                 <span className="inline-block rounded bg-bg-elevated px-1.5 py-0.5 tabular-nums text-txt-secondary whitespace-nowrap">
                   {keys}
                 </span>
               </dt>
-              <dd className="text-txt-tertiary">{desc}</dd>
+              <dd className="text-txt-tertiary">{description}</dd>
             </Fragment>
           ))}
         </dl>
