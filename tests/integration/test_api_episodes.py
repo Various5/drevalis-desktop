@@ -2,10 +2,38 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+
+
+@contextmanager
+def _stub_generate_backend():
+    """Run the generate route without a live Redis/arq backend.
+
+    ``generate_episode`` does a Redis quota check and ``EpisodeService.
+    generate`` enqueues via ``get_arq_pool()`` — both import their accessors
+    at call time, bypassing FastAPI DI, so the client fixture's overrides
+    don't reach them. Patch the module-level accessors directly. Episode
+    existence/status checks still run against the real test DB, so the
+    404/409 paths are genuinely exercised.
+    """
+
+    async def _fake_get_redis():  # noqa: ANN202
+        yield AsyncMock()
+
+    with (
+        patch("drevalis.core.redis.get_redis", _fake_get_redis),
+        patch("drevalis.core.redis.get_arq_pool", return_value=AsyncMock()),
+        patch(
+            "drevalis.core.license.quota.check_and_increment_episode_quota",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
+        yield
 
 
 @pytest.mark.integration
@@ -173,23 +201,21 @@ class TestGenerateEpisodeEnqueuesJob:
         assert episode_resp.status_code == 201
         episode_id = episode_resp.json()["id"]
 
-        # Attempt to generate (may fail if Redis is not available,
-        # but the route-level validation should work)
-        response = await client.post(f"/api/v1/episodes/{episode_id}/generate")
+        # Generate with the Redis/arq backend stubbed; episode validation
+        # still runs against the real test DB.
+        with _stub_generate_backend():
+            response = await client.post(f"/api/v1/episodes/{episode_id}/generate")
 
-        # We expect either 202 (success with Redis) or 500 (Redis unavailable)
-        # Both prove that the route is correctly wired and validation passed.
-        assert response.status_code in (202, 500)
-
-        if response.status_code == 202:
-            data = response.json()
-            assert data["episode_id"] == episode_id
-            assert "job_ids" in data
-            assert len(data["job_ids"]) == 6  # All 6 pipeline steps
-            assert "enqueued" in data["message"].lower()
+        assert response.status_code == 202
+        data = response.json()
+        assert data["episode_id"] == episode_id
+        assert "job_ids" in data
+        assert len(data["job_ids"]) == 6  # All 6 pipeline steps
+        assert "enqueued" in data["message"].lower()
 
     async def test_generate_episode_not_found(self, client: AsyncClient) -> None:
-        response = await client.post(f"/api/v1/episodes/{uuid4()}/generate")
+        with _stub_generate_backend():
+            response = await client.post(f"/api/v1/episodes/{uuid4()}/generate")
         assert response.status_code == 404
 
     async def test_generate_episode_wrong_status(self, client: AsyncClient) -> None:
@@ -213,6 +239,7 @@ class TestGenerateEpisodeEnqueuesJob:
             json={"status": "review"},
         )
 
-        response = await client.post(f"/api/v1/episodes/{episode_id}/generate")
+        with _stub_generate_backend():
+            response = await client.post(f"/api/v1/episodes/{episode_id}/generate")
         assert response.status_code == 409
         assert "cannot be regenerated" in response.json()["detail"].lower()

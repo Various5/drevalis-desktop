@@ -19,7 +19,7 @@ os.environ.setdefault("DREVALIS_DESKTOP_MODE", "0")
 
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from cryptography.fernet import Fernet
@@ -236,9 +236,22 @@ async def client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
 
     application.dependency_overrides[get_redis] = _override_redis
 
-    transport = ASGITransport(app=application)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-        yield ac
+    # The license-gate middleware reads license state from the process-wide
+    # holder directly (not via DI), and conftest runs with
+    # DREVALIS_DESKTOP_MODE=0 so the gate is active. Force a usable state for
+    # the lifetime of this client so general API tests aren't blocked with
+    # 402. The gate's own behavior is covered by dedicated license tests that
+    # build their own app, so they're unaffected by this override.
+    from drevalis.core.license import state as _license_state
+
+    _usable_state = _license_state._desktop_state()
+    with (
+        patch("drevalis.core.license.gate.get_state", return_value=_usable_state),
+        patch("drevalis.core.license.gate.is_bootstrapped", return_value=True),
+    ):
+        transport = ASGITransport(app=application)
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            yield ac
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

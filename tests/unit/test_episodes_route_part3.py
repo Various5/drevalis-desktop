@@ -36,15 +36,19 @@ from fastapi import HTTPException, Response
 
 from drevalis.api.routes.episodes._monolith import (
     InpaintRequest,
-    _grade_for,
-    check_script_continuity,
+    inpaint_scene,
+)
+from drevalis.api.routes.episodes.exports import (
     edit_preview,
     edit_reset,
     edit_video,
     export_raw_assets,
+)
+from drevalis.api.routes.episodes.seo import (
+    _grade_for,
+    check_script_continuity,
     generate_seo,
     get_seo_score,
-    inpaint_scene,
     seo_preflight,
 )
 from drevalis.schemas.episode import BorderConfig, VideoEditRequest

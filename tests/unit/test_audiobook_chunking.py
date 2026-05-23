@@ -183,19 +183,31 @@ class TestSplitTextWireUp:
     async def test_single_voice_uses_provider_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
         captured: list[int] = []
 
-        original = AudiobookService._split_text
+        # ``_generate_single_voice`` delegates to the free function
+        # ``tts_render.generate_single_voice``, which calls
+        # ``tts_render._split_text`` (imported at module load time from
+        # chunking.py) directly — not via ``self._split_text``.  We must
+        # patch the name where it is *used*, not where it is defined.
+        import drevalis.services.audiobook.tts_render as _tts_render
 
-        def _wrapped(self, text: str, max_chars: int) -> list[str]:
+        original_split = _tts_render._split_text
+
+        def _wrapped(text: str, max_chars: int) -> list[str]:
             captured.append(max_chars)
-            return original(self, text, max_chars)
+            return original_split(text, max_chars)
 
-        monkeypatch.setattr(AudiobookService, "_split_text", _wrapped)
+        monkeypatch.setattr(_tts_render, "_split_text", _wrapped)
 
         # Stub the rest of the synth path so the call resolves quickly.
-        async def _noop_safety(self, p):  # noqa: ANN001, ARG001
+        # ``synthesize_chunk_with_retry`` calls the free function
+        # ``tts_render.safety_filter_chunk`` directly, so we must patch
+        # the free function rather than the bound method on AudiobookService.
+        async def _noop_safety(p):  # noqa: ANN001, ARG001
             return None
 
-        monkeypatch.setattr(AudiobookService, "_safety_filter_chunk", _noop_safety)
+        monkeypatch.setattr(
+            "drevalis.services.audiobook.tts_render.safety_filter_chunk", _noop_safety
+        )
 
         provider = AsyncMock()
 

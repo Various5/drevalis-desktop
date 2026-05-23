@@ -34,6 +34,21 @@ def _make_session_factory(session_mock: Any) -> Any:
     return _SF()
 
 
+def _session_returning_user(user: Any = None) -> Any:
+    """AsyncMock session whose ``select(User).limit(1)`` query yields ``user``.
+
+    scheduled_backup queries the first user (for the per-user backup opt-in)
+    before deciding whether to run, so the session's ``execute()`` must return
+    a result whose ``.scalars().first()`` is the desired user (None = no
+    opt-in).
+    """
+    result = MagicMock()
+    result.scalars.return_value.first.return_value = user
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+    return session
+
+
 def _make_settings(
     *,
     auto_enabled: bool = True,
@@ -57,8 +72,12 @@ def _make_settings(
 class TestScheduledBackup:
     async def test_returns_skipped_when_auto_disabled(self) -> None:
         settings = _make_settings(auto_enabled=False)
+        # The job checks per-user opt-in before honoring the disabled flag, so
+        # it needs a session factory even on the skip path. No user row -> no
+        # opt-in -> stays disabled.
+        session_factory = _make_session_factory(_session_returning_user(None))
         with patch("drevalis.core.config.Settings", return_value=settings):
-            result = await scheduled_backup({})
+            result = await scheduled_backup({"session_factory": session_factory})
         assert result == {"skipped": "disabled"}
 
     async def test_success_returns_archive_metadata(self, tmp_path: Path) -> None:
@@ -71,7 +90,7 @@ class TestScheduledBackup:
         svc_mock.create_backup = AsyncMock(return_value=archive)
         svc_mock.prune = MagicMock(return_value=["drevalis-backup-old.tar.gz"])
 
-        session = AsyncMock()
+        session = _session_returning_user(None)
         session_factory = _make_session_factory(session)
 
         with (
@@ -96,7 +115,7 @@ class TestScheduledBackup:
         settings = _make_settings()
         svc_mock = MagicMock()
         svc_mock.create_backup = AsyncMock(side_effect=RuntimeError("disk full: " + "x" * 500))
-        session = AsyncMock()
+        session = _session_returning_user(None)
 
         with (
             patch("drevalis.core.config.Settings", return_value=settings),

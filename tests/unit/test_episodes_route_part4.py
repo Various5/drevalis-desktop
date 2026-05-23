@@ -29,7 +29,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException, Response
 
-from drevalis.api.routes.episodes._monolith import (
+from drevalis.api.routes.episodes.seo import (
     PublishAllRequest,
     publish_all,
     seo_variants,

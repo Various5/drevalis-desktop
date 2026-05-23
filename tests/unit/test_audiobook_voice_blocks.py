@@ -315,12 +315,19 @@ def reset_provider_semaphores() -> None:
 
 @pytest.fixture(autouse=True)
 def _stub_safety_filter(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Bypass ffmpeg-based safety filtering for every test in this module."""
+    """Bypass ffmpeg-based safety filtering for every test in this module.
 
-    async def _noop(self: AudiobookService, chunk_path: Path) -> None:  # noqa: ARG001
+    The retry loop in ``synthesize_chunk_with_retry`` calls the free
+    function ``tts_render.safety_filter_chunk`` directly (not the bound
+    method on AudiobookService), so we must patch the free function.
+    """
+
+    async def _noop(chunk_path: Path) -> None:  # noqa: ARG001
         return None
 
-    monkeypatch.setattr(AudiobookService, "_safety_filter_chunk", _noop)
+    monkeypatch.setattr(
+        "drevalis.services.audiobook.tts_render.safety_filter_chunk", _noop
+    )
 
 
 class TestGenerateMultiVoiceCasting:

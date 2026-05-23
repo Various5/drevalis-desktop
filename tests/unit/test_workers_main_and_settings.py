@@ -358,13 +358,21 @@ class TestWorkerSettings:
         assert WorkerSettings.on_job_start is on_job_start
 
     def test_cron_jobs_present(self) -> None:
-        # 6 cron entries on desktop (publish-posts every 5min, social
-        # publish every 5min, heartbeat every min, license heartbeat
-        # daily, ab winner daily, prune scheduled posts). The
-        # ``scheduled_backup`` cron is intentionally NOT registered —
-        # SCOPE.md defers full-install backups to OS-native tooling +
-        # the manual "Create backup" button in Settings.
-        assert len(WorkerSettings.cron_jobs) == 6
+        # One cron per recurring maintenance job. Assert the exact set (not
+        # just the count) so an added/removed/renamed cron fails loudly with
+        # a clear diff. ``scheduled_backup`` IS registered: the worker owns
+        # the daily auto-backup; the manual "Create backup" button in
+        # Settings is the on-demand path.
+        names = {c.name for c in WorkerSettings.cron_jobs}
+        assert names == {
+            "cron:publish_scheduled_posts",
+            "cron:publish_pending_social_uploads",
+            "cron:worker_heartbeat",
+            "cron:license_heartbeat",
+            "cron:compute_ab_test_winners",
+            "cron:scheduled_backup",
+            "cron:prune_orphaned_scheduled_posts",
+        }
 
     def test_job_timeout_uses_longform_setting(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # The class is built at import time, so this is just a smoke

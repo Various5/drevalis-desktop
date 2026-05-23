@@ -33,27 +33,31 @@ import pytest
 from fastapi import HTTPException, UploadFile
 
 from drevalis.api.routes.episodes._monolith import (
-    _build_description,
-    _ffprobe_duration,
-    _sanitize_filename,
     cancel_episode,
     duplicate_episode,
     estimate_cost,
-    export_bundle,
-    export_description,
-    export_thumbnail,
-    export_video,
-    generate_episode_music,
-    list_episode_music,
-    list_music_moods,
     reassemble,
     regenerate_captions,
     regenerate_scene,
     regenerate_voice,
     reset_episode,
+)
+from drevalis.api.routes.episodes.exports import (
+    _build_description,
+    _sanitize_filename,
+    export_bundle,
+    export_description,
+    export_thumbnail,
+    export_video,
+    upload_thumbnail,
+)
+from drevalis.api.routes.episodes.music import (
+    _ffprobe_duration,
+    generate_episode_music,
+    list_episode_music,
+    list_music_moods,
     select_episode_music,
     set_music,
-    upload_thumbnail,
 )
 from drevalis.schemas.episode import SetMusicRequest
 from drevalis.services.episode import (
@@ -108,7 +112,7 @@ class TestFfprobeDuration:
         proc.returncode = 0
         proc.communicate = AsyncMock(return_value=(b"42.5\n", b""))
         with patch(
-            "drevalis.api.routes.episodes._monolith.asyncio.create_subprocess_exec",
+            "drevalis.api.routes.episodes.music.asyncio.create_subprocess_exec",
             AsyncMock(return_value=proc),
         ):
             out = await _ffprobe_duration(tmp_path / "x.wav")
@@ -119,7 +123,7 @@ class TestFfprobeDuration:
         proc.returncode = 1
         proc.communicate = AsyncMock(return_value=(b"", b"err"))
         with patch(
-            "drevalis.api.routes.episodes._monolith.asyncio.create_subprocess_exec",
+            "drevalis.api.routes.episodes.music.asyncio.create_subprocess_exec",
             AsyncMock(return_value=proc),
         ):
             out = await _ffprobe_duration(tmp_path / "x.wav")
@@ -130,7 +134,7 @@ class TestFfprobeDuration:
         proc.returncode = 0
         proc.communicate = AsyncMock(return_value=(b"N/A\n", b""))
         with patch(
-            "drevalis.api.routes.episodes._monolith.asyncio.create_subprocess_exec",
+            "drevalis.api.routes.episodes.music.asyncio.create_subprocess_exec",
             AsyncMock(return_value=proc),
         ):
             out = await _ffprobe_duration(tmp_path / "x.wav")

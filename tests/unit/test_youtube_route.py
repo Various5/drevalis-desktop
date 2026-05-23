@@ -215,7 +215,9 @@ class TestOAuthCallback:
         # Redis down — return 400 HTML directing the user to retry. Pin: we
         # do NOT raise so the external browser still gets a readable page.
         redis = AsyncMock()
-        redis.getdel = AsyncMock(side_effect=ConnectionError("redis down"))
+        # The route looks up + deletes the OAuth state atomically via a Lua
+        # EVAL, not GETDEL. A down sidecar surfaces as an EVAL exception.
+        redis.eval = AsyncMock(side_effect=ConnectionError("redis down"))
         out = await oauth_callback(
             code="abc",
             state="s",
@@ -231,7 +233,8 @@ class TestOAuthCallback:
         # State is missing from Redis (TTL expired or never persisted)
         # → 400. Pin: this is a CSRF guard, NOT a 404.
         redis = AsyncMock()
-        redis.getdel = AsyncMock(return_value=None)
+        # EVAL returns nil when the state key is missing (expired/never set).
+        redis.eval = AsyncMock(return_value=None)
         out = await oauth_callback(
             code="abc",
             state="bogus",
@@ -245,7 +248,7 @@ class TestOAuthCallback:
 
     async def test_callback_failure_400(self) -> None:
         redis = AsyncMock()
-        redis.getdel = AsyncMock(return_value=b"1")
+        redis.eval = AsyncMock(return_value=b"1")
         yt = MagicMock()
         yt.handle_callback = AsyncMock(side_effect=ConnectionError("Google handshake failed"))
         with patch(
@@ -268,7 +271,7 @@ class TestOAuthCallback:
         # body so the user understands why their new channel was refused.
         # Status code stays at 400 (it's not JSON-API-shaped any more).
         redis = AsyncMock()
-        redis.getdel = AsyncMock(return_value=b"1")
+        redis.eval = AsyncMock(return_value=b"1")
         yt = MagicMock()
         yt.handle_callback = AsyncMock(return_value={"channel_id": "UC_x"})
         admin = MagicMock()
@@ -293,7 +296,7 @@ class TestOAuthCallback:
 
     async def test_success_returns_html_with_channel_name(self) -> None:
         redis = AsyncMock()
-        redis.getdel = AsyncMock(return_value=b"1")
+        redis.eval = AsyncMock(return_value=b"1")
         yt = MagicMock()
         yt.handle_callback = AsyncMock(return_value={"channel_id": "UC_x"})
         admin = MagicMock()

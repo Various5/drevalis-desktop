@@ -291,12 +291,15 @@ class TestSynthesizeRetryUsesDebouncedChecker:
         provider.synthesize = AsyncMock(side_effect=_synth)
         provider.__class__.__name__ = "EdgeTTSProvider"
 
-        # _safety_filter_chunk is a bound method on AudiobookService;
-        # the stub needs to accept ``self`` too.
-        async def _noop_safety(self, p):  # noqa: ANN001, ARG001
+        # ``synthesize_chunk_with_retry`` calls the free function
+        # ``tts_render.safety_filter_chunk`` directly, so we must patch
+        # the free function rather than the bound method on AudiobookService.
+        async def _noop_safety(p):  # noqa: ANN001, ARG001
             return None
 
-        monkeypatch.setattr(AudiobookService, "_safety_filter_chunk", _noop_safety)
+        monkeypatch.setattr(
+            "drevalis.services.audiobook.tts_render.safety_filter_chunk", _noop_safety
+        )
 
         redis = AsyncMock()
         redis.get = AsyncMock(return_value=None)
