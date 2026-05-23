@@ -44,6 +44,7 @@ const SocialPlatform = lazy(() => import('@/pages/SocialPlatform'));
 const CharacterPacks = lazy(() => import('@/pages/CharacterPacks'));
 const Channels = lazy(() => import('@/pages/Channels'));
 const Templates = lazy(() => import('@/pages/Templates'));
+const EditorNext = lazy(() => import('@/pages/EditorNext'));
 
 // ---------------------------------------------------------------------------
 // Loading fallback
@@ -168,6 +169,8 @@ function App() {
         <Route path="/cloud-gpu" element={<CloudGPU />} />
         <Route path="/assets" element={<Assets />} />
         <Route path="/templates" element={<Templates />} />
+        {/* Phase 2: rebuilt NLE behind a flagged dev route (ADR 002). */}
+        <Route path="/editor-next" element={<EditorNext />} />
         <Route path="/character-packs" element={<CharacterPacks />} />
         <Route path="/youtube/callback" element={<YouTubeCallback />} />
         {/* Catch-all 404 — renders inside Layout so the chrome stays. */}

@@ -107,6 +107,11 @@ export const ROUTES: Record<string, RouteMeta> = {
     navGroup: 'content-studio',
     icon: 'LayoutTemplate',
   },
+  '/editor-next': {
+    path: '/editor-next',
+    title: 'Editor (preview)',
+    hidden: true,
+  },
   '/calendar': {
     path: '/calendar',
     title: 'Calendar',
