@@ -16,6 +16,7 @@ import {
   type Clip,
   clipTimelineLength,
   clipSpeed,
+  clipAtFrame,
 } from './timeline';
 
 type ClipFlag = 'locked' | 'muted' | 'solo';
@@ -153,6 +154,25 @@ export function splitClip(
     ...t,
     clips: sortClips([...t.clips.filter((x) => x.id !== clipId), left, right]),
   }));
+}
+
+/**
+ * Blade-all-tracks: split every clip lying strictly under `frame` on every
+ * track, in one operation. `makeId` mints a fresh id for each new right half.
+ */
+export function splitAllAtFrame(
+  tl: ProjectTimeline,
+  frame: number,
+  makeId: () => string,
+): ProjectTimeline {
+  let out = tl;
+  for (const track of tl.tracks) {
+    const clip = clipAtFrame(track, frame);
+    if (clip && frame > clip.startFrame && frame < clip.endFrame) {
+      out = splitClip(out, clip.id, frame, makeId());
+    }
+  }
+  return out;
 }
 
 // ── NLE edits: ripple / roll / slip / slide ─────────────────────────────────-

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Undo2, Redo2, ZoomIn, ZoomOut, Scissors, Trash2, MousePointer2, Magnet } from 'lucide-react';
+import {
+  Play, Pause, Undo2, Redo2, ZoomIn, ZoomOut, Scissors, Trash2, MousePointer2, Magnet,
+  Columns2, MoveHorizontal, ChevronsLeftRight, ArrowLeftToLine, ArrowRightToLine, Split,
+} from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/useEditorStore';
+import { findClip } from '@/lib/editor/operations';
 import { sampleTimeline } from '@/lib/editor/sample';
 import { timelineDurationFrames, framesToSeconds } from '@/lib/editor/timeline';
 import { createPlayback, type PlaybackController } from '@/lib/editor/engine/playback';
@@ -61,6 +65,26 @@ function EditorNext() {
     }
   }, []);
 
+  const trimStartToPlayhead = useCallback(() => {
+    const s = storeRef.current;
+    const found = s.selectedClipId ? findClip(s.timeline, s.selectedClipId) : null;
+    if (found && s.frame > found.clip.startFrame && s.frame < found.clip.endFrame) {
+      s.trimStart(found.clip.id, s.frame);
+    }
+  }, []);
+
+  const trimEndToPlayhead = useCallback(() => {
+    const s = storeRef.current;
+    const found = s.selectedClipId ? findClip(s.timeline, s.selectedClipId) : null;
+    if (found && s.frame > found.clip.startFrame && s.frame < found.clip.endFrame) {
+      s.trimEnd(found.clip.id, s.frame);
+    }
+  }, []);
+
+  const bladeAllAtPlayhead = useCallback(() => {
+    storeRef.current.bladeAll(storeRef.current.frame);
+  }, []);
+
   // Keyboard transport + edits.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -75,7 +99,12 @@ function EditorNext() {
       } else if (e.key === 'ArrowRight') {
         seek(s.frame + (e.shiftKey ? 10 : 1));
       } else if (e.key === 's' || e.key === 'S') {
-        splitAtPlayhead();
+        if (e.shiftKey) bladeAllAtPlayhead();
+        else splitAtPlayhead();
+      } else if (e.key === '[') {
+        trimStartToPlayhead();
+      } else if (e.key === ']') {
+        trimEndToPlayhead();
       } else if (e.key === 'v' || e.key === 'V') {
         setTool('select');
       } else if (e.key === 'b' || e.key === 'B') {
@@ -93,7 +122,7 @@ function EditorNext() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, seek, splitAtPlayhead, deleteSelected]);
+  }, [togglePlay, seek, splitAtPlayhead, deleteSelected, trimStartToPlayhead, trimEndToPlayhead, bladeAllAtPlayhead]);
 
   const duration = timelineDurationFrames(store.timeline);
 
@@ -126,8 +155,27 @@ function EditorNext() {
         <button onClick={() => setTool('razor')} className={`p-2 rounded-md ${tool === 'razor' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Razor tool (B)" title="Razor (B)">
           <Scissors size={16} />
         </button>
+        <button onClick={() => setTool('roll')} className={`p-2 rounded-md ${tool === 'roll' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Roll tool" title="Roll edit">
+          <Columns2 size={16} />
+        </button>
+        <button onClick={() => setTool('slip')} className={`p-2 rounded-md ${tool === 'slip' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Slip tool" title="Slip edit">
+          <MoveHorizontal size={16} />
+        </button>
+        <button onClick={() => setTool('slide')} className={`p-2 rounded-md ${tool === 'slide' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Slide tool" title="Slide edit">
+          <ChevronsLeftRight size={16} />
+        </button>
         <button onClick={() => setSnapEnabled((s) => !s)} className={`p-2 rounded-md ${snapEnabled ? 'bg-accent/20 text-accent' : 'bg-bg-elevated hover:bg-bg-hover text-txt-primary'}`} aria-label="Toggle snapping" title="Snapping">
           <Magnet size={16} />
+        </button>
+        <div className="w-px h-5 bg-border mx-1" />
+        <button onClick={trimStartToPlayhead} disabled={!store.selectedClipId} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary disabled:opacity-40" aria-label="Trim start to playhead ([)" title="Trim start to playhead ([)">
+          <ArrowLeftToLine size={16} />
+        </button>
+        <button onClick={trimEndToPlayhead} disabled={!store.selectedClipId} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary disabled:opacity-40" aria-label="Trim end to playhead (])" title="Trim end to playhead (])">
+          <ArrowRightToLine size={16} />
+        </button>
+        <button onClick={bladeAllAtPlayhead} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary" aria-label="Blade all tracks (Shift+S)" title="Blade all tracks (Shift+S)">
+          <Split size={16} />
         </button>
         <button onClick={deleteSelected} disabled={!store.selectedClipId} className="p-2 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary disabled:opacity-40" aria-label="Ripple delete selected (Del)">
           <Trash2 size={16} />
@@ -159,6 +207,9 @@ function EditorNext() {
         onTrimStart={store.trimStart}
         onTrimEnd={store.trimEnd}
         onSplitAt={(clipId, at) => store.splitClip(clipId, at, crypto.randomUUID())}
+        onRoll={store.roll}
+        onSlip={store.slip}
+        onSlide={store.slide}
       />
     </div>
   );

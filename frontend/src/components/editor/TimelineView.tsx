@@ -20,9 +20,9 @@ const MAX_PPF = 8;
 const SNAP_PX = 8;
 const HANDLE_PX = 6;
 
-export type EditorTool = 'select' | 'razor';
+export type EditorTool = 'select' | 'razor' | 'roll' | 'slip' | 'slide';
 
-type DragKind = 'move' | 'trim-start' | 'trim-end';
+type DragKind = 'move' | 'trim-start' | 'trim-end' | 'roll' | 'slip' | 'slide';
 interface DragGhost {
   clipId: string;
   kind: DragKind;
@@ -64,13 +64,16 @@ export interface TimelineViewProps {
   onTrimStart: (clipId: string, startFrame: number) => void;
   onTrimEnd: (clipId: string, endFrame: number) => void;
   onSplitAt: (clipId: string, atFrame: number) => void;
+  onRoll: (clipId: string, delta: number) => void;
+  onSlip: (clipId: string, delta: number) => void;
+  onSlide: (clipId: string, delta: number) => void;
 }
 
 export function TimelineView(props: TimelineViewProps) {
   const {
     timeline, frame, selectedClipId, pxPerFrame, tool, snapEnabled,
     onSeek, onSelectClip, onZoom, onToggleTrackFlag,
-    onMoveClip, onTrimStart, onTrimEnd, onSplitAt,
+    onMoveClip, onTrimStart, onTrimEnd, onSplitAt, onRoll, onSlip, onSlide,
   } = props;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -120,10 +123,12 @@ export function TimelineView(props: TimelineViewProps) {
     const threshold = SNAP_PX / ppf;
     let latestStart = originStart;
     let latestEnd = originEnd;
+    let latestDelta = 0;
 
     const move = (ev: globalThis.MouseEvent) => {
       const delta = Math.round((ev.clientX - startClientX) / ppf);
-      if (kind === 'move') {
+      latestDelta = delta;
+      if (kind === 'move' || kind === 'slide') {
         let gs = Math.max(0, originStart + delta);
         if (snapEnabled) {
           const snapStart = snapFrame(gs, targets, threshold);
@@ -135,6 +140,17 @@ export function TimelineView(props: TimelineViewProps) {
         }
         latestStart = gs;
         latestEnd = gs + len;
+        latestDelta = gs - originStart;
+      } else if (kind === 'roll') {
+        let ge = originEnd + delta;
+        if (snapEnabled) ge = snapFrame(ge, targets, threshold);
+        latestStart = originStart;
+        latestEnd = ge;
+        latestDelta = ge - originEnd;
+      } else if (kind === 'slip') {
+        // Source-domain shift — the clip keeps its timeline position.
+        latestStart = originStart;
+        latestEnd = originEnd;
       } else if (kind === 'trim-start') {
         let gs = Math.min(Math.max(0, originStart + delta), originEnd - 1);
         if (snapEnabled) gs = Math.min(snapFrame(gs, targets, threshold), originEnd - 1);
@@ -153,9 +169,27 @@ export function TimelineView(props: TimelineViewProps) {
       window.removeEventListener('mousemove', move);
       window.removeEventListener('mouseup', up);
       setGhost(null);
-      if (kind === 'move' && latestStart !== originStart) onMoveClip(clipId, latestStart);
-      else if (kind === 'trim-start' && latestStart !== originStart) onTrimStart(clipId, latestStart);
-      else if (kind === 'trim-end' && latestEnd !== originEnd) onTrimEnd(clipId, latestEnd);
+      if (latestDelta === 0) return; // no movement → no edit
+      switch (kind) {
+        case 'move':
+          onMoveClip(clipId, latestStart);
+          break;
+        case 'slide':
+          onSlide(clipId, latestDelta);
+          break;
+        case 'roll':
+          onRoll(clipId, latestDelta);
+          break;
+        case 'slip':
+          onSlip(clipId, latestDelta);
+          break;
+        case 'trim-start':
+          onTrimStart(clipId, latestStart);
+          break;
+        case 'trim-end':
+          onTrimEnd(clipId, latestEnd);
+          break;
+      }
     };
 
     window.addEventListener('mousemove', move);
@@ -170,7 +204,9 @@ export function TimelineView(props: TimelineViewProps) {
       if (at > start && at < end) onSplitAt(clipId, at);
       return;
     }
-    beginDrag('move', clipId, start, end, e);
+    const mode: DragKind =
+      tool === 'slide' ? 'slide' : tool === 'roll' ? 'roll' : tool === 'slip' ? 'slip' : 'move';
+    beginDrag(mode, clipId, start, end, e);
   }
 
   const framesPerTick = Math.max(1, Math.round(80 / pxPerFrame));

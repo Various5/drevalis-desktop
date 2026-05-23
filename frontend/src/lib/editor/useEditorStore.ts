@@ -74,6 +74,7 @@ export interface EditorStore {
   trimStart: (clipId: string, startFrame: number) => void;
   trimEnd: (clipId: string, endFrame: number) => void;
   splitClip: (clipId: string, atFrame: number, newId: string) => void;
+  bladeAll: (frame: number) => void;
   removeClip: (clipId: string) => void;
   rippleDelete: (clipId: string) => void;
   slip: (clipId: string, delta: number) => void;
@@ -117,6 +118,7 @@ export function useEditorStore(initial: ProjectTimeline): EditorStore {
       trimStart: (id, start) => apply((tl) => ops.trimClipStart(tl, id, start)),
       trimEnd: (id, end) => apply((tl) => ops.trimClipEnd(tl, id, end)),
       splitClip: (id, at, newId) => apply((tl) => ops.splitClip(tl, id, at, newId)),
+      bladeAll: (frame) => apply((tl) => ops.splitAllAtFrame(tl, frame, () => crypto.randomUUID())),
       removeClip: (id) => apply((tl) => ops.removeClip(tl, id)),
       rippleDelete: (id) => apply((tl) => ops.rippleDelete(tl, id)),
       slip: (id, d) => apply((tl) => ops.slip(tl, id, d)),

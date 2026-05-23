@@ -10,6 +10,7 @@ import {
   trimClipStart,
   trimClipEnd,
   splitClip,
+  splitAllAtFrame,
   rippleDelete,
   slip,
   roll,
@@ -99,6 +100,39 @@ describe('split (razor)', () => {
     const base = tl(videoTrack([30]));
     expect(splitClip(base, 'c0', 30, 'x').tracks[0]!.clips).toHaveLength(1);
     expect(splitClip(base, 'c0', 0, 'x').tracks[0]!.clips).toHaveLength(1);
+  });
+});
+
+describe('blade all tracks', () => {
+  it('splits every clip strictly under the frame, across tracks', () => {
+    let n = 0;
+    const timeline: ProjectTimeline = {
+      fps: 30,
+      tracks: [
+        { id: 'v', kind: 'video', name: 'V', locked: false, muted: false, solo: false, clips: [
+          { id: 'cv', trackId: 'v', kind: 'video', sourceId: 'sv', inFrame: 0, outFrame: 60, startFrame: 0, endFrame: 60 },
+        ] },
+        { id: 'o', kind: 'overlay', name: 'O', locked: false, muted: false, solo: false, clips: [
+          { id: 'co', trackId: 'o', kind: 'overlay', sourceId: null, inFrame: 0, outFrame: 40, startFrame: 10, endFrame: 50 },
+        ] },
+      ],
+    };
+    const out = splitAllAtFrame(timeline, 30, () => `n${n++}`);
+    expect(out.tracks[0]!.clips).toHaveLength(2);
+    expect(out.tracks[1]!.clips).toHaveLength(2);
+  });
+
+  it('skips boundaries and gaps', () => {
+    const timeline: ProjectTimeline = {
+      fps: 30,
+      tracks: [
+        { id: 'v', kind: 'video', name: 'V', locked: false, muted: false, solo: false, clips: [
+          { id: 'a', trackId: 'v', kind: 'video', sourceId: 's', inFrame: 0, outFrame: 30, startFrame: 0, endFrame: 30 },
+        ] },
+      ],
+    };
+    expect(splitAllAtFrame(timeline, 30, () => 'x').tracks[0]!.clips).toHaveLength(1); // exclusive end
+    expect(splitAllAtFrame(timeline, 50, () => 'x').tracks[0]!.clips).toHaveLength(1); // gap
   });
 });
 
