@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Play, Scissors, ListChecks, ChevronDown } from 'lucide-react';
+import { Play, Scissors, ListChecks, ChevronDown, Clapperboard } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { series as seriesApi } from '@/lib/api';
@@ -242,6 +242,15 @@ export function EpisodeSidebar({ episode, voiceProfiles }: EpisodeSidebarProps) 
         >
           <Scissors size={14} />
           Open editor
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(`/editor-next/${episode.id}`)}
+          aria-label="Open the new editor (beta)"
+        >
+          <Clapperboard size={14} />
+          New editor (beta)
         </Button>
         <Button
           variant="ghost"
