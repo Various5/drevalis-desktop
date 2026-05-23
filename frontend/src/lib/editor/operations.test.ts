@@ -16,6 +16,9 @@ import {
   roll,
   slide,
   findClip,
+  addMarker,
+  removeMarker,
+  updateMarkerNote,
 } from './operations';
 
 /** Build a video track of back-to-back clips with the given timeline lengths. */
@@ -100,6 +103,19 @@ describe('split (razor)', () => {
     const base = tl(videoTrack([30]));
     expect(splitClip(base, 'c0', 30, 'x').tracks[0]!.clips).toHaveLength(1);
     expect(splitClip(base, 'c0', 0, 'x').tracks[0]!.clips).toHaveLength(1);
+  });
+});
+
+describe('markers', () => {
+  it('adds sorted by frame, updates a note, and removes', () => {
+    const base: ProjectTimeline = { fps: 30, tracks: [] };
+    let t = addMarker(base, { id: 'm2', frame: 60 });
+    t = addMarker(t, { id: 'm1', frame: 10, note: 'intro' });
+    expect(t.markers!.map((m) => m.frame)).toEqual([10, 60]);
+    t = updateMarkerNote(t, 'm2', 'outro');
+    expect(t.markers!.find((m) => m.id === 'm2')!.note).toBe('outro');
+    t = removeMarker(t, 'm1');
+    expect(t.markers!.map((m) => m.id)).toEqual(['m2']);
   });
 });
 

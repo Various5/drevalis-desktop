@@ -10,6 +10,7 @@ import { timelineDurationFrames, framesToSeconds } from '@/lib/editor/timeline';
 import { createPlayback, type PlaybackController } from '@/lib/editor/engine/playback';
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
 import { TimelineView, type EditorTool } from '@/components/editor/TimelineView';
+import { MarkerList } from '@/components/editor/MarkerList';
 
 /**
  * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
@@ -133,6 +134,13 @@ function EditorNext() {
         setInPoint(s.frame);
       } else if (e.key === 'o' || e.key === 'O') {
         setOutPoint(s.frame);
+      } else if (e.key === 'm' || e.key === 'M') {
+        if (e.shiftKey) {
+          const note = window.prompt('Marker note:');
+          s.addMarker(s.frame, note || undefined);
+        } else {
+          s.addMarker(s.frame);
+        }
       } else if (e.key === 's' || e.key === 'S') {
         if (e.shiftKey) bladeAllAtPlayhead();
         else splitAtPlayhead();
@@ -251,6 +259,19 @@ function EditorNext() {
         inPoint={inPoint}
         outPoint={outPoint}
       />
+
+      <div className="border border-border rounded-lg bg-bg-surface max-w-md">
+        <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+          Markers
+        </div>
+        <MarkerList
+          markers={store.timeline.markers ?? []}
+          fps={store.timeline.fps}
+          onSeek={seek}
+          onRemove={store.removeMarker}
+          onEditNote={store.updateMarkerNote}
+        />
+      </div>
     </div>
   );
 }

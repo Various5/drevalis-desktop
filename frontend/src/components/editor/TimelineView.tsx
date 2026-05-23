@@ -1,5 +1,5 @@
 import { useRef, useState, type WheelEvent, type MouseEvent } from 'react';
-import { Lock, Volume2, VolumeX, Radio } from 'lucide-react';
+import { Lock, Volume2, VolumeX, Radio, Flag } from 'lucide-react';
 import { type ProjectTimeline, type Track, timelineDurationFrames } from '@/lib/editor/timeline';
 import { collectSnapTargets, snapFrame } from '@/lib/editor/snap';
 
@@ -252,6 +252,21 @@ export function TimelineView(props: TimelineViewProps) {
                 {fmtTime(f, timeline.fps)}
               </div>
             ))}
+            {(timeline.markers ?? []).map((m) => (
+              <button
+                key={m.id}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onSeek(m.frame);
+                }}
+                className="absolute -top-px z-[8] -ml-[5px] text-amber-400 hover:text-amber-300"
+                style={{ left: m.frame * pxPerFrame }}
+                title={m.note || `Marker @ ${fmtTime(m.frame, timeline.fps)}`}
+                aria-label={`Marker${m.note ? `: ${m.note}` : ` at ${fmtTime(m.frame, timeline.fps)}`}`}
+              >
+                <Flag size={11} />
+              </button>
+            ))}
           </div>
 
           {timeline.tracks.map((track) => (
@@ -303,6 +318,10 @@ export function TimelineView(props: TimelineViewProps) {
                   );
                 })}
             </div>
+          ))}
+
+          {(timeline.markers ?? []).map((m) => (
+            <div key={m.id} className="absolute top-0 bottom-0 w-px bg-amber-400/30 pointer-events-none" style={{ left: m.frame * pxPerFrame }} />
           ))}
 
           {inPoint != null && outPoint != null && outPoint > inPoint && (

@@ -27,6 +27,10 @@ describe('collectSnapTargets', () => {
   it('excludes the dragged clip’s own edges', () => {
     expect(collectSnapTargets(tl, { exclude: 'a' })).toEqual([0, 60, 90]);
   });
+  it('includes marker frames', () => {
+    const withMarker: ProjectTimeline = { ...tl, markers: [{ id: 'm', frame: 45 }] };
+    expect(collectSnapTargets(withMarker)).toContain(45);
+  });
 });
 
 describe('snapFrame', () => {

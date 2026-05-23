@@ -83,11 +83,20 @@ export interface Track {
   clips: Clip[];
 }
 
+/** A named point of interest on the timeline (added with M / Shift+M). */
+export interface Marker {
+  id: string;
+  frame: number;
+  note?: string;
+}
+
 export interface ProjectTimeline {
   /** Frames per second — the timeline clock. All positions are in frames. */
   fps: number;
   /** Render order: `tracks[0]` is the bottom layer, the last is the top. */
   tracks: Track[];
+  /** Points of interest, kept sorted by frame. Optional so older payloads parse. */
+  markers?: Marker[];
 }
 
 // ── Pure helpers ───────────────────────────────────────────────────────────

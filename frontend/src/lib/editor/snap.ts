@@ -29,6 +29,7 @@ export function collectSnapTargets(
       set.add(clip.endFrame);
     }
   }
+  for (const m of timeline.markers ?? []) set.add(m.frame);
   return [...set].sort((a, b) => a - b);
 }
 

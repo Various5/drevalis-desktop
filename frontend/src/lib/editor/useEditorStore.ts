@@ -81,6 +81,9 @@ export interface EditorStore {
   roll: (leftClipId: string, delta: number) => void;
   slide: (clipId: string, delta: number) => void;
   setTrackFlag: (trackId: string, flag: 'locked' | 'muted' | 'solo', value: boolean) => void;
+  addMarker: (frame: number, note?: string) => void;
+  removeMarker: (id: string) => void;
+  updateMarkerNote: (id: string, note: string) => void;
 }
 
 export function useEditorStore(initial: ProjectTimeline): EditorStore {
@@ -125,6 +128,9 @@ export function useEditorStore(initial: ProjectTimeline): EditorStore {
       roll: (id, d) => apply((tl) => ops.roll(tl, id, d)),
       slide: (id, d) => apply((tl) => ops.slide(tl, id, d)),
       setTrackFlag: (trackId, flag, value) => apply((tl) => ops.setTrackFlag(tl, trackId, flag, value)),
+      addMarker: (frame, note) => apply((tl) => ops.addMarker(tl, { id: crypto.randomUUID(), frame, note })),
+      removeMarker: (id) => apply((tl) => ops.removeMarker(tl, id)),
+      updateMarkerNote: (id, note) => apply((tl) => ops.updateMarkerNote(tl, id, note)),
     }),
     [timeline, state.selectedClipId, state.frame, state.history, apply],
   );

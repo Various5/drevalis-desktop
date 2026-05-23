@@ -14,6 +14,7 @@ import {
   type ProjectTimeline,
   type Track,
   type Clip,
+  type Marker,
   clipTimelineLength,
   clipSpeed,
   clipAtFrame,
@@ -76,6 +77,23 @@ export function setTrackFlag(
   value: boolean,
 ): ProjectTimeline {
   return mapTrack(tl, trackId, (t) => ({ ...t, [flag]: value }));
+}
+
+// ── Markers ──────────────────────────────────────────────────────────────--
+
+export function addMarker(tl: ProjectTimeline, marker: Marker): ProjectTimeline {
+  return { ...tl, markers: [...(tl.markers ?? []), marker].sort((a, b) => a.frame - b.frame) };
+}
+
+export function removeMarker(tl: ProjectTimeline, id: string): ProjectTimeline {
+  return { ...tl, markers: (tl.markers ?? []).filter((m) => m.id !== id) };
+}
+
+export function updateMarkerNote(tl: ProjectTimeline, id: string, note: string): ProjectTimeline {
+  return {
+    ...tl,
+    markers: (tl.markers ?? []).map((m) => (m.id === id ? { ...m, note } : m)),
+  };
 }
 
 // ── Clip operations ───────────────────────────────────────────────────────--
