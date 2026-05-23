@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
-import { useConnectedPlatforms } from '@/lib/useConnectedPlatforms';
 import { useJobsStatus } from '@/lib/queries';
 import { useActiveJobsProgress } from '@/lib/websocket';
 import { isTauri } from '@/lib/tauri';
@@ -18,32 +17,12 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  Youtube,
   CalendarDays,
   Send,
+  Share2,
   FolderOpen,
-  Music2,
-  Instagram,
-  Facebook,
-  Twitter,
   Users,
 } from 'lucide-react';
-
-// Social-platform ↔ icon ↔ label map. Only platforms that have an
-// active account record in ``/api/v1/social/platforms`` render in the
-// sidebar — keeps the nav clean for users who haven't hooked them all
-// up yet. YouTube is separate (it has its own richer page) and is
-// conditional on ``/api/v1/youtube/status`` reporting ``connected``.
-const SOCIAL_NAV: Array<{
-  platform: string;
-  label: string;
-  icon: typeof Instagram;
-}> = [
-  { platform: 'tiktok', label: 'TikTok', icon: Music2 },
-  { platform: 'instagram', label: 'Instagram', icon: Instagram },
-  { platform: 'facebook', label: 'Facebook', icon: Facebook },
-  { platform: 'x', label: 'X', icon: Twitter },
-];
 
 // ---------------------------------------------------------------------------
 // Nav items — ordered by workflow frequency
@@ -65,12 +44,14 @@ const NAV_CREATE = [
   { to: '/assets', icon: FolderOpen, label: 'Assets' },
 ] as const;
 
-// Publish — Calendar always visible. Platform-specific pages (YouTube,
-// TikTok, Instagram, Facebook, X) are rendered conditionally based on
-// which accounts are connected; the unified Channels hub replaces these
-// in a later Phase-1 chunk. See ``connectedSocials`` + ``youtubeConnected``.
+// Publish — Calendar + the unified Channels hub. Channels lists every
+// supported platform with its connection status, so integrations are
+// discoverable before they're connected (replacing the old "appear only
+// once connected" YouTube/social sidebar items).
+// See docs/decisions/001-channels-hub.md.
 const NAV_PUBLISH_STATIC = [
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
+  { to: '/channels', icon: Share2, label: 'Channels' },
 ] as const;
 
 // Monitor — operational visibility. Cloud GPU is hidden on the desktop
@@ -151,8 +132,6 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
   // Theme controls moved to Settings → Appearance. Sidebar is workflow-
   // frequency navigation; color preferences belong in a dedicated
   // settings surface where they're configured once and left alone.
-  // Connected-platforms state is owned by the shared hook (Phase 2.3).
-  const { socials: connectedSocials, youtubeConnected } = useConnectedPlatforms();
   // Phase 3.4: gen-count → React Query. The query polls at 5s ONLY
   // while WS reports active jobs and pauses on hidden tabs. The
   // previous setInterval polled every 10s unconditionally, even on
@@ -235,31 +214,11 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
           return <SidebarLink key={item.to} item={item} collapsed={collapsed} />;
         })}
 
-        {/* Publish — Calendar + whichever platform accounts are connected */}
+        {/* Publish — Calendar + the Channels hub */}
         <SectionHeader label="Publish" icon={Send} collapsed={collapsed} />
         {NAV_PUBLISH_STATIC.map((item) => (
           <SidebarLink key={item.to} item={item} collapsed={collapsed} />
         ))}
-        {youtubeConnected && (
-          <SidebarLink
-            key="/youtube"
-            item={{ to: '/youtube', icon: Youtube, label: 'YouTube' }}
-            collapsed={collapsed}
-          />
-        )}
-        {SOCIAL_NAV.filter((s) => connectedSocials.includes(s.platform)).map(
-          (s) => (
-            <SidebarLink
-              key={`/social/${s.platform}`}
-              item={{
-                to: `/social/${s.platform}`,
-                icon: s.icon,
-                label: s.label,
-              }}
-              collapsed={collapsed}
-            />
-          ),
-        )}
 
         {/* Monitor */}
         <SectionHeader label="Monitor" icon={Activity} collapsed={collapsed} />

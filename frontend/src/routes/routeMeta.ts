@@ -107,6 +107,13 @@ export const ROUTES: Record<string, RouteMeta> = {
     navGroup: 'publish',
     icon: 'Calendar',
   },
+  '/channels': {
+    path: '/channels',
+    title: 'Channels',
+    navLabel: 'Channels',
+    navGroup: 'publish',
+    icon: 'Share2',
+  },
   '/youtube': {
     path: '/youtube',
     title: 'YouTube',

@@ -42,6 +42,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const SocialPlatform = lazy(() => import('@/pages/SocialPlatform'));
 const CharacterPacks = lazy(() => import('@/pages/CharacterPacks'));
+const Channels = lazy(() => import('@/pages/Channels'));
 
 // ---------------------------------------------------------------------------
 // Loading fallback
@@ -153,6 +154,7 @@ function App() {
         <Route path="/audiobooks" element={<Audiobooks />} />
         <Route path="/audiobooks/:audiobookId" element={<AudiobookDetail />} />
         <Route path="/calendar" element={<Calendar />} />
+        <Route path="/channels" element={<Channels />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/settings" element={<Settings />} />
