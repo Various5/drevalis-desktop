@@ -94,8 +94,30 @@ class TestTransformFiltergraph:
         assert "rotate=a='(if(lt(t," in body
         assert ")*PI/180'" in body
 
-    def test_keyframed_scale_sampled_at_clip_start(self) -> None:
-        # scale can't animate → held at the frame-0 value (here 1.5)
-        clip = {"transformKeyframes": {"scale": [{"frame": 0, "value": 1.5}, {"frame": 30, "value": 3}]}}
+    def test_keyframed_scale_animates_via_eval_frame(self) -> None:
+        clip = {"transformKeyframes": {"scale": [{"frame": 0, "value": 1}, {"frame": 30, "value": 3}]}}
         body, _ = transform_filtergraph(clip, 30)  # type: ignore[misc]
-        assert "scale=iw*1.5:ih*1.5" in body
+        assert "scale=w='iw*(" in body and ":eval=frame" in body
+
+    def test_static_opacity_multiplies_alpha(self) -> None:
+        body, _ = transform_filtergraph({"transform": {"opacity": 0.5}}, 30)  # type: ignore[misc]
+        assert "format=yuva420p,colorchannelmixer=aa=0.5" in body
+
+    def test_full_opacity_adds_no_alpha_filter(self) -> None:
+        body, _ = transform_filtergraph({"transform": {"scale": 0.5, "opacity": 1}}, 30)  # type: ignore[misc]
+        assert "colorchannelmixer" not in body
+
+
+class TestSpeed:
+    def test_setpts_for_faster_clip(self) -> None:
+        # speed 2 → setpts=0.5*PTS
+        clip = {"in_s": 0, "out_s": 4, "speed": 2}
+        assert build_clip_vf(clip, 30) == "setpts=0.5*PTS"
+
+    def test_fade_out_timed_to_sped_output_duration(self) -> None:
+        # src 4s at speed 2 → output 2s; 30f fade @30fps = 1s → st=1
+        clip = {"in_s": 0, "out_s": 4, "speed": 2, "fadeOutFrames": 30}
+        assert build_clip_vf(clip, 30) == "setpts=0.5*PTS,fade=t=out:st=1:d=1"
+
+    def test_speed_one_is_noop(self) -> None:
+        assert build_clip_vf({"in_s": 0, "out_s": 4, "speed": 1}, 30) is None

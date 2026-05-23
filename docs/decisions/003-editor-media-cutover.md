@@ -74,20 +74,25 @@ pass: opacity **fades** (`fade`, timed to the clip's source-window duration) and
 pass through, brightness approximated as additive `b − 1`). A clip with no
 effects yields `None` and renders byte-for-byte as before.
 
-Per-clip **transform** also renders, as a second compositing pass
+Clip **speed** also rides the trim-pass `-vf` (`setpts`), with fades re-timed to
+the sped output duration.
+
+Per-clip **transform** renders as a second compositing pass
 (`apply_filter_complex` + `transform_filtergraph`): the clip is scaled and
 composited (`split`/`drawbox`/`scale`/`rotate`/`overlay`) over a black canvas of
 its own size, using only `overlay`'s relative `W/H/w/h` vars so **no probed
-dimensions** are needed. **Position and rotation keyframes** animate via `t`
-expressions; **scale keyframes** are sampled at the clip start (the `scale`
-filter can't animate); transform **opacity** is left to the fade path; large
-rotations may crop corners (no bbox expansion). ⚠️ This pass is **built
-blind** — the filtergraph is unit-tested as strings but not yet FFmpeg-verified;
-confirm on a real render.
+dimensions** are needed. **Scale, position and rotation** all animate when
+keyframed — scale via `scale=…:eval=frame`, position/rotation via `t`
+expressions. **Opacity** is applied with `colorchannelmixer` (constant; sampled
+at the clip start when keyframed — fades cover opacity animation).
 
-**Not yet rendered** — preview-only, persisted losslessly as extra JSONB keys:
-animated **scale** keyframes, transform **opacity**, and clip **speed**. These
-are the remaining render-fidelity increments.
+⚠️ The transform/speed render is **built blind** — the filtergraph is unit-tested
+as strings but not yet FFmpeg-verified; confirm on a real render.
+
+**Known limits** (acceptable / documented): sped-clip embedded **audio** isn't
+tempo-matched (video-track clips are silent; the mix uses voice/music tracks);
+**keyframed opacity** holds its clip-start value; large **rotations** may crop
+corners (no bbox expansion).
 
 ## Consequences
 

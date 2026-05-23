@@ -104,10 +104,19 @@ def fade_chain(
 
 
 def build_clip_vf(clip: dict[str, Any], fps: float) -> str | None:
-    """Per-clip ``-vf`` chain (colour grade + fades), or None when the clip has
-    no editor effects — so an unaffected clip's render is byte-for-byte unchanged.
+    """Per-clip ``-vf`` chain (speed + colour grade + fades), or None when the
+    clip has no editor effects — so an unaffected clip's render is byte-for-byte
+    unchanged.
+
+    Speed retimes the video via ``setpts`` (audio is not tempo-matched: the
+    video-track clips are silent visuals and the mix uses the voice/music
+    tracks). Fades are timed to the sped *output* duration.
     """
     chain: list[str] = []
+
+    speed = float(clip.get("speed") or 1)
+    if speed > 0 and abs(speed - 1) > 1e-6:
+        chain.append(f"setpts={_fmt(1.0 / speed)}*PTS")
 
     eq = color_eq(clip.get("filters"))
     if eq:
@@ -115,8 +124,9 @@ def build_clip_vf(clip: dict[str, Any], fps: float) -> str | None:
 
     in_s = float(clip.get("in_s") or 0.0)
     out_s = float(clip.get("out_s") or 0.0)
-    duration = max(0.0, out_s - in_s)
-    chain += fade_chain(clip.get("fadeInFrames"), clip.get("fadeOutFrames"), fps, duration)
+    src_dur = max(0.0, out_s - in_s)
+    out_dur = src_dur / speed if speed > 0 else src_dur
+    chain += fade_chain(clip.get("fadeInFrames"), clip.get("fadeOutFrames"), fps, out_dur)
 
     return ",".join(chain) if chain else None
 
@@ -126,9 +136,10 @@ def transform_filtergraph(clip: dict[str, Any], fps: float) -> tuple[str, str] |
     a black canvas of its own size, or None when the transform is identity.
 
     Uses only relative refs (overlay's ``W/H/w/h``) so no probed dimensions are
-    needed. Position and rotation may be **keyframed** (as ``t`` expressions);
-    scale is sampled at the clip start (the ``scale`` filter can't animate), and
-    transform opacity is left to the fade path. Returns ``(body, out_label)``.
+    needed. Scale (via ``scale=…:eval=frame``), position and rotation may all be
+    **keyframed** as ``t`` expressions. Opacity is applied via ``colorchannelmixer``
+    (sampled at the clip start when keyframed — fades cover opacity animation).
+    Returns ``(body, out_label)``.
     """
     t = clip.get("transform") or {}
     kf = clip.get("transformKeyframes") or {}
@@ -136,21 +147,30 @@ def transform_filtergraph(clip: dict[str, Any], fps: float) -> tuple[str, str] |
     x_kf = kf.get("x")
     y_kf = kf.get("y")
     rot_kf = kf.get("rotation")
+    op_kf = kf.get("opacity")
 
     scale = float(t.get("scale", 1) or 1)
     x = float(t.get("x", 0) or 0)
     y = float(t.get("y", 0) or 0)
     rot = float(t.get("rotation", 0) or 0)
-
-    # Scale can't animate in the `scale` filter — hold the clip-start value.
-    if scale_kf:
-        sampled = _sample_keyframes(scale_kf, 0)
+    op = float(t.get("opacity", 1) if t.get("opacity") is not None else 1)
+    # Opacity can't animate cheaply in the composite — hold the clip-start value.
+    if op_kf:
+        sampled = _sample_keyframes(op_kf, 0)
         if sampled is not None:
-            scale = sampled
+            op = sampled
 
-    keyframed = bool(scale_kf or x_kf or y_kf or rot_kf)
-    if not keyframed and scale == 1 and x == 0 and y == 0 and rot == 0:
+    keyframed = bool(scale_kf or x_kf or y_kf or rot_kf or op_kf)
+    if not keyframed and scale == 1 and x == 0 and y == 0 and rot == 0 and op == 1:
         return None
+
+    # Scale: animate per-frame via eval=frame when keyframed, else static.
+    if scale_kf:
+        s_expr = _lerp_expr(scale_kf, fps, scale)
+        scale_filter = f"scale=w='iw*({s_expr})':h='ih*({s_expr})':eval=frame"
+    else:
+        s = _fmt(scale)
+        scale_filter = f"scale=iw*{s}:ih*{s}"
 
     if rot_kf:
         rot_a = f"({_lerp_expr(rot_kf, fps, rot)})*PI/180"
@@ -159,14 +179,16 @@ def transform_filtergraph(clip: dict[str, Any], fps: float) -> tuple[str, str] |
 
     x_expr = _lerp_expr(x_kf, fps, x) if x_kf else _fmt(x)
     y_expr = _lerp_expr(y_kf, fps, y) if y_kf else _fmt(y)
-    s = _fmt(scale)
+
+    # Constant opacity via alpha multiply (only when not fully opaque).
+    alpha = f",format=yuva420p,colorchannelmixer=aa={_fmt(op)}" if abs(op - 1) > 1e-6 else ""
 
     # Single quotes protect the commas inside if()/expressions from FFmpeg's
     # filtergraph comma separators.
     body = (
         "[0:v]split=2[base][fg];"
         "[base]drawbox=x=0:y=0:w=iw:h=ih:color=black:t=fill[bg];"
-        f"[fg]scale=iw*{s}:ih*{s},rotate=a='{rot_a}':fillcolor=black[rot];"
+        f"[fg]{scale_filter},rotate=a='{rot_a}':fillcolor=black{alpha}[rot];"
         f"[bg][rot]overlay=x='(W-w)/2+({x_expr})*W':y='(H-h)/2+({y_expr})*H'[vout]"
     )
     return body, "[vout]"
