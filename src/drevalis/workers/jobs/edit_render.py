@@ -44,7 +44,7 @@ async def render_from_edit(
     from drevalis.repositories.episode import EpisodeRepository
     from drevalis.repositories.media_asset import MediaAssetRepository
     from drevalis.repositories.video_edit_session import VideoEditSessionRepository
-    from drevalis.services.ffmpeg import FFmpegService, build_clip_vf
+    from drevalis.services.ffmpeg import FFmpegService, build_clip_vf, transform_filtergraph
     from drevalis.services.storage import LocalStorage
 
     log = logger.bind(episode_id=episode_id, job="render_from_edit", proxy=proxy)
@@ -106,7 +106,18 @@ async def render_from_edit(
                 await ffmpeg.trim_video(
                     src, dest, start_seconds=in_s, end_seconds=out_s, video_filters=vf
                 )
-                trimmed_paths.append(dest)
+                # Per-clip transform (scale / position / rotation, keyframable)
+                # is a second compositing pass since it needs a filter_complex.
+                tgraph = transform_filtergraph(clip, fps)
+                if tgraph:
+                    body, out_label = tgraph
+                    transformed = work_dir / f"clip_{i:03d}_t.mp4"
+                    await ffmpeg.apply_filter_complex(
+                        dest, transformed, filter_complex=body, video_out_label=out_label
+                    )
+                    trimmed_paths.append(transformed)
+                else:
+                    trimmed_paths.append(dest)
             else:
                 # Image or zero-duration — copy as-is; ffmpeg concat
                 # needs a real video later.

@@ -1703,6 +1703,45 @@ class FFmpegService:
         await self._run_ffmpeg(cmd, "trim_video")
         return output_path
 
+    async def apply_filter_complex(
+        self,
+        input_path: Path,
+        output_path: Path,
+        *,
+        filter_complex: str,
+        video_out_label: str = "[vout]",
+    ) -> Path:
+        """Run a single-input ``-filter_complex`` video pass, copying audio
+        through. Used for the editor's per-clip transform compositing
+        (scale / position / rotation), which needs labelled streams a plain
+        ``-vf`` can't express. Returns the output path.
+        """
+        cmd = [
+            self.ffmpeg_path,
+            "-y",
+            "-i",
+            str(input_path),
+            "-filter_complex",
+            filter_complex,
+            "-map",
+            video_out_label,
+            "-map",
+            "0:a?",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-b:v",
+            "4M",
+            "-c:a",
+            "copy",
+            "-movflags",
+            "+faststart",
+            str(output_path),
+        ]
+        await self._run_ffmpeg(cmd, "apply_filter_complex")
+        return output_path
+
     async def apply_video_effects(
         self,
         input_path: Path,

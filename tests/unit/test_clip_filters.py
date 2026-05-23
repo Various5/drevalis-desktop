@@ -7,7 +7,7 @@ verified here and the worker just hands the result to ``trim_video``.
 
 from __future__ import annotations
 
-from drevalis.services.ffmpeg import build_clip_vf, color_eq, fade_chain
+from drevalis.services.ffmpeg import build_clip_vf, color_eq, fade_chain, transform_filtergraph
 
 
 class TestColorEq:
@@ -65,3 +65,37 @@ class TestBuildClipVf:
         # duration = out_s - in_s = 2s; 30f fade @30fps = 1s → st=1
         clip = {"in_s": 1.0, "out_s": 3.0, "fadeOutFrames": 30}
         assert build_clip_vf(clip, 30) == "fade=t=out:st=1:d=1"
+
+
+class TestTransformFiltergraph:
+    def test_none_for_identity(self) -> None:
+        assert transform_filtergraph({}, 30) is None
+        assert transform_filtergraph({"transform": {"scale": 1, "x": 0, "y": 0, "rotation": 0}}, 30) is None
+
+    def test_static_transform_builds_overlay_graph(self) -> None:
+        out = transform_filtergraph({"transform": {"scale": 0.5, "x": 0.1, "y": 0, "rotation": 0}}, 30)
+        assert out is not None
+        body, label = out
+        assert label == "[vout]"
+        assert "split=2[base][fg]" in body
+        assert "scale=iw*0.5:ih*0.5" in body
+        # x offset 0.1, centred: (W-w)/2 + 0.1*W
+        assert "overlay=x='(W-w)/2+(0.1)*W':y='(H-h)/2+(0)*H'" in body
+
+    def test_static_rotation_in_radians(self) -> None:
+        body, _ = transform_filtergraph({"transform": {"rotation": 90}}, 30)  # type: ignore[misc]
+        # 90° → ~1.5708 rad, baked statically
+        assert "rotate=a='1.5708'" in body
+
+    def test_keyframed_rotation_is_a_time_expression(self) -> None:
+        clip = {"transformKeyframes": {"rotation": [{"frame": 0, "value": 0}, {"frame": 30, "value": 90}]}}
+        body, _ = transform_filtergraph(clip, 30)  # type: ignore[misc]
+        # piecewise-linear expr in t, converted to radians
+        assert "rotate=a='(if(lt(t," in body
+        assert ")*PI/180'" in body
+
+    def test_keyframed_scale_sampled_at_clip_start(self) -> None:
+        # scale can't animate → held at the frame-0 value (here 1.5)
+        clip = {"transformKeyframes": {"scale": [{"frame": 0, "value": 1.5}, {"frame": 30, "value": 3}]}}
+        body, _ = transform_filtergraph(clip, 30)  # type: ignore[misc]
+        assert "scale=iw*1.5:ih*1.5" in body

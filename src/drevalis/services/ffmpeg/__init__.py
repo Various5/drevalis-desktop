@@ -9,7 +9,12 @@ from drevalis.services.ffmpeg._monolith import (  # noqa: F401
     FFmpegService,
     SceneInput,
 )
-from drevalis.services.ffmpeg.clip_filters import build_clip_vf, color_eq, fade_chain  # noqa: F401
+from drevalis.services.ffmpeg.clip_filters import (  # noqa: F401
+    build_clip_vf,
+    color_eq,
+    fade_chain,
+    transform_filtergraph,
+)
 
 __all__ = [
     "AUDIO_PRESETS",
@@ -22,4 +27,5 @@ __all__ = [
     "build_clip_vf",
     "color_eq",
     "fade_chain",
+    "transform_filtergraph",
 ]

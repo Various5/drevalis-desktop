@@ -74,12 +74,20 @@ pass: opacity **fades** (`fade`, timed to the clip's source-window duration) and
 pass through, brightness approximated as additive `b − 1`). A clip with no
 effects yields `None` and renders byte-for-byte as before.
 
+Per-clip **transform** also renders, as a second compositing pass
+(`apply_filter_complex` + `transform_filtergraph`): the clip is scaled and
+composited (`split`/`drawbox`/`scale`/`rotate`/`overlay`) over a black canvas of
+its own size, using only `overlay`'s relative `W/H/w/h` vars so **no probed
+dimensions** are needed. **Position and rotation keyframes** animate via `t`
+expressions; **scale keyframes** are sampled at the clip start (the `scale`
+filter can't animate); transform **opacity** is left to the fade path; large
+rotations may crop corners (no bbox expansion). ⚠️ This pass is **built
+blind** — the filtergraph is unit-tested as strings but not yet FFmpeg-verified;
+confirm on a real render.
+
 **Not yet rendered** — preview-only, persisted losslessly as extra JSONB keys:
-per-clip **transform** (scale / position / rotation) and **transform keyframes**,
-and clip **speed**. Transform needs canvas compositing + ffprobe'd output
-dimensions, and keyframes need time-varying FFmpeg expressions — the next
-backend increment, gated on FFmpeg verification. The editor surfaces this so
-users aren't surprised.
+animated **scale** keyframes, transform **opacity**, and clip **speed**. These
+are the remaining render-fidelity increments.
 
 ## Consequences
 
