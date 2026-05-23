@@ -27,6 +27,23 @@ export function isTauri(): boolean {
 }
 
 /**
+ * True only for http(s) links pointing at a DIFFERENT origin than the app.
+ * Same-origin links are in-app navigation (React Router) and must NOT be
+ * routed to the system browser — doing so 404s on the API origin and was
+ * the alpha.58 "every menu click opens the browser" regression. Relative
+ * and non-http hrefs (``/episodes``, ``mailto:``, ``#hash``) are likewise
+ * treated as internal so the SPA / native handlers keep them.
+ */
+export function isExternalHref(href: string): boolean {
+  if (!/^https?:\/\//i.test(href)) return false;
+  try {
+    return new URL(href).origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Open an external URL in the user's default browser.
  *
  * Inside Tauri this uses ``tauri-plugin-opener`` so the link actually
@@ -191,7 +208,7 @@ export function installTauriBridges(): void {
   // (the initial sweep below catches anything present before render).
   const stripBlankTargets = (root: ParentNode): void => {
     root.querySelectorAll?.('a[target="_blank"]').forEach((a) => {
-      if (/^https?:\/\//i.test((a as HTMLAnchorElement).href)) {
+      if (isExternalHref((a as HTMLAnchorElement).href)) {
         a.removeAttribute('target');
       }
     });
@@ -213,9 +230,11 @@ export function installTauriBridges(): void {
         | null;
       if (!anchor) return;
       const href = anchor.href;
-      if (!/^https?:\/\//i.test(href)) return;
-      // Any external http(s) link clicked inside the webview: never let
-      // the webview navigate to it (it would replace the SPA) or spawn a
+      // Only intercept links to a DIFFERENT origin. Same-origin hrefs are
+      // in-app navigation (React Router) and must stay in the webview.
+      if (!isExternalHref(href)) return;
+      // External http(s) link clicked inside the webview: never let the
+      // webview navigate to it (it would replace the SPA) or spawn a
       // native popup — open it in the OS browser exactly once.
       e.preventDefault();
       openExternal(href).catch((err) => {
@@ -228,7 +247,7 @@ export function installTauriBridges(): void {
   const originalOpen = window.open.bind(window);
   window.open = function patchedOpen(...args: Parameters<typeof window.open>) {
     const [url] = args;
-    if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+    if (typeof url === 'string' && isExternalHref(url)) {
       openExternal(url).catch((err) => {
         console.error('[tauri] window.open redirect failed', err);
       });
