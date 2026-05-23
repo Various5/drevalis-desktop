@@ -1,17 +1,20 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { Gauge, ArrowRightFromLine, ArrowLeftFromLine, Move, Sliders, RotateCcw } from 'lucide-react';
+import { Gauge, ArrowRightFromLine, ArrowLeftFromLine, Move, Sliders, RotateCcw, Diamond } from 'lucide-react';
 import {
   type Clip,
   type ClipTransform,
   type ClipFilters,
+  type TransformProp,
   clipSpeed,
   clipTimelineLength,
+  effectiveTransform,
 } from '@/lib/editor/timeline';
 
-/** Clip inspector panel (Phase 2, PR 6). Shows the selected clip's source /
+/** Clip inspector panel (Phase 2, PR 6/9c). Shows the selected clip's source /
  *  timeline spans and edits its per-clip properties: speed remap, fade in/out,
- *  geometry transform (scale / position / rotation / opacity) and colour
- *  filters. Slider edits commit on release so a drag is a single undo step. */
+ *  geometry transform (scale / position / rotation / opacity, keyframable) and
+ *  colour filters. Slider edits commit on release so a drag is a single undo
+ *  step; the ◆ toggles a transform keyframe at the playhead. */
 
 const SPEED_PRESETS = [0.25, 0.5, 1, 1.5, 2, 4];
 const FADE_PRESETS_SEC = [0, 0.25, 0.5, 1];
@@ -105,16 +108,22 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 export function ClipInspector({
   clip,
   fps,
+  frame,
   onSetSpeed,
   onSetFade,
   onSetTransform,
+  onSetTransformKeyframe,
+  onRemoveTransformKeyframe,
   onSetFilters,
 }: {
   clip: Clip | null;
   fps: number;
+  frame: number;
   onSetSpeed: (clipId: string, speed: number) => void;
   onSetFade: (clipId: string, edge: 'in' | 'out', frames: number) => void;
   onSetTransform: (clipId: string, patch: Partial<ClipTransform>) => void;
+  onSetTransformKeyframe: (clipId: string, prop: TransformProp, frame: number, value: number) => void;
+  onRemoveTransformKeyframe: (clipId: string, prop: TransformProp, frame: number) => void;
   onSetFilters: (clipId: string, patch: Partial<ClipFilters>) => void;
 }) {
   if (!clip) {
@@ -129,8 +138,55 @@ export function ClipInspector({
   const sourceLen = clip.outFrame - clip.inFrame;
   const timelineLen = clipTimelineLength(clip);
   const visual = clip.kind === 'video' || clip.kind === 'overlay';
-  const t = { ...NEUTRAL_TRANSFORM, ...clip.data?.transform };
   const f = { ...NEUTRAL_FILTERS, ...clip.data?.filters };
+
+  // Effective (keyframe-sampled) transform at the playhead, and per-prop state.
+  const local = frame - clip.startFrame;
+  const eff = { ...NEUTRAL_TRANSFORM, ...effectiveTransform(clip, frame) };
+  const kfs = clip.data?.transformKeyframes;
+
+  const transformRow = (
+    prop: TransformProp,
+    label: string,
+    min: number,
+    max: number,
+    step: number,
+    fmt: (v: number) => string,
+  ) => {
+    const list = kfs?.[prop];
+    const hasKf = (list?.length ?? 0) > 0;
+    const here = list?.some((k) => k.frame === local) ?? false;
+    const value = eff[prop];
+    return (
+      <div key={prop} className="flex items-center gap-1.5">
+        <button
+          onClick={() =>
+            here
+              ? onRemoveTransformKeyframe(clip.id, prop, local)
+              : onSetTransformKeyframe(clip.id, prop, local, value)
+          }
+          title={here ? 'Remove keyframe at playhead' : 'Add keyframe at playhead'}
+          aria-label="Toggle transform keyframe"
+          className={`shrink-0 ${here ? 'text-amber-400' : hasKf ? 'text-amber-400/50 hover:text-amber-400' : 'text-txt-tertiary hover:text-txt-primary'}`}
+        >
+          <Diamond size={11} fill={here ? 'currentColor' : 'none'} />
+        </button>
+        <div className="flex-1">
+          <RangeControl
+            label={label}
+            value={value}
+            min={min}
+            max={max}
+            step={step}
+            fmt={fmt}
+            onCommit={(v) =>
+              hasKf ? onSetTransformKeyframe(clip.id, prop, local, v) : onSetTransform(clip.id, { [prop]: v })
+            }
+          />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="px-3 py-2.5 space-y-3 text-xs">
@@ -203,6 +259,7 @@ export function ClipInspector({
             <div className="flex items-center gap-1.5 text-txt-tertiary">
               <Move size={12} />
               <span>Transform</span>
+              <span className="text-[10px] text-txt-tertiary/70">◆ keyframe</span>
               <button
                 onClick={() => onSetTransform(clip.id, NEUTRAL_TRANSFORM)}
                 className="ml-auto hover:text-txt-primary"
@@ -212,11 +269,11 @@ export function ClipInspector({
                 <RotateCcw size={11} />
               </button>
             </div>
-            <RangeControl label="Scale" value={t.scale} min={0.1} max={4} step={0.05} fmt={(v) => `${v.toFixed(2)}×`} onCommit={(v) => onSetTransform(clip.id, { scale: v })} />
-            <RangeControl label="X" value={t.x} min={-1} max={1} step={0.01} fmt={pct} onCommit={(v) => onSetTransform(clip.id, { x: v })} />
-            <RangeControl label="Y" value={t.y} min={-1} max={1} step={0.01} fmt={pct} onCommit={(v) => onSetTransform(clip.id, { y: v })} />
-            <RangeControl label="Rotate" value={t.rotation} min={-180} max={180} step={1} fmt={(v) => `${Math.round(v)}°`} onCommit={(v) => onSetTransform(clip.id, { rotation: v })} />
-            <RangeControl label="Opacity" value={t.opacity} min={0} max={1} step={0.01} fmt={pct} onCommit={(v) => onSetTransform(clip.id, { opacity: v })} />
+            {transformRow('scale', 'Scale', 0.1, 4, 0.05, (v) => `${v.toFixed(2)}×`)}
+            {transformRow('x', 'X', -1, 1, 0.01, pct)}
+            {transformRow('y', 'Y', -1, 1, 0.01, pct)}
+            {transformRow('rotation', 'Rotate', -180, 180, 1, (v) => `${Math.round(v)}°`)}
+            {transformRow('opacity', 'Opacity', 0, 1, 0.01, pct)}
           </div>
 
           <div className="space-y-1.5 border-t border-border/60 pt-2.5">

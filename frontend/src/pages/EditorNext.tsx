@@ -460,9 +460,12 @@ function EditorNext() {
           <ClipInspector
             clip={selectedClip}
             fps={store.timeline.fps}
+            frame={store.frame}
             onSetSpeed={store.setClipSpeed}
             onSetFade={store.setClipFade}
             onSetTransform={store.setClipTransform}
+            onSetTransformKeyframe={store.setTransformKeyframe}
+            onRemoveTransformKeyframe={store.removeTransformKeyframe}
             onSetFilters={store.setClipFilters}
           />
         </div>

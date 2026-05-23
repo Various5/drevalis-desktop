@@ -22,6 +22,8 @@ import {
   type ClipTransform,
   type ClipFilters,
   type EnvelopePoint,
+  type Keyframe,
+  type TransformProp,
   clipSpeed,
   timelineDurationFrames,
 } from './timeline';
@@ -41,6 +43,7 @@ interface EditClipExtras extends EditTimelineClip {
   fadeInFrames?: number;
   fadeOutFrames?: number;
   transform?: ClipTransform;
+  transformKeyframes?: Partial<Record<TransformProp, Keyframe[]>>;
   filters?: ClipFilters;
 }
 
@@ -70,7 +73,7 @@ export function mediaUrl(assetPath: string): string {
 const MAPPED_CLIP_KEYS = new Set([
   'id', 'asset_path', 'in_s', 'out_s', 'start_s', 'end_s', 'speed',
   'gain_db', 'duck_to_voice', 'envelope',
-  'fadeInFrames', 'fadeOutFrames', 'transform', 'filters',
+  'fadeInFrames', 'fadeOutFrames', 'transform', 'transformKeyframes', 'filters',
 ]);
 
 function editClipToNle(c: EditClipExtras, track: EditTimelineTrack, s2f: (s: number) => number): Clip {
@@ -90,6 +93,7 @@ function editClipToNle(c: EditClipExtras, track: EditTimelineTrack, s2f: (s: num
     };
   }
   if (c.transform) data.transform = c.transform;
+  if (c.transformKeyframes) data.transformKeyframes = c.transformKeyframes;
   if (c.filters) data.filters = c.filters;
 
   // Preserve everything we don't model as canonical NLE state.
@@ -167,6 +171,7 @@ function nleClipToEdit(clip: Clip, kind: TrackKind, fps: number): EditClipExtras
   if (clip.fadeInFrames != null) out.fadeInFrames = clip.fadeInFrames;
   if (clip.fadeOutFrames != null) out.fadeOutFrames = clip.fadeOutFrames;
   if (data.transform) out.transform = data.transform;
+  if (data.transformKeyframes) out.transformKeyframes = data.transformKeyframes;
   if (data.filters) out.filters = data.filters;
   return out;
 }

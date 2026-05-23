@@ -18,6 +18,7 @@ import {
   type Scene,
   type ClipTransform,
   type ClipFilters,
+  type TransformProp,
   clipTimelineLength,
   clipSpeed,
   clipAtFrame,
@@ -254,6 +255,43 @@ export function setClipTransform(
     ...c,
     data: { ...c.data, transform: { ...c.data?.transform, ...patch } },
   }));
+}
+
+/**
+ * Add or replace a transform keyframe for `prop` at clip-relative `frame`
+ * (a keyframe already at that frame is overwritten). Kept sorted by frame.
+ */
+export function setTransformKeyframe(
+  tl: ProjectTimeline,
+  clipId: string,
+  prop: TransformProp,
+  frame: number,
+  value: number,
+): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => {
+    const all = { ...c.data?.transformKeyframes };
+    const list = (all[prop] ?? []).filter((k) => k.frame !== frame);
+    list.push({ frame, value });
+    list.sort((a, b) => a.frame - b.frame);
+    all[prop] = list;
+    return { ...c, data: { ...c.data, transformKeyframes: all } };
+  });
+}
+
+/** Remove the transform keyframe for `prop` at clip-relative `frame`, if any. */
+export function removeTransformKeyframe(
+  tl: ProjectTimeline,
+  clipId: string,
+  prop: TransformProp,
+  frame: number,
+): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => {
+    const existing = c.data?.transformKeyframes?.[prop];
+    if (!existing) return c;
+    const list = existing.filter((k) => k.frame !== frame);
+    const all = { ...c.data?.transformKeyframes, [prop]: list };
+    return { ...c, data: { ...c.data, transformKeyframes: all } };
+  });
 }
 
 /** Merge a partial colour-filter set into a clip (brightness/contrast/saturation). */

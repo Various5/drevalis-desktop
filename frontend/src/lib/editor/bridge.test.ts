@@ -83,7 +83,11 @@ describe('round-trip NLE → backend → NLE', () => {
               endFrame: 60,
               fadeInFrames: 15,
               fadeOutFrames: 10,
-              data: { transform: { scale: 1.5 }, filters: { brightness: 1.2 } },
+              data: {
+                transform: { scale: 1.5 },
+                transformKeyframes: { scale: [{ frame: 0, value: 1 }, { frame: 30, value: 2 }] },
+                filters: { brightness: 1.2 },
+              },
             },
           ],
         },
@@ -94,6 +98,7 @@ describe('round-trip NLE → backend → NLE', () => {
     expect(c.fadeInFrames).toBe(15);
     expect(c.fadeOutFrames).toBe(10);
     expect(c.data?.transform).toEqual({ scale: 1.5 });
+    expect(c.data?.transformKeyframes?.scale).toEqual([{ frame: 0, value: 1 }, { frame: 30, value: 2 }]);
     expect(c.data?.filters).toEqual({ brightness: 1.2 });
   });
 });

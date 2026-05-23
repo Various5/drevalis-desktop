@@ -72,6 +72,16 @@ export interface ClipFilters {
   saturation?: number;
 }
 
+/** A keyframe: a property value at a clip-relative timeline frame. */
+export interface Keyframe {
+  /** Frames from the clip's `startFrame`. */
+  frame: number;
+  value: number;
+}
+
+export type TransformProp = 'scale' | 'x' | 'y' | 'rotation' | 'opacity';
+export const TRANSFORM_PROPS: readonly TransformProp[] = ['scale', 'x', 'y', 'rotation', 'opacity'];
+
 /** Per-kind clip payload. Optional; absent for a plain video/audio cut. */
 export interface ClipData {
   /** Audio: constant gain in dB (applied on top of the envelope, if any). */
@@ -86,6 +96,9 @@ export interface ClipData {
   caption?: CaptionData;
   /** Visual: geometry transform (scale / position / rotation / opacity). */
   transform?: ClipTransform;
+  /** Visual: keyframed transform properties (clip-relative frames). Sampled
+   *  over the static `transform` base by `effectiveTransform`. */
+  transformKeyframes?: Partial<Record<TransformProp, Keyframe[]>>;
   /** Visual: colour filters. */
   filters?: ClipFilters;
   /**
@@ -213,6 +226,45 @@ export function clipOpacityAt(clip: Clip, frame: number): number {
   if (fin > 0) a = Math.min(a, (frame - clip.startFrame) / fin);
   if (fout > 0) a = Math.min(a, (clip.endFrame - frame) / fout);
   return Math.max(0, Math.min(1, a));
+}
+
+/**
+ * Linear-interpolate a keyframe list (sorted by frame) at clip-relative
+ * `frame`; holds the first/last value beyond the ends.
+ */
+export function sampleKeyframes(kfs: Keyframe[], frame: number): number {
+  const first = kfs[0];
+  if (!first) return 0;
+  if (frame <= first.frame) return first.value;
+  const last = kfs[kfs.length - 1]!;
+  if (frame >= last.frame) return last.value;
+  for (let i = 0; i < kfs.length - 1; i++) {
+    const a = kfs[i]!;
+    const b = kfs[i + 1]!;
+    if (frame >= a.frame && frame <= b.frame) {
+      const span = b.frame - a.frame;
+      return span === 0 ? b.value : a.value + (b.value - a.value) * ((frame - a.frame) / span);
+    }
+  }
+  return last.value;
+}
+
+/**
+ * The clip's transform at timeline `frame`: keyframed properties sampled
+ * (clip-relative) over the static `transform` base. Returns the static
+ * transform unchanged when no keyframes exist.
+ */
+export function effectiveTransform(clip: Clip, frame: number): ClipTransform | undefined {
+  const base = clip.data?.transform;
+  const kf = clip.data?.transformKeyframes;
+  if (!kf) return base;
+  const local = frame - clip.startFrame;
+  const out: ClipTransform = { ...base };
+  for (const prop of TRANSFORM_PROPS) {
+    const ks = kf[prop];
+    if (ks && ks.length) out[prop] = sampleKeyframes(ks, local);
+  }
+  return out;
 }
 
 /** The clip under the playhead on a track, or null in a gap. */

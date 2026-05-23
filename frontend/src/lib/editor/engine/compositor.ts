@@ -24,6 +24,7 @@ import {
   clipAtFrame,
   clipSpeed,
   clipOpacityAt,
+  effectiveTransform,
 } from '../timeline';
 
 /** One layer to draw at the current frame. */
@@ -97,7 +98,7 @@ export function buildDrawList(timeline: ProjectTimeline, frame: number): DrawCom
     const sourceFrame =
       clip.inFrame + Math.round((frame - clip.startFrame) * clipSpeed(clip));
 
-    const transform = clip.data?.transform;
+    const transform = effectiveTransform(clip, frame);
     const filters = clip.data?.filters;
     const baseBox = clip.data?.overlay?.box ?? FULL_FRAME;
 

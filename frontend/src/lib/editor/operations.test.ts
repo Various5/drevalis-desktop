@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { type Clip, type Track, type ProjectTimeline, clipTimelineLength, clipSpeed, clipOpacityAt } from './timeline';
+import { type Clip, type Track, type ProjectTimeline, clipTimelineLength, clipSpeed, clipOpacityAt, sampleKeyframes, effectiveTransform } from './timeline';
 import {
   addTrack,
   removeTrack,
@@ -23,6 +23,8 @@ import {
   setClipFade,
   setClipTransform,
   setClipFilters,
+  setTransformKeyframe,
+  removeTransformKeyframe,
   setCaptionText,
   addScene,
   removeScene,
@@ -179,6 +181,42 @@ describe('scenes', () => {
     expect(t.scenes!.find((s) => s.id === 's1')!.name).toBe('Intro');
     t = removeScene(t, 's2');
     expect(t.scenes!.map((s) => s.id)).toEqual(['s1']);
+  });
+});
+
+describe('transform keyframes', () => {
+  it('sampleKeyframes interpolates linearly and holds at the ends', () => {
+    const ks = [
+      { frame: 0, value: 0 },
+      { frame: 10, value: 100 },
+    ];
+    expect(sampleKeyframes(ks, -5)).toBe(0); // hold before
+    expect(sampleKeyframes(ks, 5)).toBe(50); // midpoint
+    expect(sampleKeyframes(ks, 20)).toBe(100); // hold after
+  });
+
+  it('setTransformKeyframe adds sorted + overwrites at the same frame; effectiveTransform samples it', () => {
+    // c0 spans timeline 0..30; keyframes are clip-relative.
+    let t = setTransformKeyframe(tl(videoTrack([30])), 'c0', 'scale', 0, 1);
+    t = setTransformKeyframe(t, 'c0', 'scale', 10, 2);
+    t = setTransformKeyframe(t, 'c0', 'scale', 0, 1.5); // overwrite frame 0
+    const c = get(t, 'c0');
+    expect(c.data?.transformKeyframes?.scale?.map((k) => [k.frame, k.value])).toEqual([
+      [0, 1.5],
+      [10, 2],
+    ]);
+    // at timeline frame 5 (local 5): halfway between 1.5 and 2 → 1.75
+    expect(effectiveTransform(c, 5)?.scale).toBeCloseTo(1.75, 2);
+  });
+
+  it('removeTransformKeyframe drops one; effectiveTransform falls back to static', () => {
+    let t = setClipTransform(tl(videoTrack([30])), 'c0', { scale: 3 });
+    t = setTransformKeyframe(t, 'c0', 'scale', 0, 1);
+    t = removeTransformKeyframe(t, 'c0', 'scale', 0);
+    const c = get(t, 'c0');
+    expect(c.data?.transformKeyframes?.scale).toEqual([]);
+    // no keyframes for scale → static base 3
+    expect(effectiveTransform(c, 5)?.scale).toBe(3);
   });
 });
 
