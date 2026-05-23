@@ -137,7 +137,8 @@ function App() {
           </LoginGate>
         }
       >
-        <Route path="/episodes/:episodeId/edit" element={<EpisodeEditor />} />
+        {/* Legacy editor kept as a fullscreen fallback (Phase 2 cutover, ADR 003). */}
+        <Route path="/episodes/:episodeId/edit/classic" element={<EpisodeEditor />} />
         <Route path="/audiobooks/:audiobookId/edit" element={<AudiobookEditor />} />
       </Route>
       <Route
@@ -169,8 +170,9 @@ function App() {
         <Route path="/cloud-gpu" element={<CloudGPU />} />
         <Route path="/assets" element={<Assets />} />
         <Route path="/templates" element={<Templates />} />
-        {/* Phase 2: rebuilt NLE behind a flagged dev route (ADR 002/003).
-            With :episodeId it loads/saves a real episode; bare, the sample. */}
+        {/* Phase 2 cutover (ADR 003): the rebuilt NLE is now THE episode editor.
+            /editor-next stays as a sample/dev route and a back-compat alias. */}
+        <Route path="/episodes/:episodeId/edit" element={<EditorNext />} />
         <Route path="/editor-next" element={<EditorNext />} />
         <Route path="/editor-next/:episodeId" element={<EditorNext />} />
         <Route path="/character-packs" element={<CharacterPacks />} />

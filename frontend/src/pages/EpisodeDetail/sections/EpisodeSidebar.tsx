@@ -246,11 +246,11 @@ export function EpisodeSidebar({ episode, voiceProfiles }: EpisodeSidebarProps) 
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(`/editor-next/${episode.id}`)}
-          aria-label="Open the new editor (beta)"
+          onClick={() => navigate(`/episodes/${episode.id}/edit/classic`)}
+          aria-label="Open the classic (legacy) editor"
         >
           <Clapperboard size={14} />
-          New editor (beta)
+          Classic editor
         </Button>
         <Button
           variant="ghost"
