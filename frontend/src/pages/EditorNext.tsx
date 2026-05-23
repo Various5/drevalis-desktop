@@ -24,6 +24,9 @@ function EditorNext() {
   const [playing, setPlaying] = useState(false);
   const [tool, setTool] = useState<EditorTool>('select');
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [shuttleRate, setShuttleRate] = useState(0);
+  const [inPoint, setInPoint] = useState<number | null>(null);
+  const [outPoint, setOutPoint] = useState<number | null>(null);
 
   // Keep the latest store reachable from the once-created playback controller.
   const storeRef = useRef(store);
@@ -36,7 +39,10 @@ function EditorNext() {
       durationFrames: () => timelineDurationFrames(storeRef.current.timeline),
       onFrame: (f) => {
         storeRef.current.setFrame(f);
-        if (!pb.isPlaying()) setPlaying(false); // resync at end
+        if (!pb.isPlaying()) {
+          setPlaying(false);
+          setShuttleRate(0);
+        }
       },
     });
     pbRef.current = pb;
@@ -50,6 +56,21 @@ function EditorNext() {
     if (!pb) return;
     pb.toggle();
     setPlaying(pb.isPlaying());
+    setShuttleRate(pb.rate());
+  }, []);
+
+  const shuttle = useCallback((dir: 1 | -1) => {
+    const pb = pbRef.current;
+    if (!pb) return;
+    pb.shuttle(dir);
+    setPlaying(pb.isPlaying());
+    setShuttleRate(pb.rate());
+  }, []);
+
+  const pausePlayback = useCallback(() => {
+    pbRef.current?.pause();
+    setPlaying(false);
+    setShuttleRate(0);
   }, []);
 
   const splitAtPlayhead = useCallback(() => {
@@ -98,6 +119,20 @@ function EditorNext() {
         seek(Math.max(0, s.frame - (e.shiftKey ? 10 : 1)));
       } else if (e.key === 'ArrowRight') {
         seek(s.frame + (e.shiftKey ? 10 : 1));
+      } else if (e.key === 'j' || e.key === 'J') {
+        shuttle(-1);
+      } else if (e.key === 'l' || e.key === 'L') {
+        shuttle(1);
+      } else if (e.key === 'k' || e.key === 'K') {
+        pausePlayback();
+      } else if (e.key === ',') {
+        seek(Math.max(0, s.frame - 1));
+      } else if (e.key === '.') {
+        seek(s.frame + 1);
+      } else if (e.key === 'i' || e.key === 'I') {
+        setInPoint(s.frame);
+      } else if (e.key === 'o' || e.key === 'O') {
+        setOutPoint(s.frame);
       } else if (e.key === 's' || e.key === 'S') {
         if (e.shiftKey) bladeAllAtPlayhead();
         else splitAtPlayhead();
@@ -122,7 +157,7 @@ function EditorNext() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, seek, splitAtPlayhead, deleteSelected, trimStartToPlayhead, trimEndToPlayhead, bladeAllAtPlayhead]);
+  }, [togglePlay, shuttle, pausePlayback, seek, splitAtPlayhead, deleteSelected, trimStartToPlayhead, trimEndToPlayhead, bladeAllAtPlayhead]);
 
   const duration = timelineDurationFrames(store.timeline);
 
@@ -190,6 +225,9 @@ function EditorNext() {
         <span className="text-xs text-txt-tertiary tabular-nums ml-1">
           {framesToSeconds(store.frame, store.timeline.fps).toFixed(2)}s / {framesToSeconds(duration, store.timeline.fps).toFixed(1)}s
         </span>
+        {Math.abs(shuttleRate) > 1 && (
+          <span className="text-xs text-accent tabular-nums">{shuttleRate > 0 ? '▶' : '◀'} {Math.abs(shuttleRate)}×</span>
+        )}
       </div>
 
       <TimelineView
@@ -210,6 +248,8 @@ function EditorNext() {
         onRoll={store.roll}
         onSlip={store.slip}
         onSlide={store.slide}
+        inPoint={inPoint}
+        outPoint={outPoint}
       />
     </div>
   );

@@ -87,4 +87,31 @@ describe('playback controller', () => {
     expect(h.pb.isPlaying()).toBe(false);
     expect(h.hasPending()).toBe(false);
   });
+
+  it('shuttles forward and reverse through the speed ladder', () => {
+    const h = harness(300);
+    h.pb.shuttle(1);
+    expect(h.pb.rate()).toBe(1);
+    h.pb.shuttle(1);
+    expect(h.pb.rate()).toBe(2);
+    h.pb.shuttle(1);
+    expect(h.pb.rate()).toBe(4);
+    h.pb.shuttle(1);
+    expect(h.pb.rate()).toBe(4); // capped
+    h.pb.shuttle(-1);
+    expect(h.pb.rate()).toBe(-1); // flips to reverse
+    h.pb.shuttle(-1);
+    expect(h.pb.rate()).toBe(-2);
+  });
+
+  it('plays in reverse and stops at frame 0', () => {
+    const h = harness(300);
+    h.pb.seekFrame(20);
+    h.pb.setRate(-1);
+    expect(h.pb.isPlaying()).toBe(true);
+    h.setTime(2000);
+    h.tick();
+    expect(h.pb.currentFrame()).toBe(0);
+    expect(h.pb.isPlaying()).toBe(false);
+  });
 });

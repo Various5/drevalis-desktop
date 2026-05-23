@@ -67,6 +67,8 @@ export interface TimelineViewProps {
   onRoll: (clipId: string, delta: number) => void;
   onSlip: (clipId: string, delta: number) => void;
   onSlide: (clipId: string, delta: number) => void;
+  inPoint?: number | null;
+  outPoint?: number | null;
 }
 
 export function TimelineView(props: TimelineViewProps) {
@@ -74,6 +76,7 @@ export function TimelineView(props: TimelineViewProps) {
     timeline, frame, selectedClipId, pxPerFrame, tool, snapEnabled,
     onSeek, onSelectClip, onZoom, onToggleTrackFlag,
     onMoveClip, onTrimStart, onTrimEnd, onSplitAt, onRoll, onSlip, onSlide,
+    inPoint, outPoint,
   } = props;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -301,6 +304,16 @@ export function TimelineView(props: TimelineViewProps) {
                 })}
             </div>
           ))}
+
+          {inPoint != null && outPoint != null && outPoint > inPoint && (
+            <div className="absolute top-0 bottom-0 bg-amber-400/10 pointer-events-none" style={{ left: inPoint * pxPerFrame, width: (outPoint - inPoint) * pxPerFrame }} />
+          )}
+          {inPoint != null && (
+            <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 pointer-events-none z-[9]" style={{ left: inPoint * pxPerFrame }} title="In point" />
+          )}
+          {outPoint != null && (
+            <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 pointer-events-none z-[9]" style={{ left: outPoint * pxPerFrame }} title="Out point" />
+          )}
 
           <div className="absolute top-0 bottom-0 w-px bg-accent pointer-events-none z-10" style={{ left: frame * pxPerFrame }}>
             <div className="w-2 h-2 -ml-1 rounded-full bg-accent" />
