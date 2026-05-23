@@ -15,6 +15,7 @@ const ROUTES: { path: string; name: string }[] = [
   { path: '/episodes', name: 'episodes' },
   { path: '/audiobooks', name: 'audiobooks' },
   { path: '/assets', name: 'assets' },
+  { path: '/templates', name: 'templates' },
   { path: '/character-packs', name: 'character-packs' },
   { path: '/calendar', name: 'calendar' },
   { path: '/channels', name: 'channels' },

@@ -100,6 +100,13 @@ export const ROUTES: Record<string, RouteMeta> = {
     navGroup: 'content-studio',
     icon: 'Folder',
   },
+  '/templates': {
+    path: '/templates',
+    title: 'Templates',
+    navLabel: 'Templates',
+    navGroup: 'content-studio',
+    icon: 'LayoutTemplate',
+  },
   '/calendar': {
     path: '/calendar',
     title: 'Calendar',

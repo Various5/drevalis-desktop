@@ -9,7 +9,6 @@ import {
   Globe,
   CheckCircle2,
   Key,
-  LayoutTemplate,
   KeyRound,
   ArrowUpCircle,
   Archive,
@@ -34,7 +33,6 @@ import { StorageSection } from '@/pages/Settings/sections/StorageSection';
 import { FFmpegSection } from '@/pages/Settings/sections/FFmpegSection';
 import { SocialSection } from '@/pages/Settings/sections/SocialSection';
 import { ApiKeysSection } from '@/pages/Settings/sections/ApiKeysSection';
-import { TemplatesSection } from '@/pages/Settings/sections/TemplatesSection';
 import { DiagnosticsSection } from '@/pages/Settings/sections/DiagnosticsSection';
 import { NetworkSection } from '@/pages/Settings/sections/NetworkSection';
 import { LoginHistorySection } from '@/pages/Settings/sections/LoginHistorySection';
@@ -60,7 +58,6 @@ type SectionId =
   | 'ffmpeg'
   | 'backup'
   | 'updates'
-  | 'templates'
   | 'privacy'
   | 'network'
   | 'diagnostics';
@@ -123,11 +120,6 @@ const SECTION_GROUPS: SectionGroupDef[] = [
       { id: 'network', label: 'LAN API Access', icon: Network },
       { id: 'diagnostics', label: 'Diagnostics', icon: FileArchive },
     ],
-  },
-  {
-    id: 'content',
-    label: 'Content',
-    sections: [{ id: 'templates', label: 'Templates', icon: LayoutTemplate }],
   },
 ];
 
@@ -245,7 +237,6 @@ function Settings() {
           {activeSection === 'llm' && <LLMSection />}
           {activeSection === 'storage' && <StorageSection />}
           {activeSection === 'ffmpeg' && <FFmpegSection />}
-          {activeSection === 'templates' && <TemplatesSection />}
           {activeSection === 'social' && <SocialSection />}
           {activeSection === 'apikeys' && <ApiKeysSection onNavigateToApiKeys={() => setActiveSection('apikeys')} />}
           {activeSection === 'diagnostics' && <DiagnosticsSection />}

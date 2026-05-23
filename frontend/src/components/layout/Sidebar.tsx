@@ -22,6 +22,7 @@ import {
   Share2,
   FolderOpen,
   Users,
+  LayoutTemplate,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,7 @@ const NAV_CREATE = [
   { to: '/audiobooks', icon: Mic, label: 'Audio Studio' },
   { to: '/character-packs', icon: Users, label: 'Characters' },
   { to: '/assets', icon: FolderOpen, label: 'Assets' },
+  { to: '/templates', icon: LayoutTemplate, label: 'Templates' },
 ] as const;
 
 // Publish — Calendar + the unified Channels hub. Channels lists every
