@@ -1,4 +1,4 @@
-import { useRef, useState, type WheelEvent, type MouseEvent } from 'react';
+import { useRef, useState, useEffect, type WheelEvent, type MouseEvent } from 'react';
 import { Lock, Volume2, VolumeX, Radio, Flag } from 'lucide-react';
 import { type ProjectTimeline, type Track, timelineDurationFrames } from '@/lib/editor/timeline';
 import { collectSnapTargets, snapFrame } from '@/lib/editor/snap';
@@ -69,6 +69,7 @@ export interface TimelineViewProps {
   onSlide: (clipId: string, delta: number) => void;
   inPoint?: number | null;
   outPoint?: number | null;
+  onViewportChange?: (from: number, to: number) => void;
 }
 
 export function TimelineView(props: TimelineViewProps) {
@@ -76,12 +77,22 @@ export function TimelineView(props: TimelineViewProps) {
     timeline, frame, selectedClipId, pxPerFrame, tool, snapEnabled,
     onSeek, onSelectClip, onZoom, onToggleTrackFlag,
     onMoveClip, onTrimStart, onTrimEnd, onSplitAt, onRoll, onSlip, onSlide,
-    inPoint, outPoint,
+    inPoint, outPoint, onViewportChange,
   } = props;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState({ scrollLeft: 0, width: 0 });
   const [ghost, setGhost] = useState<DragGhost | null>(null);
+
+  // Measure the scroll viewport on mount so the minimap rect is correct before
+  // the first scroll, and report the visible frame range as it changes.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) setView((v) => ({ ...v, width: el.clientWidth }));
+  }, []);
+  useEffect(() => {
+    onViewportChange?.(view.scrollLeft / pxPerFrame, (view.scrollLeft + view.width) / pxPerFrame);
+  }, [view, pxPerFrame, onViewportChange]);
 
   const duration = Math.max(timelineDurationFrames(timeline), Math.round(view.width / pxPerFrame));
   const contentW = duration * pxPerFrame;

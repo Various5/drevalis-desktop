@@ -11,6 +11,7 @@ import { createPlayback, type PlaybackController } from '@/lib/editor/engine/pla
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
 import { TimelineView, type EditorTool } from '@/components/editor/TimelineView';
 import { MarkerList } from '@/components/editor/MarkerList';
+import { MinimapView } from '@/components/editor/MinimapView';
 
 /**
  * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
@@ -28,6 +29,7 @@ function EditorNext() {
   const [shuttleRate, setShuttleRate] = useState(0);
   const [inPoint, setInPoint] = useState<number | null>(null);
   const [outPoint, setOutPoint] = useState<number | null>(null);
+  const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null);
 
   // Keep the latest store reachable from the once-created playback controller.
   const storeRef = useRef(store);
@@ -51,6 +53,7 @@ function EditorNext() {
   }, [initial.fps]);
 
   const seek = useCallback((f: number) => pbRef.current?.seekFrame(f), []);
+  const onViewportChange = useCallback((from: number, to: number) => setViewport({ from, to }), []);
 
   const togglePlay = useCallback(() => {
     const pb = pbRef.current;
@@ -238,6 +241,8 @@ function EditorNext() {
         )}
       </div>
 
+      <MinimapView timeline={store.timeline} frame={store.frame} viewport={viewport} onSeek={seek} />
+
       <TimelineView
         timeline={store.timeline}
         frame={store.frame}
@@ -258,6 +263,7 @@ function EditorNext() {
         onSlide={store.slide}
         inPoint={inPoint}
         outPoint={outPoint}
+        onViewportChange={onViewportChange}
       />
 
       <div className="border border-border rounded-lg bg-bg-surface max-w-md">
