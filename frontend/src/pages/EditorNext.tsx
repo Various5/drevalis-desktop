@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Play, Pause, Undo2, Redo2, ZoomIn, ZoomOut, Scissors, Trash2, MousePointer2, Magnet,
-  Columns2, MoveHorizontal, ChevronsLeftRight, ArrowLeftToLine, ArrowRightToLine, Split, Save,
+  Columns2, MoveHorizontal, ChevronsLeftRight, ArrowLeftToLine, ArrowRightToLine, Split, Save, Keyboard,
 } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/useEditorStore';
 import { findClip } from '@/lib/editor/operations';
@@ -23,6 +23,7 @@ import { ScenesPanel } from '@/components/editor/ScenesPanel';
 import { RenderPanel } from '@/components/editor/RenderPanel';
 import { HistoryPanel } from '@/components/editor/HistoryPanel';
 import { SnapshotsPanel } from '@/components/editor/SnapshotsPanel';
+import { KeyboardHelp } from '@/components/editor/KeyboardHelp';
 import { useRenderQueue } from '@/lib/editor/useRenderQueue';
 import {
   type EditorSnapshot,
@@ -59,6 +60,10 @@ function EditorNext() {
   const [inPoint, setInPoint] = useState<number | null>(null);
   const [outPoint, setOutPoint] = useState<number | null>(null);
   const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null);
+  const [panelTab, setPanelTab] = useState<'clip' | 'markers' | 'captions' | 'scenes' | 'render' | 'history' | 'snapshots'>('clip');
+  const [showHelp, setShowHelp] = useState(false);
+  const showHelpRef = useRef(showHelp);
+  showHelpRef.current = showHelp;
 
   // Keep the latest store reachable from once-created controllers/renderers.
   const storeRef = useRef(store);
@@ -253,6 +258,12 @@ function EditorNext() {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowHelp((v) => !v);
+        return;
+      }
+      if (showHelpRef.current) return; // help open: don't fire editor shortcuts behind it
       const s = storeRef.current;
       if (e.key === ' ') {
         e.preventDefault();
@@ -333,22 +344,32 @@ function EditorNext() {
           {loadStatus === 'error' && 'Could not load this episode.'}
           {loadStatus === 'loaded' && `Episode ${episodeId?.slice(0, 8)}`}
         </span>
-        {episodeId && loadStatus === 'loaded' && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-[11px] text-txt-tertiary">
-              {saveStatus === 'saving' && 'Saving…'}
-              {saveStatus === 'saved' && 'All changes saved'}
-              {saveStatus === 'error' && 'Save failed — retry'}
-            </span>
-            <button
-              onClick={saveNow}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary"
-              title="Save now"
-            >
-              <Save size={13} /> Save
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          {episodeId && loadStatus === 'loaded' && (
+            <>
+              <span className="text-[11px] text-txt-tertiary">
+                {saveStatus === 'saving' && 'Saving…'}
+                {saveStatus === 'saved' && 'All changes saved'}
+                {saveStatus === 'error' && 'Save failed — retry'}
+              </span>
+              <button
+                onClick={saveNow}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary"
+                title="Save now"
+              >
+                <Save size={13} /> Save
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary"
+            title="Keyboard shortcuts (?)"
+            aria-label="Keyboard shortcuts"
+          >
+            <Keyboard size={14} />
+          </button>
+        </div>
       </div>
 
       {recovery && (
@@ -452,97 +473,99 @@ function EditorNext() {
         onViewportChange={onViewportChange}
       />
 
-      <div className="flex flex-wrap gap-3">
-        <div className="border border-border rounded-lg bg-bg-surface w-72">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            Clip
-          </div>
-          <ClipInspector
-            clip={selectedClip}
-            fps={store.timeline.fps}
-            frame={store.frame}
-            onSetSpeed={store.setClipSpeed}
-            onSetFade={store.setClipFade}
-            onSetTransform={store.setClipTransform}
-            onSetTransformKeyframe={store.setTransformKeyframe}
-            onRemoveTransformKeyframe={store.removeTransformKeyframe}
-            onSetFilters={store.setClipFilters}
-          />
+      <div className="border border-border rounded-lg bg-bg-surface">
+        <div className="flex items-center gap-0.5 border-b border-border px-1 overflow-x-auto">
+          {(
+            [
+              ['clip', 'Clip'],
+              ['markers', `Markers${(store.timeline.markers?.length ?? 0) ? ` ${store.timeline.markers!.length}` : ''}`],
+              ['captions', `Captions${captions.length ? ` ${captions.length}` : ''}`],
+              ['scenes', `Scenes${scenes.length ? ` ${scenes.length}` : ''}`],
+              ['render', `Render${renderQueue.jobs.length ? ` ${renderQueue.jobs.length}` : ''}`],
+              ['history', 'History'],
+              ['snapshots', `Snapshots${snapshots.length ? ` ${snapshots.length}` : ''}`],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setPanelTab(id)}
+              className={`px-3 py-1.5 text-xs whitespace-nowrap border-b-2 -mb-px ${
+                panelTab === id
+                  ? 'border-accent text-txt-primary'
+                  : 'border-transparent text-txt-tertiary hover:text-txt-secondary'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-
-        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[16rem]">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            Markers
-          </div>
-          <MarkerList
-            markers={store.timeline.markers ?? []}
-            fps={store.timeline.fps}
-            onSeek={seek}
-            onRemove={store.removeMarker}
-            onEditNote={store.updateMarkerNote}
-          />
-        </div>
-
-        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[16rem]">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            Captions
-          </div>
-          <CaptionsPanel
-            captions={captions}
-            fps={store.timeline.fps}
-            onSeek={seek}
-            onEdit={store.setCaptionText}
-            onRemove={store.removeClip}
-            onAdd={() => store.addCaption(store.frame, Math.round(2 * store.timeline.fps))}
-          />
-        </div>
-
-        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[16rem]">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            Scenes
-          </div>
-          <ScenesPanel
-            scenes={scenes}
-            fps={store.timeline.fps}
-            onSeek={seek}
-            onRename={store.renameScene}
-            onRemove={store.removeScene}
-            onAdd={() => store.addScene(store.frame, `Scene ${scenes.length + 1}`)}
-          />
-        </div>
-
-        <div className="border border-border rounded-lg bg-bg-surface w-72">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            Render
-          </div>
-          <RenderPanel
-            timeline={store.timeline}
-            inPoint={inPoint}
-            outPoint={outPoint}
-            queue={renderQueue}
-            mode={episodeId ? 'backend' : 'simulation'}
-          />
-        </div>
-
-        <div className="border border-border rounded-lg bg-bg-surface w-60">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            History
-          </div>
-          <HistoryPanel count={store.historyCount} index={store.historyIndex} onJump={store.jumpTo} />
-        </div>
-
-        <div className="border border-border rounded-lg bg-bg-surface w-60">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            Snapshots
-          </div>
-          <SnapshotsPanel
-            snapshots={snapshots}
-            onCreate={createSnapshot}
-            onRestore={restoreSnapshot}
-            onRemove={deleteSnapshot}
-          />
+        <div className="min-h-[8rem]">
+          {panelTab === 'clip' && (
+            <ClipInspector
+              clip={selectedClip}
+              fps={store.timeline.fps}
+              frame={store.frame}
+              onSetSpeed={store.setClipSpeed}
+              onSetFade={store.setClipFade}
+              onSetTransform={store.setClipTransform}
+              onSetTransformKeyframe={store.setTransformKeyframe}
+              onRemoveTransformKeyframe={store.removeTransformKeyframe}
+              onSetFilters={store.setClipFilters}
+            />
+          )}
+          {panelTab === 'markers' && (
+            <MarkerList
+              markers={store.timeline.markers ?? []}
+              fps={store.timeline.fps}
+              onSeek={seek}
+              onRemove={store.removeMarker}
+              onEditNote={store.updateMarkerNote}
+            />
+          )}
+          {panelTab === 'captions' && (
+            <CaptionsPanel
+              captions={captions}
+              fps={store.timeline.fps}
+              onSeek={seek}
+              onEdit={store.setCaptionText}
+              onRemove={store.removeClip}
+              onAdd={() => store.addCaption(store.frame, Math.round(2 * store.timeline.fps))}
+            />
+          )}
+          {panelTab === 'scenes' && (
+            <ScenesPanel
+              scenes={scenes}
+              fps={store.timeline.fps}
+              onSeek={seek}
+              onRename={store.renameScene}
+              onRemove={store.removeScene}
+              onAdd={() => store.addScene(store.frame, `Scene ${scenes.length + 1}`)}
+            />
+          )}
+          {panelTab === 'render' && (
+            <RenderPanel
+              timeline={store.timeline}
+              inPoint={inPoint}
+              outPoint={outPoint}
+              queue={renderQueue}
+              mode={episodeId ? 'backend' : 'simulation'}
+            />
+          )}
+          {panelTab === 'history' && (
+            <HistoryPanel count={store.historyCount} index={store.historyIndex} onJump={store.jumpTo} />
+          )}
+          {panelTab === 'snapshots' && (
+            <SnapshotsPanel
+              snapshots={snapshots}
+              onCreate={createSnapshot}
+              onRestore={restoreSnapshot}
+              onRemove={deleteSnapshot}
+            />
+          )}
         </div>
       </div>
+
+      <KeyboardHelp open={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }
