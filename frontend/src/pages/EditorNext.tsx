@@ -15,6 +15,8 @@ import { MinimapView } from '@/components/editor/MinimapView';
 import { ClipInspector } from '@/components/editor/ClipInspector';
 import { CaptionsPanel } from '@/components/editor/CaptionsPanel';
 import { ScenesPanel } from '@/components/editor/ScenesPanel';
+import { RenderPanel } from '@/components/editor/RenderPanel';
+import { useRenderQueue } from '@/lib/editor/useRenderQueue';
 
 /**
  * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
@@ -33,6 +35,7 @@ function EditorNext() {
   const [inPoint, setInPoint] = useState<number | null>(null);
   const [outPoint, setOutPoint] = useState<number | null>(null);
   const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null);
+  const renderQueue = useRenderQueue();
 
   // Keep the latest store reachable from the once-created playback controller.
   const storeRef = useRef(store);
@@ -336,6 +339,13 @@ function EditorNext() {
             onRemove={store.removeScene}
             onAdd={() => store.addScene(store.frame, `Scene ${scenes.length + 1}`)}
           />
+        </div>
+
+        <div className="border border-border rounded-lg bg-bg-surface w-72">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            Render
+          </div>
+          <RenderPanel timeline={store.timeline} inPoint={inPoint} outPoint={outPoint} queue={renderQueue} />
         </div>
       </div>
     </div>
