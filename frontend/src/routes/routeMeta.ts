@@ -78,8 +78,8 @@ export const ROUTES: Record<string, RouteMeta> = {
   },
   '/audiobooks': {
     path: '/audiobooks',
-    title: 'Text to Voice',
-    navLabel: 'Text to Voice',
+    title: 'Audio Studio',
+    navLabel: 'Audio Studio',
     navGroup: 'content-studio',
     icon: 'BookHeadphones',
   },
@@ -140,8 +140,8 @@ export const ROUTES: Record<string, RouteMeta> = {
   },
   '/logs': {
     path: '/logs',
-    title: 'Event Log',
-    navLabel: 'Logs',
+    title: 'System Log',
+    navLabel: 'System Log',
     navGroup: 'system',
     icon: 'ScrollText',
   },

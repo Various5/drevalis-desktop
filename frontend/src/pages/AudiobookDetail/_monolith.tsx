@@ -690,7 +690,7 @@ function AudiobookDetail() {
       <div className="mb-6">
         <Breadcrumb
           items={[
-            { label: 'Text to Voice', to: '/audiobooks' },
+            { label: 'Audio Studio', to: '/audiobooks' },
             { label: audiobook.title || 'Audiobook' },
           ]}
           className="mb-4"

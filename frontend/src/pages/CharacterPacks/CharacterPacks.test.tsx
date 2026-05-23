@@ -128,8 +128,9 @@ describe('CharacterPacks — tier gate', () => {
     renderPage();
 
     await waitFor(() => {
-      // The TierGatePlaceholder renders the feature label or the raw name
-      expect(screen.getByText(/character packs/i)).toBeInTheDocument();
+      // The TierGatePlaceholder renders the feature label ("Characters"
+      // after the Phase-1 rename) or the raw name.
+      expect(screen.getByText(/characters/i)).toBeInTheDocument();
     });
   });
 

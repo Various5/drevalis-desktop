@@ -49,45 +49,47 @@ const SOCIAL_NAV: Array<{
 // Nav items — ordered by workflow frequency
 // ---------------------------------------------------------------------------
 
-const NAV_TOP = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-] as const;
+// Phase 1 IA: Create / Publish / Monitor / (Bottom). The Maintenance group
+// (Health/Storage/Backup/Updates/FFmpeg/Diagnostics) and the unified
+// Channels hub land in later Phase-1 chunks since they need new routes;
+// until then Settings stays a single Bottom entry and the connected
+// platforms render conditionally under Publish.
 
-// Content Studio — Episodes first (most used), then Series, then Voice
-const NAV_CONTENT_STUDIO = [
-  { to: '/episodes', icon: Film, label: 'Episodes' },
+// Create — the authoring surface: dashboard + everything you make.
+const NAV_CREATE = [
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/series', icon: Layers, label: 'Series' },
-  { to: '/audiobooks', icon: Mic, label: 'Text to Voice' },
+  { to: '/episodes', icon: Film, label: 'Episodes' },
+  { to: '/audiobooks', icon: Mic, label: 'Audio Studio' },
+  { to: '/character-packs', icon: Users, label: 'Characters' },
   { to: '/assets', icon: FolderOpen, label: 'Assets' },
-  { to: '/character-packs', icon: Users, label: 'Character Packs' },
 ] as const;
 
 // Publish — Calendar always visible. Platform-specific pages (YouTube,
 // TikTok, Instagram, Facebook, X) are rendered conditionally based on
-// which accounts are actually connected. See ``connectedSocials`` +
-// ``youtubeConnected`` state in the component body.
+// which accounts are connected; the unified Channels hub replaces these
+// in a later Phase-1 chunk. See ``connectedSocials`` + ``youtubeConnected``.
 const NAV_PUBLISH_STATIC = [
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
 ] as const;
 
-// System — Jobs promoted (users need it when things break). Cloud GPU
-// is hidden on the desktop install per SCOPE.md ("desktop user already
-// has a GPU; de-emphasize cloud-GPU in nav") -- the page itself is
-// still reachable directly via /cloud-gpu for the rare user who wants
-// a RunPod pod from a laptop.
-const NAV_SYSTEM_FULL = [
-  { to: '/settings', icon: Settings, label: 'Settings' },
-  { to: '/cloud-gpu', icon: Cpu, label: 'Cloud GPU' },
+// Monitor — operational visibility. Cloud GPU is hidden on the desktop
+// install per SCOPE.md ("desktop user already has a GPU; de-emphasize
+// cloud-GPU in nav") -- the page stays reachable directly at /cloud-gpu.
+const NAV_MONITOR_FULL = [
   { to: '/jobs', icon: ListChecks, label: 'Jobs' },
   { to: '/usage', icon: Activity, label: 'Usage' },
-  { to: '/logs', icon: Terminal, label: 'Event Log' },
+  { to: '/logs', icon: Terminal, label: 'System Log' },
+  { to: '/cloud-gpu', icon: Cpu, label: 'Cloud GPU' },
 ] as const;
 
-const NAV_SYSTEM = isTauri()
-  ? NAV_SYSTEM_FULL.filter((item) => item.to !== '/cloud-gpu')
-  : NAV_SYSTEM_FULL;
+const NAV_MONITOR = isTauri()
+  ? NAV_MONITOR_FULL.filter((item) => item.to !== '/cloud-gpu')
+  : NAV_MONITOR_FULL;
 
+// Bottom — config + help, pinned below a divider.
 const NAV_BOTTOM = [
+  { to: '/settings', icon: Settings, label: 'Settings' },
   { to: '/help', icon: HelpCircle, label: 'Help' },
 ] as const;
 
@@ -181,14 +183,9 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Nav items */}
       <nav className="flex-1 py-2 flex flex-col gap-0.5 px-2 overflow-y-auto scrollbar-hidden">
-        {/* Dashboard */}
-        {NAV_TOP.map((item) => (
-          <SidebarLink key={item.to} item={item} collapsed={collapsed} />
-        ))}
-
-        {/* Content Studio */}
-        <SectionHeader label="Content Studio" icon={Clapperboard} collapsed={collapsed} />
-        {NAV_CONTENT_STUDIO.map((item) => {
+        {/* Create */}
+        <SectionHeader label="Create" icon={Clapperboard} collapsed={collapsed} />
+        {NAV_CREATE.map((item) => {
           const isEpisodes = item.to === '/episodes';
           if (isEpisodes) {
             return (
@@ -264,13 +261,13 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ),
         )}
 
-        {/* System */}
-        <SectionHeader label="System" icon={Settings} collapsed={collapsed} />
-        {NAV_SYSTEM.map((item) => (
+        {/* Monitor */}
+        <SectionHeader label="Monitor" icon={Activity} collapsed={collapsed} />
+        {NAV_MONITOR.map((item) => (
           <SidebarLink key={item.to} item={item} collapsed={collapsed} />
         ))}
 
-        {/* Help & About (no header) */}
+        {/* Settings & Help (no header) */}
         <div className="my-1 border-t border-border/50" />
         {NAV_BOTTOM.map((item) => (
           <SidebarLink key={item.to} item={item} collapsed={collapsed} />

@@ -636,7 +636,7 @@ function CharacterPacks() {
   if (loadError instanceof ApiError && loadError.status === 402) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <TierGatePlaceholder error={loadError} featureLabel="Character Packs" />
+        <TierGatePlaceholder error={loadError} featureLabel="Characters" />
       </div>
     );
   }

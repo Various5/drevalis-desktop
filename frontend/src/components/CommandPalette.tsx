@@ -58,7 +58,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       { id: 'r-dashboard', kind: 'route', label: 'Dashboard', hint: 'Home overview', icon: LayoutDashboard, go: goto('/'), keywords: ['home', 'overview'] },
       { id: 'r-episodes', kind: 'route', label: 'Episodes', hint: 'Browse all episodes', icon: Film, go: goto('/episodes') },
       { id: 'r-series', kind: 'route', label: 'Series', hint: 'Manage series', icon: Layers, go: goto('/series') },
-      { id: 'r-tts', kind: 'route', label: 'Text to Voice', hint: 'Audiobooks', icon: Mic, go: goto('/audiobooks'), keywords: ['audiobook', 'tts', 'voice'] },
+      { id: 'r-tts', kind: 'route', label: 'Audio Studio', hint: 'Audiobooks & narration', icon: Mic, go: goto('/audiobooks'), keywords: ['audiobook', 'tts', 'voice', 'text to voice'] },
       { id: 'r-assets', kind: 'route', label: 'Assets', hint: 'Media library', icon: FolderOpen, go: goto('/assets') },
       { id: 'r-calendar', kind: 'route', label: 'Calendar', hint: 'Content schedule', icon: CalendarDays, go: goto('/calendar') },
       { id: 'r-youtube', kind: 'route', label: 'YouTube', hint: 'Channel management', icon: Youtube, go: goto('/youtube') },
@@ -66,7 +66,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       { id: 'r-cloud', kind: 'route', label: 'Cloud GPU', hint: 'RunPod / Vast.ai / Lambda', icon: Cpu, go: goto('/cloud-gpu'), keywords: ['runpod', 'vast', 'lambda', 'gpu'] },
       { id: 'r-jobs', kind: 'route', label: 'Jobs', hint: 'Generation queue', icon: ListChecks, go: goto('/jobs') },
       { id: 'r-usage', kind: 'route', label: 'Usage', hint: 'Compute & metrics', icon: Activity, go: goto('/usage') },
-      { id: 'r-logs', kind: 'route', label: 'Event Log', hint: 'Application logs', icon: Terminal, go: goto('/logs') },
+      { id: 'r-logs', kind: 'route', label: 'System Log', hint: 'Application logs', icon: Terminal, go: goto('/logs'), keywords: ['event log', 'logs'] },
       { id: 'r-help', kind: 'route', label: 'Help', hint: 'Documentation', icon: HelpCircle, go: goto('/help') },
 
       // Actions

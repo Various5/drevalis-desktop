@@ -519,14 +519,14 @@ function Audiobooks() {
   if (loadError instanceof ApiError && loadError.status === 402) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <TierGatePlaceholder error={loadError} featureLabel="Text to Voice" />
+        <TierGatePlaceholder error={loadError} featureLabel="Audio Studio" />
       </div>
     );
   }
 
   return (
     <div>
-      {/* Banner already shows "Text to Voice"; keep subtitle + CTAs only. */}
+      {/* Banner already shows "Audio Studio"; keep subtitle + CTAs only. */}
       <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
         <p className="text-sm text-txt-secondary">
           Transform any text into natural speech. Create audiobooks, voiceovers, podcasts.
