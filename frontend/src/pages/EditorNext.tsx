@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Play, Pause, Undo2, Redo2, ZoomIn, ZoomOut, Scissors, Trash2, MousePointer2, Magnet,
-  Columns2, MoveHorizontal, ChevronsLeftRight, ArrowLeftToLine, ArrowRightToLine, Split,
+  Columns2, MoveHorizontal, ChevronsLeftRight, ArrowLeftToLine, ArrowRightToLine, Split, Save,
 } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/useEditorStore';
 import { findClip } from '@/lib/editor/operations';
 import { sampleTimeline } from '@/lib/editor/sample';
-import { timelineDurationFrames, framesToSeconds } from '@/lib/editor/timeline';
+import { timelineDurationFrames, framesToSeconds, type ProjectTimeline } from '@/lib/editor/timeline';
+import { editTimelineToProject, projectToEditTimeline } from '@/lib/editor/bridge';
+import { editor as editorApi } from '@/lib/api';
 import { createPlayback, type PlaybackController } from '@/lib/editor/engine/playback';
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
 import { TimelineView, type EditorTool } from '@/components/editor/TimelineView';
@@ -20,14 +23,20 @@ import { HistoryPanel } from '@/components/editor/HistoryPanel';
 import { useRenderQueue } from '@/lib/editor/useRenderQueue';
 
 /**
- * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
- * Phase 2, PR 3. Wires the store + rAF playback engine to the preview canvas
- * and the timeline. Loads a sample timeline; real episode load/save lands in a
- * later PR. The legacy editor at /episodes/:id/edit is untouched.
+ * EditorNext — the rebuilt NLE (`/editor-next`, ADR 002/003). Wires the store +
+ * rAF playback engine to the preview canvas and the timeline. With an
+ * `:episodeId` it loads/saves a real edit session through the existing backend
+ * (bridged frames↔seconds, ADR 003) and autosaves debounced; bare, it loads the
+ * sample timeline. The legacy editor at /episodes/:id/edit is untouched.
  */
 function EditorNext() {
+  const { episodeId } = useParams<{ episodeId?: string }>();
   const initial = useMemo(() => sampleTimeline(30), []);
   const store = useEditorStore(initial);
+  const [loadStatus, setLoadStatus] = useState<'sample' | 'loading' | 'loaded' | 'error'>(
+    episodeId ? 'loading' : 'sample',
+  );
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [pxPerFrame, setPxPerFrame] = useState(1.2);
   const [playing, setPlaying] = useState(false);
   const [tool, setTool] = useState<EditorTool>('select');
@@ -58,6 +67,54 @@ function EditorNext() {
     pbRef.current = pb;
     return () => pb.dispose();
   }, [initial.fps]);
+
+  // ── Real episode load / autosave (ADR 003) ─────────────────────────────────
+  const loadedRef = useRef(false);
+  const lastSyncedRef = useRef<ProjectTimeline | null>(null);
+
+  useEffect(() => {
+    if (!episodeId) return;
+    let cancelled = false;
+    setLoadStatus('loading');
+    editorApi
+      .get(episodeId)
+      .then((session) => {
+        if (cancelled) return;
+        const tl = editTimelineToProject(session.timeline);
+        storeRef.current.load(tl);
+        lastSyncedRef.current = tl;
+        loadedRef.current = true;
+        setLoadStatus('loaded');
+      })
+      .catch(() => {
+        if (!cancelled) setLoadStatus('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [episodeId]);
+
+  const saveNow = useCallback(() => {
+    if (!episodeId) return;
+    const tl = storeRef.current.timeline;
+    setSaveStatus('saving');
+    editorApi
+      .save(episodeId, projectToEditTimeline(tl))
+      .then(() => {
+        lastSyncedRef.current = tl;
+        setSaveStatus('saved');
+      })
+      .catch(() => setSaveStatus('error'));
+  }, [episodeId]);
+
+  // Debounced autosave whenever the timeline changes after the initial load.
+  useEffect(() => {
+    if (!episodeId || !loadedRef.current) return;
+    if (store.timeline === lastSyncedRef.current) return;
+    setSaveStatus('saving');
+    const id = window.setTimeout(saveNow, 800);
+    return () => window.clearTimeout(id);
+  }, [episodeId, store.timeline, saveNow]);
 
   const seek = useCallback((f: number) => pbRef.current?.seekFrame(f), []);
   const onViewportChange = useCallback((from: number, to: number) => setViewport({ from, to }), []);
@@ -195,10 +252,29 @@ function EditorNext() {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-semibold text-txt-primary">Editor (preview)</span>
+        <span className="text-sm font-semibold text-txt-primary">Editor{episodeId ? '' : ' (preview)'}</span>
         <span className="text-[11px] text-txt-tertiary">
-          New NLE — flagged dev route. Sample timeline.
+          {loadStatus === 'sample' && 'New NLE — sample timeline. Open from an episode to edit real media.'}
+          {loadStatus === 'loading' && 'Loading episode…'}
+          {loadStatus === 'error' && 'Could not load this episode.'}
+          {loadStatus === 'loaded' && `Episode ${episodeId?.slice(0, 8)}`}
         </span>
+        {episodeId && loadStatus === 'loaded' && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-[11px] text-txt-tertiary">
+              {saveStatus === 'saving' && 'Saving…'}
+              {saveStatus === 'saved' && 'All changes saved'}
+              {saveStatus === 'error' && 'Save failed — retry'}
+            </span>
+            <button
+              onClick={saveNow}
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-bg-elevated hover:bg-bg-hover text-txt-primary"
+              title="Save now"
+            >
+              <Save size={13} /> Save
+            </button>
+          </div>
+        )}
       </div>
 
       <PreviewCanvas timeline={store.timeline} frame={store.frame} className="max-w-3xl mx-auto" />

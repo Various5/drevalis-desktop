@@ -88,6 +88,12 @@ export interface ClipData {
   transform?: ClipTransform;
   /** Visual: colour filters. */
   filters?: ClipFilters;
+  /**
+   * Backend-only clip fields preserved verbatim across the seconds↔frames
+   * bridge (scene_number, source, asset_id, raw overlay/envelope) so a
+   * round-trip through the editor API is lossless. See ADR 003.
+   */
+  backend?: Record<string, unknown>;
 }
 
 export interface Clip {
