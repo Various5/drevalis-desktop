@@ -1,13 +1,23 @@
-import { type ReactNode } from 'react';
-import { Gauge, ArrowRightFromLine, ArrowLeftFromLine } from 'lucide-react';
-import { type Clip, clipSpeed, clipTimelineLength } from '@/lib/editor/timeline';
+import { type ReactNode, useEffect, useState } from 'react';
+import { Gauge, ArrowRightFromLine, ArrowLeftFromLine, Move, Sliders, RotateCcw } from 'lucide-react';
+import {
+  type Clip,
+  type ClipTransform,
+  type ClipFilters,
+  clipSpeed,
+  clipTimelineLength,
+} from '@/lib/editor/timeline';
 
-/** Clip inspector panel (Phase 2, PR 6a/6b). Shows the selected clip's source /
- *  timeline spans and lets you remap its playback speed and set fade in/out
- *  (opacity transitions). Home for the rest of PR 6's per-clip properties. */
+/** Clip inspector panel (Phase 2, PR 6). Shows the selected clip's source /
+ *  timeline spans and edits its per-clip properties: speed remap, fade in/out,
+ *  geometry transform (scale / position / rotation / opacity) and colour
+ *  filters. Slider edits commit on release so a drag is a single undo step. */
 
 const SPEED_PRESETS = [0.25, 0.5, 1, 1.5, 2, 4];
 const FADE_PRESETS_SEC = [0, 0.25, 0.5, 1];
+
+const NEUTRAL_TRANSFORM: Required<ClipTransform> = { scale: 1, x: 0, y: 0, rotation: 0, opacity: 1 };
+const NEUTRAL_FILTERS: Required<ClipFilters> = { brightness: 1, contrast: 1, saturation: 1 };
 
 function FadeRow({
   label,
@@ -49,16 +59,63 @@ function FadeRow({
   );
 }
 
+/** A range slider that tracks its value locally and commits on release, so a
+ *  drag produces one undo entry rather than dozens. */
+function RangeControl({
+  label,
+  value,
+  min,
+  max,
+  step,
+  fmt,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  fmt: (v: number) => string;
+  onCommit: (v: number) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  // Resync if the value changes externally (selection change, undo/redo).
+  useEffect(() => setLocal(value), [value]);
+  return (
+    <label className="flex items-center gap-2">
+      <span className="text-txt-tertiary w-14 shrink-0">{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={local}
+        onChange={(e) => setLocal(parseFloat(e.target.value))}
+        onPointerUp={() => onCommit(local)}
+        onKeyUp={() => onCommit(local)}
+        className="flex-1 accent-accent"
+      />
+      <span className="tabular-nums text-txt-secondary w-11 text-right">{fmt(local)}</span>
+    </label>
+  );
+}
+
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+
 export function ClipInspector({
   clip,
   fps,
   onSetSpeed,
   onSetFade,
+  onSetTransform,
+  onSetFilters,
 }: {
   clip: Clip | null;
   fps: number;
   onSetSpeed: (clipId: string, speed: number) => void;
   onSetFade: (clipId: string, edge: 'in' | 'out', frames: number) => void;
+  onSetTransform: (clipId: string, patch: Partial<ClipTransform>) => void;
+  onSetFilters: (clipId: string, patch: Partial<ClipFilters>) => void;
 }) {
   if (!clip) {
     return (
@@ -71,6 +128,9 @@ export function ClipInspector({
   const speed = clipSpeed(clip);
   const sourceLen = clip.outFrame - clip.inFrame;
   const timelineLen = clipTimelineLength(clip);
+  const visual = clip.kind === 'video' || clip.kind === 'overlay';
+  const t = { ...NEUTRAL_TRANSFORM, ...clip.data?.transform };
+  const f = { ...NEUTRAL_FILTERS, ...clip.data?.filters };
 
   return (
     <div className="px-3 py-2.5 space-y-3 text-xs">
@@ -126,16 +186,58 @@ export function ClipInspector({
           icon={<ArrowLeftFromLine size={12} />}
           frames={clip.fadeInFrames ?? 0}
           fps={fps}
-          onSet={(f) => onSetFade(clip.id, 'in', f)}
+          onSet={(frames) => onSetFade(clip.id, 'in', frames)}
         />
         <FadeRow
           label="Fade out"
           icon={<ArrowRightFromLine size={12} />}
           frames={clip.fadeOutFrames ?? 0}
           fps={fps}
-          onSet={(f) => onSetFade(clip.id, 'out', f)}
+          onSet={(frames) => onSetFade(clip.id, 'out', frames)}
         />
       </div>
+
+      {visual && (
+        <>
+          <div className="space-y-1.5 border-t border-border/60 pt-2.5">
+            <div className="flex items-center gap-1.5 text-txt-tertiary">
+              <Move size={12} />
+              <span>Transform</span>
+              <button
+                onClick={() => onSetTransform(clip.id, NEUTRAL_TRANSFORM)}
+                className="ml-auto hover:text-txt-primary"
+                title="Reset transform"
+                aria-label="Reset transform"
+              >
+                <RotateCcw size={11} />
+              </button>
+            </div>
+            <RangeControl label="Scale" value={t.scale} min={0.1} max={4} step={0.05} fmt={(v) => `${v.toFixed(2)}×`} onCommit={(v) => onSetTransform(clip.id, { scale: v })} />
+            <RangeControl label="X" value={t.x} min={-1} max={1} step={0.01} fmt={pct} onCommit={(v) => onSetTransform(clip.id, { x: v })} />
+            <RangeControl label="Y" value={t.y} min={-1} max={1} step={0.01} fmt={pct} onCommit={(v) => onSetTransform(clip.id, { y: v })} />
+            <RangeControl label="Rotate" value={t.rotation} min={-180} max={180} step={1} fmt={(v) => `${Math.round(v)}°`} onCommit={(v) => onSetTransform(clip.id, { rotation: v })} />
+            <RangeControl label="Opacity" value={t.opacity} min={0} max={1} step={0.01} fmt={pct} onCommit={(v) => onSetTransform(clip.id, { opacity: v })} />
+          </div>
+
+          <div className="space-y-1.5 border-t border-border/60 pt-2.5">
+            <div className="flex items-center gap-1.5 text-txt-tertiary">
+              <Sliders size={12} />
+              <span>Filters</span>
+              <button
+                onClick={() => onSetFilters(clip.id, NEUTRAL_FILTERS)}
+                className="ml-auto hover:text-txt-primary"
+                title="Reset filters"
+                aria-label="Reset filters"
+              >
+                <RotateCcw size={11} />
+              </button>
+            </div>
+            <RangeControl label="Bright" value={f.brightness} min={0} max={2} step={0.05} fmt={pct} onCommit={(v) => onSetFilters(clip.id, { brightness: v })} />
+            <RangeControl label="Contrast" value={f.contrast} min={0} max={2} step={0.05} fmt={pct} onCommit={(v) => onSetFilters(clip.id, { contrast: v })} />
+            <RangeControl label="Sat" value={f.saturation} min={0} max={2} step={0.05} fmt={pct} onCommit={(v) => onSetFilters(clip.id, { saturation: v })} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

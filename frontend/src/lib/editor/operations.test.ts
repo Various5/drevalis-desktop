@@ -21,6 +21,8 @@ import {
   updateMarkerNote,
   setClipSpeed,
   setClipFade,
+  setClipTransform,
+  setClipFilters,
 } from './operations';
 
 /** Build a video track of back-to-back clips with the given timeline lengths. */
@@ -139,6 +141,20 @@ describe('fades', () => {
     expect(clipOpacityAt(c, 50)).toBe(1);
     expect(clipOpacityAt(c, 95)).toBeCloseTo(0.5, 2);
     expect(clipOpacityAt(c, 100)).toBe(0);
+  });
+});
+
+describe('transform + filters', () => {
+  it('setClipTransform merges patches, preserving other clip data', () => {
+    let t = setClipTransform(tl(videoTrack([30])), 'c0', { scale: 2 });
+    t = setClipTransform(t, 'c0', { x: 0.1 });
+    const c = get(t, 'c0');
+    expect(c.data?.transform).toEqual({ scale: 2, x: 0.1 });
+  });
+  it('setClipFilters merges patches', () => {
+    let t = setClipFilters(tl(videoTrack([30])), 'c0', { brightness: 1.2 });
+    t = setClipFilters(t, 'c0', { saturation: 0.5 });
+    expect(get(t, 'c0').data?.filters).toEqual({ brightness: 1.2, saturation: 0.5 });
   });
 });
 

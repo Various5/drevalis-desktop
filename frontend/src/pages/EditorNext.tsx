@@ -280,6 +280,8 @@ function EditorNext() {
             fps={store.timeline.fps}
             onSetSpeed={store.setClipSpeed}
             onSetFade={store.setClipFade}
+            onSetTransform={store.setClipTransform}
+            onSetFilters={store.setClipFilters}
           />
         </div>
 

@@ -42,6 +42,31 @@ export interface OverlayData {
   box?: [number, number, number, number];
 }
 
+/**
+ * Static per-clip geometry transform applied by the compositor. Keyframing
+ * arrives in the editing-model-depth PR; these are the constant values it will
+ * animate.
+ */
+export interface ClipTransform {
+  /** Uniform scale. 1 = native size. */
+  scale?: number;
+  /** Position offset as a fraction of frame width (+ = right). */
+  x?: number;
+  /** Position offset as a fraction of frame height (+ = down). */
+  y?: number;
+  /** Rotation in degrees, clockwise. */
+  rotation?: number;
+  /** Opacity 0..1, multiplied on top of the clip's fade opacity. */
+  opacity?: number;
+}
+
+/** Per-clip colour filters; map to canvas `ctx.filter`. 1 = unchanged. */
+export interface ClipFilters {
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+}
+
 /** Per-kind clip payload. Optional; absent for a plain video/audio cut. */
 export interface ClipData {
   /** Audio: constant gain in dB (applied on top of the envelope, if any). */
@@ -52,6 +77,10 @@ export interface ClipData {
   duckToVoice?: boolean;
   /** Overlay payload. */
   overlay?: OverlayData;
+  /** Visual: geometry transform (scale / position / rotation / opacity). */
+  transform?: ClipTransform;
+  /** Visual: colour filters. */
+  filters?: ClipFilters;
 }
 
 export interface Clip {

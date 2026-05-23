@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useMemo, useReducer } from 'react';
-import { type ProjectTimeline } from './timeline';
+import { type ProjectTimeline, type ClipTransform, type ClipFilters } from './timeline';
 import {
   type History,
   initHistory,
@@ -82,6 +82,8 @@ export interface EditorStore {
   slide: (clipId: string, delta: number) => void;
   setClipSpeed: (clipId: string, speed: number) => void;
   setClipFade: (clipId: string, edge: 'in' | 'out', frames: number) => void;
+  setClipTransform: (clipId: string, patch: Partial<ClipTransform>) => void;
+  setClipFilters: (clipId: string, patch: Partial<ClipFilters>) => void;
   setTrackFlag: (trackId: string, flag: 'locked' | 'muted' | 'solo', value: boolean) => void;
   addMarker: (frame: number, note?: string) => void;
   removeMarker: (id: string) => void;
@@ -131,6 +133,8 @@ export function useEditorStore(initial: ProjectTimeline): EditorStore {
       slide: (id, d) => apply((tl) => ops.slide(tl, id, d)),
       setClipSpeed: (id, speed) => apply((tl) => ops.setClipSpeed(tl, id, speed)),
       setClipFade: (id, edge, frames) => apply((tl) => ops.setClipFade(tl, id, edge, frames)),
+      setClipTransform: (id, patch) => apply((tl) => ops.setClipTransform(tl, id, patch)),
+      setClipFilters: (id, patch) => apply((tl) => ops.setClipFilters(tl, id, patch)),
       setTrackFlag: (trackId, flag, value) => apply((tl) => ops.setTrackFlag(tl, trackId, flag, value)),
       addMarker: (frame, note) => apply((tl) => ops.addMarker(tl, { id: crypto.randomUUID(), frame, note })),
       removeMarker: (id) => apply((tl) => ops.removeMarker(tl, id)),

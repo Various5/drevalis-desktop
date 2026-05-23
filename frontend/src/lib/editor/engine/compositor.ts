@@ -19,6 +19,8 @@ import {
   type ProjectTimeline,
   type TrackKind,
   type OverlayData,
+  type ClipTransform,
+  type ClipFilters,
   clipAtFrame,
   clipSpeed,
   clipOpacityAt,
@@ -37,12 +39,39 @@ export interface DrawCommand {
   /** Destination box [x, y, w, h], normalised 0..1 of the frame. */
   box: [number, number, number, number];
   opacity: number;
+  /** Rotation in degrees about the box centre (from the clip transform). */
+  rotation?: number;
+  /** CSS `ctx.filter` string from the clip's colour filters, if any. */
+  filter?: string;
 }
 
 const FULL_FRAME: [number, number, number, number] = [0, 0, 1, 1];
 
 function isVisualKind(kind: TrackKind): boolean {
   return kind === 'video' || kind === 'overlay';
+}
+
+/** Scale a normalised box about its centre and offset it (clip transform). */
+export function transformBox(
+  base: [number, number, number, number],
+  t: ClipTransform,
+): [number, number, number, number] {
+  const s = t.scale ?? 1;
+  const [bx, by, bw, bh] = base;
+  const cx = bx + bw / 2;
+  const cy = by + bh / 2;
+  const w = bw * s;
+  const h = bh * s;
+  return [cx - w / 2 + (t.x ?? 0), cy - h / 2 + (t.y ?? 0), w, h];
+}
+
+/** Build a `ctx.filter` string from colour filters; undefined when all neutral. */
+export function buildFilterString(f: ClipFilters): string | undefined {
+  const parts: string[] = [];
+  if (f.brightness != null && f.brightness !== 1) parts.push(`brightness(${f.brightness})`);
+  if (f.contrast != null && f.contrast !== 1) parts.push(`contrast(${f.contrast})`);
+  if (f.saturation != null && f.saturation !== 1) parts.push(`saturate(${f.saturation})`);
+  return parts.length ? parts.join(' ') : undefined;
 }
 
 /**
@@ -66,14 +95,20 @@ export function buildDrawList(timeline: ProjectTimeline, frame: number): DrawCom
     const sourceFrame =
       clip.inFrame + Math.round((frame - clip.startFrame) * clipSpeed(clip));
 
+    const transform = clip.data?.transform;
+    const filters = clip.data?.filters;
+    const baseBox = clip.data?.overlay?.box ?? FULL_FRAME;
+
     out.push({
       clipId: clip.id,
       kind: clip.kind,
       sourceId: clip.sourceId,
       sourceFrame,
       overlay: clip.data?.overlay,
-      box: clip.data?.overlay?.box ?? FULL_FRAME,
-      opacity: clipOpacityAt(clip, frame),
+      box: transform ? transformBox(baseBox, transform) : baseBox,
+      opacity: clipOpacityAt(clip, frame) * (transform?.opacity ?? 1),
+      rotation: transform?.rotation,
+      filter: filters ? buildFilterString(filters) : undefined,
     });
   }
 
@@ -103,6 +138,14 @@ export function drawToCanvas(
     const h = nh * height;
     ctx.save();
     ctx.globalAlpha = cmd.opacity;
+    if (cmd.filter) ctx.filter = cmd.filter;
+    if (cmd.rotation) {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate((cmd.rotation * Math.PI) / 180);
+      ctx.translate(-cx, -cy);
+    }
 
     if (cmd.overlay?.overlay === 'text') {
       ctx.fillStyle = cmd.overlay.color ?? '#ffffff';

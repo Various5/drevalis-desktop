@@ -15,6 +15,8 @@ import {
   type Track,
   type Clip,
   type Marker,
+  type ClipTransform,
+  type ClipFilters,
   clipTimelineLength,
   clipSpeed,
   clipAtFrame,
@@ -220,6 +222,30 @@ export function setClipFade(
     const f = Math.max(0, Math.min(Math.round(frames), clipTimelineLength(c)));
     return edge === 'in' ? { ...c, fadeInFrames: f } : { ...c, fadeOutFrames: f };
   });
+}
+
+/** Merge a partial geometry transform into a clip (scale/position/rotation/opacity). */
+export function setClipTransform(
+  tl: ProjectTimeline,
+  clipId: string,
+  patch: Partial<ClipTransform>,
+): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => ({
+    ...c,
+    data: { ...c.data, transform: { ...c.data?.transform, ...patch } },
+  }));
+}
+
+/** Merge a partial colour-filter set into a clip (brightness/contrast/saturation). */
+export function setClipFilters(
+  tl: ProjectTimeline,
+  clipId: string,
+  patch: Partial<ClipFilters>,
+): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => ({
+    ...c,
+    data: { ...c.data, filters: { ...c.data?.filters, ...patch } },
+  }));
 }
 
 // ── NLE edits: ripple / roll / slip / slide ─────────────────────────────────-
