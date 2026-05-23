@@ -42,11 +42,8 @@ describe('buildDrawList', () => {
     expect(buildDrawList(t, 10).map((d) => d.clipId)).toEqual(['a', 'b']);
   });
 
-  it('skips audio and caption tracks (no pixels)', () => {
-    const t = tl([
-      track('a1', 'audio', [clip({ id: 'a', trackId: 'a1', kind: 'audio' })]),
-      track('c1', 'caption', [clip({ id: 'c', trackId: 'c1', kind: 'caption' })]),
-    ]);
+  it('skips audio tracks (no pixels)', () => {
+    const t = tl([track('a1', 'audio', [clip({ id: 'a', trackId: 'a1', kind: 'audio' })])]);
     expect(buildDrawList(t, 10)).toEqual([]);
   });
 
@@ -102,6 +99,15 @@ describe('buildDrawList', () => {
     const cmd = buildDrawList(t, 10)[0]!;
     expect(cmd.rotation).toBe(90);
     expect(cmd.filter).toBe('brightness(1.2) saturate(0)');
+  });
+
+  it('emits burned-in caption text for caption clips', () => {
+    const t = tl([
+      track('c1', 'caption', [clip({ id: 'cap', trackId: 'c1', kind: 'caption', data: { caption: { text: 'Hi there' } } })]),
+    ]);
+    const list = buildDrawList(t, 10);
+    expect(list).toHaveLength(1);
+    expect(list[0]!.caption).toBe('Hi there');
   });
 
   it('maps timeline frame to source frame, accounting for speed', () => {

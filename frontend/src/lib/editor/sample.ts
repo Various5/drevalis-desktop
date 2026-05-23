@@ -45,6 +45,22 @@ export function sampleTimeline(fps = 30): ProjectTimeline {
     data: { gainDb: 0 },
   };
 
+  const captions: Clip[] = [
+    { text: 'Welcome to the show', at: 0 },
+    { text: 'Here is the big idea', at: 2 },
+    { text: 'And that is a wrap', at: 4 },
+  ].map(({ text, at }, i) => ({
+    id: `cap${i}`,
+    trackId: 'C1',
+    kind: 'caption',
+    sourceId: null,
+    inFrame: 0,
+    outFrame: 2 * shot,
+    startFrame: at * shot,
+    endFrame: (at + 2) * shot,
+    data: { caption: { text } },
+  }));
+
   const mk = (id: string, kind: TrackKind, clips: Clip[]): Track => ({
     id,
     kind,
@@ -57,6 +73,16 @@ export function sampleTimeline(fps = 30): ProjectTimeline {
 
   return {
     fps,
-    tracks: [mk('V1', 'video', video), mk('A1', 'audio', [voice]), mk('O1', 'overlay', overlays)],
+    tracks: [
+      mk('V1', 'video', video),
+      mk('A1', 'audio', [voice]),
+      mk('C1', 'caption', captions),
+      mk('O1', 'overlay', overlays),
+    ],
+    scenes: [
+      { id: 'sc0', startFrame: 0, name: 'Cold open' },
+      { id: 'sc1', startFrame: 2 * shot, name: 'Main point' },
+      { id: 'sc2', startFrame: 4 * shot, name: 'Outro' },
+    ],
   };
 }

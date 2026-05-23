@@ -347,6 +347,10 @@ export function TimelineView(props: TimelineViewProps) {
             <div key={m.id} className="absolute top-0 bottom-0 w-px bg-amber-400/30 pointer-events-none" style={{ left: m.frame * pxPerFrame }} />
           ))}
 
+          {(timeline.scenes ?? []).map((s) => (
+            <div key={s.id} className="absolute top-0 bottom-0 w-px bg-violet-400/40 pointer-events-none" style={{ left: s.startFrame * pxPerFrame }} title={s.name} />
+          ))}
+
           {inPoint != null && outPoint != null && outPoint > inPoint && (
             <div className="absolute top-0 bottom-0 bg-amber-400/10 pointer-events-none" style={{ left: inPoint * pxPerFrame, width: (outPoint - inPoint) * pxPerFrame }} />
           )}

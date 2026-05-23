@@ -13,6 +13,8 @@ import { TimelineView, type EditorTool } from '@/components/editor/TimelineView'
 import { MarkerList } from '@/components/editor/MarkerList';
 import { MinimapView } from '@/components/editor/MinimapView';
 import { ClipInspector } from '@/components/editor/ClipInspector';
+import { CaptionsPanel } from '@/components/editor/CaptionsPanel';
+import { ScenesPanel } from '@/components/editor/ScenesPanel';
 
 /**
  * EditorNext — the rebuilt NLE behind a flagged dev route (`/editor-next`),
@@ -175,6 +177,16 @@ function EditorNext() {
   const selectedClip = store.selectedClipId
     ? findClip(store.timeline, store.selectedClipId)?.clip ?? null
     : null;
+  const captions = useMemo(
+    () =>
+      store.timeline.tracks
+        .filter((t) => t.kind === 'caption')
+        .flatMap((t) => t.clips)
+        .map((c) => ({ id: c.id, startFrame: c.startFrame, text: c.data?.caption?.text ?? '' }))
+        .sort((a, b) => a.startFrame - b.startFrame),
+    [store.timeline],
+  );
+  const scenes = store.timeline.scenes ?? [];
 
   return (
     <div className="p-4 space-y-3">
@@ -285,7 +297,7 @@ function EditorNext() {
           />
         </div>
 
-        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[18rem] max-w-md">
+        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[16rem]">
           <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
             Markers
           </div>
@@ -295,6 +307,34 @@ function EditorNext() {
             onSeek={seek}
             onRemove={store.removeMarker}
             onEditNote={store.updateMarkerNote}
+          />
+        </div>
+
+        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[16rem]">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            Captions
+          </div>
+          <CaptionsPanel
+            captions={captions}
+            fps={store.timeline.fps}
+            onSeek={seek}
+            onEdit={store.setCaptionText}
+            onRemove={store.removeClip}
+            onAdd={() => store.addCaption(store.frame, Math.round(2 * store.timeline.fps))}
+          />
+        </div>
+
+        <div className="border border-border rounded-lg bg-bg-surface flex-1 min-w-[16rem]">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            Scenes
+          </div>
+          <ScenesPanel
+            scenes={scenes}
+            fps={store.timeline.fps}
+            onSeek={seek}
+            onRename={store.renameScene}
+            onRemove={store.removeScene}
+            onAdd={() => store.addScene(store.frame, `Scene ${scenes.length + 1}`)}
           />
         </div>
       </div>

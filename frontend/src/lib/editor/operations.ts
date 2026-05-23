@@ -15,6 +15,7 @@ import {
   type Track,
   type Clip,
   type Marker,
+  type Scene,
   type ClipTransform,
   type ClipFilters,
   clipTimelineLength,
@@ -96,6 +97,20 @@ export function updateMarkerNote(tl: ProjectTimeline, id: string, note: string):
     ...tl,
     markers: (tl.markers ?? []).map((m) => (m.id === id ? { ...m, note } : m)),
   };
+}
+
+// ── Scenes ─────────────────────────────────────────────────────────────────-
+
+export function addScene(tl: ProjectTimeline, scene: Scene): ProjectTimeline {
+  return { ...tl, scenes: [...(tl.scenes ?? []), scene].sort((a, b) => a.startFrame - b.startFrame) };
+}
+
+export function removeScene(tl: ProjectTimeline, id: string): ProjectTimeline {
+  return { ...tl, scenes: (tl.scenes ?? []).filter((s) => s.id !== id) };
+}
+
+export function renameScene(tl: ProjectTimeline, id: string, name: string): ProjectTimeline {
+  return { ...tl, scenes: (tl.scenes ?? []).map((s) => (s.id === id ? { ...s, name } : s)) };
 }
 
 // ── Clip operations ───────────────────────────────────────────────────────--
@@ -222,6 +237,11 @@ export function setClipFade(
     const f = Math.max(0, Math.min(Math.round(frames), clipTimelineLength(c)));
     return edge === 'in' ? { ...c, fadeInFrames: f } : { ...c, fadeOutFrames: f };
   });
+}
+
+/** Set a caption clip's text. */
+export function setCaptionText(tl: ProjectTimeline, clipId: string, text: string): ProjectTimeline {
+  return mapOneClip(tl, clipId, (c) => ({ ...c, data: { ...c.data, caption: { text } } }));
 }
 
 /** Merge a partial geometry transform into a clip (scale/position/rotation/opacity). */

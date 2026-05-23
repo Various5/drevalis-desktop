@@ -88,6 +88,11 @@ export interface EditorStore {
   addMarker: (frame: number, note?: string) => void;
   removeMarker: (id: string) => void;
   updateMarkerNote: (id: string, note: string) => void;
+  setCaptionText: (clipId: string, text: string) => void;
+  addCaption: (frame: number, durationFrames: number) => void;
+  addScene: (startFrame: number, name: string) => void;
+  removeScene: (id: string) => void;
+  renameScene: (id: string, name: string) => void;
 }
 
 export function useEditorStore(initial: ProjectTimeline): EditorStore {
@@ -139,6 +144,26 @@ export function useEditorStore(initial: ProjectTimeline): EditorStore {
       addMarker: (frame, note) => apply((tl) => ops.addMarker(tl, { id: crypto.randomUUID(), frame, note })),
       removeMarker: (id) => apply((tl) => ops.removeMarker(tl, id)),
       updateMarkerNote: (id, note) => apply((tl) => ops.updateMarkerNote(tl, id, note)),
+      setCaptionText: (id, text) => apply((tl) => ops.setCaptionText(tl, id, text)),
+      addCaption: (frame, dur) =>
+        apply((tl) => {
+          const track = tl.tracks.find((t) => t.kind === 'caption');
+          if (!track) return tl;
+          return ops.addClip(tl, {
+            id: crypto.randomUUID(),
+            trackId: track.id,
+            kind: 'caption',
+            sourceId: null,
+            inFrame: 0,
+            outFrame: dur,
+            startFrame: frame,
+            endFrame: frame + dur,
+            data: { caption: { text: 'New caption' } },
+          });
+        }),
+      addScene: (startFrame, name) => apply((tl) => ops.addScene(tl, { id: crypto.randomUUID(), startFrame, name })),
+      removeScene: (id) => apply((tl) => ops.removeScene(tl, id)),
+      renameScene: (id, name) => apply((tl) => ops.renameScene(tl, id, name)),
     }),
     [timeline, state.selectedClipId, state.frame, state.history, apply],
   );

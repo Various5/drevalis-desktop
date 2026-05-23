@@ -32,6 +32,11 @@ export interface EnvelopePoint {
   gainDb: number;
 }
 
+/** Caption payload for `kind: 'caption'` clips — burned-in subtitle text. */
+export interface CaptionData {
+  text: string;
+}
+
 /** Overlay payload for `kind: 'overlay'` clips (text / shape / image). */
 export interface OverlayData {
   overlay: 'text' | 'shape' | 'image';
@@ -77,6 +82,8 @@ export interface ClipData {
   duckToVoice?: boolean;
   /** Overlay payload. */
   overlay?: OverlayData;
+  /** Caption payload (burned-in subtitle text). */
+  caption?: CaptionData;
   /** Visual: geometry transform (scale / position / rotation / opacity). */
   transform?: ClipTransform;
   /** Visual: colour filters. */
@@ -123,6 +130,14 @@ export interface Marker {
   note?: string;
 }
 
+/** A named chapter/segment that begins at `startFrame` and runs to the next
+ *  scene (or the end of the timeline). Used by the scenes navigation panel. */
+export interface Scene {
+  id: string;
+  startFrame: number;
+  name: string;
+}
+
 export interface ProjectTimeline {
   /** Frames per second — the timeline clock. All positions are in frames. */
   fps: number;
@@ -130,6 +145,8 @@ export interface ProjectTimeline {
   tracks: Track[];
   /** Points of interest, kept sorted by frame. Optional so older payloads parse. */
   markers?: Marker[];
+  /** Named chapters/segments, kept sorted by `startFrame`. Optional. */
+  scenes?: Scene[];
 }
 
 // ── Pure helpers ───────────────────────────────────────────────────────────

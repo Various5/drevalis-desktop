@@ -36,6 +36,8 @@ export interface DrawCommand {
   sourceFrame: number;
   /** Overlay payload for `kind: 'overlay'`. */
   overlay?: OverlayData;
+  /** Burned-in caption text for `kind: 'caption'`. */
+  caption?: string;
   /** Destination box [x, y, w, h], normalised 0..1 of the frame. */
   box: [number, number, number, number];
   opacity: number;
@@ -48,7 +50,7 @@ export interface DrawCommand {
 const FULL_FRAME: [number, number, number, number] = [0, 0, 1, 1];
 
 function isVisualKind(kind: TrackKind): boolean {
-  return kind === 'video' || kind === 'overlay';
+  return kind === 'video' || kind === 'overlay' || kind === 'caption';
 }
 
 /** Scale a normalised box about its centre and offset it (clip transform). */
@@ -105,6 +107,7 @@ export function buildDrawList(timeline: ProjectTimeline, frame: number): DrawCom
       sourceId: clip.sourceId,
       sourceFrame,
       overlay: clip.data?.overlay,
+      caption: clip.kind === 'caption' ? clip.data?.caption?.text : undefined,
       box: transform ? transformBox(baseBox, transform) : baseBox,
       opacity: clipOpacityAt(clip, frame) * (transform?.opacity ?? 1),
       rotation: transform?.rotation,
@@ -147,7 +150,22 @@ export function drawToCanvas(
       ctx.translate(-cx, -cy);
     }
 
-    if (cmd.overlay?.overlay === 'text') {
+    if (cmd.caption != null) {
+      // Burned-in caption: centred near the bottom, white with a dark outline
+      // for legibility over any footage.
+      const fontPx = Math.round(height * 0.05);
+      ctx.font = `600 ${fontPx}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(2, fontPx * 0.14);
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillStyle = '#ffffff';
+      const cx = width / 2;
+      const cy = height * 0.92;
+      ctx.strokeText(cmd.caption, cx, cy);
+      ctx.fillText(cmd.caption, cx, cy);
+    } else if (cmd.overlay?.overlay === 'text') {
       ctx.fillStyle = cmd.overlay.color ?? '#ffffff';
       ctx.font = `${(cmd.overlay.fontSize ?? 48) * (height / 1080)}px sans-serif`;
       ctx.textBaseline = 'top';

@@ -23,6 +23,10 @@ import {
   setClipFade,
   setClipTransform,
   setClipFilters,
+  setCaptionText,
+  addScene,
+  removeScene,
+  renameScene,
 } from './operations';
 
 /** Build a video track of back-to-back clips with the given timeline lengths. */
@@ -155,6 +159,26 @@ describe('transform + filters', () => {
     let t = setClipFilters(tl(videoTrack([30])), 'c0', { brightness: 1.2 });
     t = setClipFilters(t, 'c0', { saturation: 0.5 });
     expect(get(t, 'c0').data?.filters).toEqual({ brightness: 1.2, saturation: 0.5 });
+  });
+});
+
+describe('captions', () => {
+  it('setCaptionText sets the caption payload', () => {
+    const c = get(setCaptionText(tl(videoTrack([30])), 'c0', 'Hello'), 'c0');
+    expect(c.data?.caption).toEqual({ text: 'Hello' });
+  });
+});
+
+describe('scenes', () => {
+  it('adds sorted by frame, renames, and removes', () => {
+    const base: ProjectTimeline = { fps: 30, tracks: [] };
+    let t = addScene(base, { id: 's2', startFrame: 60, name: 'B' });
+    t = addScene(t, { id: 's1', startFrame: 10, name: 'A' });
+    expect(t.scenes!.map((s) => s.id)).toEqual(['s1', 's2']);
+    t = renameScene(t, 's1', 'Intro');
+    expect(t.scenes!.find((s) => s.id === 's1')!.name).toBe('Intro');
+    t = removeScene(t, 's2');
+    expect(t.scenes!.map((s) => s.id)).toEqual(['s1']);
   });
 });
 
