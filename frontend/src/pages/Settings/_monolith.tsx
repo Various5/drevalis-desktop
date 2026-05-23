@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { isTauri } from '@/lib/tauri';
 import {
   Server,
@@ -158,7 +159,32 @@ function Settings() {
     (visibleSections.find((s) => s.id === 'health')?.id as SectionId | undefined) ??
     (visibleSections[0]?.id as SectionId | undefined) ??
     'health';
-  const [activeSection, setActiveSection] = useState<SectionId>(defaultSection);
+  // Resolve the section from the URL (/settings/:section) so sidebar
+  // Maintenance shortcuts + deep links open the right panel; bare /settings
+  // or an unknown/hidden section falls back to the default.
+  const navigate = useNavigate();
+  const { section: urlSection } = useParams<{ section?: string }>();
+  const sectionFromUrl = visibleSections.find((s) => s.id === urlSection)?.id as
+    | SectionId
+    | undefined;
+  const [activeSection, setActiveSection] = useState<SectionId>(
+    sectionFromUrl ?? defaultSection,
+  );
+
+  // Sync the panel when the URL section changes while already on Settings
+  // (e.g. clicking a different Maintenance sidebar item).
+  useEffect(() => {
+    if (sectionFromUrl && sectionFromUrl !== activeSection) {
+      setActiveSection(sectionFromUrl);
+    }
+  }, [sectionFromUrl, activeSection]);
+
+  // Selecting a section in the rail also updates the URL, so the panel is
+  // deep-linkable and the browser back button works.
+  const selectSection = (id: SectionId): void => {
+    setActiveSection(id);
+    navigate(`/settings/${id}`, { replace: true });
+  };
 
   return (
     <div>
@@ -179,7 +205,7 @@ function Settings() {
               return (
                 <button
                   key={section.id}
-                  onClick={() => setActiveSection(section.id)}
+                  onClick={() => selectSection(section.id)}
                   className={[
                     'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-fast text-left whitespace-nowrap shrink-0 snap-start',
                     isActive
@@ -205,7 +231,7 @@ function Settings() {
                   return (
                     <button
                       key={section.id}
-                      onClick={() => setActiveSection(section.id)}
+                      onClick={() => selectSection(section.id)}
                       className={[
                         'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-fast text-left w-full',
                         isActive
@@ -238,7 +264,7 @@ function Settings() {
           {activeSection === 'storage' && <StorageSection />}
           {activeSection === 'ffmpeg' && <FFmpegSection />}
           {activeSection === 'social' && <SocialSection />}
-          {activeSection === 'apikeys' && <ApiKeysSection onNavigateToApiKeys={() => setActiveSection('apikeys')} />}
+          {activeSection === 'apikeys' && <ApiKeysSection onNavigateToApiKeys={() => selectSection('apikeys')} />}
           {activeSection === 'diagnostics' && <DiagnosticsSection />}
           {activeSection === 'network' && <NetworkSection />}
           {activeSection === 'two-factor' && <TwoFactorSection />}

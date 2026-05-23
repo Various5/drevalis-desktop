@@ -159,6 +159,7 @@ function App() {
         <Route path="/logs" element={<Logs />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/:section" element={<Settings />} />
         <Route path="/help" element={<Help />} />
         <Route path="/youtube" element={<YouTube />} />
         <Route path="/youtube/library" element={<YouTubeLibrary />} />

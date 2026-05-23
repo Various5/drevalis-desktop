@@ -23,17 +23,23 @@ import {
   FolderOpen,
   Users,
   LayoutTemplate,
+  HeartPulse,
+  HardDrive,
+  Archive,
+  ArrowUpCircle,
+  FileVideo,
+  Stethoscope,
+  Wrench,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Nav items — ordered by workflow frequency
 // ---------------------------------------------------------------------------
 
-// Phase 1 IA: Create / Publish / Monitor / (Bottom). The Maintenance group
-// (Health/Storage/Backup/Updates/FFmpeg/Diagnostics) and the unified
-// Channels hub land in later Phase-1 chunks since they need new routes;
-// until then Settings stays a single Bottom entry and the connected
-// platforms render conditionally under Publish.
+// Phase 1 IA: Create / Publish / Monitor / Maintenance / (Bottom).
+// Maintenance items deep-link into the Settings page with the matching
+// panel pre-selected (the panels still live in Settings; these are
+// top-level shortcuts). See docs/decisions/001-channels-hub.md.
 
 // Create — the authoring surface: dashboard + everything you make.
 const NAV_CREATE = [
@@ -70,9 +76,23 @@ const NAV_MONITOR = isTauri()
   ? NAV_MONITOR_FULL.filter((item) => item.to !== '/cloud-gpu')
   : NAV_MONITOR_FULL;
 
+// Maintenance — operational config. Each item deep-links into Settings with
+// the matching panel pre-selected (/settings/<section>); the panels still
+// live in Settings, these are top-level shortcuts.
+const NAV_MAINTENANCE = [
+  { to: '/settings/health', icon: HeartPulse, label: 'Health' },
+  { to: '/settings/storage', icon: HardDrive, label: 'Storage' },
+  { to: '/settings/backup', icon: Archive, label: 'Backup' },
+  { to: '/settings/updates', icon: ArrowUpCircle, label: 'Updates' },
+  { to: '/settings/ffmpeg', icon: FileVideo, label: 'FFmpeg' },
+  { to: '/settings/diagnostics', icon: Stethoscope, label: 'Diagnostics' },
+] as const;
+
 // Bottom — config + help, pinned below a divider.
 const NAV_BOTTOM = [
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  // ``end`` so /settings doesn't stay highlighted on /settings/<section>
+  // (the Maintenance shortcuts own those).
+  { to: '/settings', icon: Settings, label: 'Settings', end: true },
   { to: '/help', icon: HelpCircle, label: 'Help' },
 ] as const;
 
@@ -103,11 +123,11 @@ function SectionHeader({ label, icon: Icon, collapsed }: { label: string; icon: 
   );
 }
 
-function SidebarLink({ item, collapsed }: { item: { to: string; icon: typeof LayoutDashboard; label: string }; collapsed: boolean }) {
+function SidebarLink({ item, collapsed }: { item: { to: string; icon: typeof LayoutDashboard; label: string; end?: boolean }; collapsed: boolean }) {
   return (
     <NavLink
       to={item.to}
-      end={item.to === '/'}
+      end={item.to === '/' || item.end === true}
       className={({ isActive }) =>
         [
           'relative flex items-center gap-2.5 rounded-md transition-all duration-fast',
@@ -225,6 +245,12 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Monitor */}
         <SectionHeader label="Monitor" icon={Activity} collapsed={collapsed} />
         {NAV_MONITOR.map((item) => (
+          <SidebarLink key={item.to} item={item} collapsed={collapsed} />
+        ))}
+
+        {/* Maintenance — deep-links into Settings panels */}
+        <SectionHeader label="Maintenance" icon={Wrench} collapsed={collapsed} />
+        {NAV_MAINTENANCE.map((item) => (
           <SidebarLink key={item.to} item={item} collapsed={collapsed} />
         ))}
 
