@@ -50,3 +50,24 @@ export function canUndo<T>(h: History<T>): boolean {
 export function canRedo<T>(h: History<T>): boolean {
   return h.future.length > 0;
 }
+
+/** All revisions oldest→newest: past, then present, then future. */
+export function revisions<T>(h: History<T>): T[] {
+  return [...h.past, h.present, ...h.future];
+}
+
+/** Index of the current present within `revisions(h)`. */
+export function presentIndex<T>(h: History<T>): number {
+  return h.past.length;
+}
+
+/**
+ * Move the present to revision `index` (clamped) without discarding anything —
+ * equivalent to repeated undo/redo, so the full stack is preserved and a
+ * further edit truncates the future as usual.
+ */
+export function jump<T>(h: History<T>, index: number): History<T> {
+  const all = revisions(h);
+  const i = Math.max(0, Math.min(Math.round(index), all.length - 1));
+  return { past: all.slice(0, i), present: all[i]!, future: all.slice(i + 1) };
+}

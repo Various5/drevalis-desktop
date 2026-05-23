@@ -16,6 +16,7 @@ import { ClipInspector } from '@/components/editor/ClipInspector';
 import { CaptionsPanel } from '@/components/editor/CaptionsPanel';
 import { ScenesPanel } from '@/components/editor/ScenesPanel';
 import { RenderPanel } from '@/components/editor/RenderPanel';
+import { HistoryPanel } from '@/components/editor/HistoryPanel';
 import { useRenderQueue } from '@/lib/editor/useRenderQueue';
 
 /**
@@ -346,6 +347,13 @@ function EditorNext() {
             Render
           </div>
           <RenderPanel timeline={store.timeline} inPoint={inPoint} outPoint={outPoint} queue={renderQueue} />
+        </div>
+
+        <div className="border border-border rounded-lg bg-bg-surface w-60">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
+            History
+          </div>
+          <HistoryPanel count={store.historyCount} index={store.historyIndex} onJump={store.jumpTo} />
         </div>
       </div>
     </div>

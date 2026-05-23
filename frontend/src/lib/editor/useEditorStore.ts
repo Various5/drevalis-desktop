@@ -15,8 +15,11 @@ import {
   commit,
   undo as undoHistory,
   redo as redoHistory,
+  jump as jumpHistory,
   canUndo,
   canRedo,
+  presentIndex,
+  revisions,
 } from './history';
 import * as ops from './operations';
 
@@ -30,6 +33,7 @@ type Action =
   | { type: 'commit'; next: ProjectTimeline }
   | { type: 'undo' }
   | { type: 'redo' }
+  | { type: 'jump'; index: number }
   | { type: 'select'; clipId: string | null }
   | { type: 'setFrame'; frame: number }
   | { type: 'load'; timeline: ProjectTimeline };
@@ -42,6 +46,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, history: undoHistory(state.history) };
     case 'redo':
       return { ...state, history: redoHistory(state.history) };
+    case 'jump':
+      return { ...state, history: jumpHistory(state.history, action.index) };
     case 'select':
       return { ...state, selectedClipId: action.clipId };
     case 'setFrame':
@@ -59,10 +65,15 @@ export interface EditorStore {
   frame: number;
   canUndo: boolean;
   canRedo: boolean;
+  /** Number of revisions in the history stack (past + present + future). */
+  historyCount: number;
+  /** Index of the current revision within that stack. */
+  historyIndex: number;
 
   // history
   undo: () => void;
   redo: () => void;
+  jumpTo: (index: number) => void;
   load: (timeline: ProjectTimeline) => void;
 
   // transient UI
@@ -119,9 +130,12 @@ export function useEditorStore(initial: ProjectTimeline): EditorStore {
       frame: state.frame,
       canUndo: canUndo(state.history),
       canRedo: canRedo(state.history),
+      historyCount: revisions(state.history).length,
+      historyIndex: presentIndex(state.history),
 
       undo: () => dispatch({ type: 'undo' }),
       redo: () => dispatch({ type: 'redo' }),
+      jumpTo: (index) => dispatch({ type: 'jump', index }),
       load: (tl) => dispatch({ type: 'load', timeline: tl }),
       select: (clipId) => dispatch({ type: 'select', clipId }),
       setFrame: (frame) => dispatch({ type: 'setFrame', frame }),

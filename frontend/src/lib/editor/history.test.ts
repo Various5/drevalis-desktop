@@ -6,6 +6,9 @@ import {
   redo,
   canUndo,
   canRedo,
+  jump,
+  revisions,
+  presentIndex,
   HISTORY_CAP,
 } from './history';
 
@@ -54,6 +57,27 @@ describe('history', () => {
     const h = initHistory('a');
     expect(undo(h)).toBe(h);
     expect(redo(h)).toBe(h);
+  });
+
+  it('jumps to any revision, preserving the full stack', () => {
+    let h = initHistory(0);
+    h = commit(h, 1);
+    h = commit(h, 2);
+    h = commit(h, 3); // revisions [0,1,2,3], present index 3
+    const back = jump(h, 1);
+    expect(back.present).toBe(1);
+    expect(revisions(back)).toEqual([0, 1, 2, 3]);
+    expect(presentIndex(back)).toBe(1);
+    // a fresh commit from there truncates the future, as with undo
+    expect(commit(back, 9).future).toEqual([]);
+  });
+
+  it('clamps jump to the valid range', () => {
+    let h = initHistory(0);
+    h = commit(h, 1);
+    h = commit(h, 2);
+    expect(jump(h, -5).present).toBe(0);
+    expect(jump(h, 99).present).toBe(2);
   });
 
   it('caps the past at HISTORY_CAP', () => {
