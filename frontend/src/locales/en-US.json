@@ -1,0 +1,14 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "restore": "Restore",
+    "skipToContent": "Skip to content",
+    "loading": "Loading…"
+  },
+  "settings": {
+    "language": "Language",
+    "languageHint": "Interface language. Detected from your OS on first run; more of the app is translated over time."
+  }
+}

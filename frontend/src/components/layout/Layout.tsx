@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileNav } from './MobileNav';
@@ -51,6 +52,7 @@ function Layout() {
   const { pathname } = useLocation();
   const { demoMode } = useAuthMode();
   const { activityDock } = useTheme();
+  const { t } = useTranslation();
   // Phase 3.4: active-jobs count comes from the WebSocket directly.
   // The previous setInterval against ``jobs.active`` polled every 10s
   // even on idle; the WS already streams every status change in
@@ -135,7 +137,7 @@ function Layout() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-txt-on-accent focus:shadow-glass"
       >
-        Skip to content
+        {t('common.skipToContent')}
       </a>
       <DemoBanner />
       {/* Sidebar — hidden on mobile, visible md+ */}

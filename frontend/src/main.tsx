@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { initTelemetry } from './lib/telemetry';
 import { installTauriBridges } from './lib/tauri';
+import './lib/i18n'; // initialise i18next (detects OS locale) before first render
 import './styles/globals.css';
 
 // Route external-link clicks through the Tauri opener plugin when

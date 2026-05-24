@@ -19,8 +19,11 @@ import {
   PanelRight,
   Sparkles,
   Check,
+  Languages,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
+import { SUPPORTED_LOCALES } from '@/lib/i18n';
 import {
   useTheme,
   THEME_PRESETS,
@@ -160,7 +163,11 @@ function PresetCard({
 export function AppearanceSection() {
   const { mode, toggleMode, themeId, setThemeId, activityDock, setActivityDock } =
     useTheme();
+  const { t, i18n } = useTranslation();
   const isLight = mode === 'light';
+  const currentLocale =
+    SUPPORTED_LOCALES.find((l) => l.code === (i18n.resolvedLanguage ?? i18n.language))?.code ??
+    'en-US';
 
   return (
     <div className="space-y-4">
@@ -172,6 +179,31 @@ export function AppearanceSection() {
           are independent choices.
         </p>
       </div>
+
+      {/* ── Language (Phase 5 i18n) ────────────────────────────── */}
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h4 className="text-sm font-semibold text-txt-primary flex items-center gap-1.5">
+              <Languages size={14} />
+              {t('settings.language')}
+            </h4>
+            <p className="text-xs text-txt-secondary mt-1">{t('settings.languageHint')}</p>
+          </div>
+          <select
+            value={currentLocale}
+            onChange={(e) => void i18n.changeLanguage(e.target.value)}
+            aria-label={t('settings.language')}
+            className="h-9 rounded-md border border-border bg-bg-elevated px-3 text-sm text-txt-primary outline-none focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            {SUPPORTED_LOCALES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Card>
 
       {/* ── Color mode ─────────────────────────────────────────── */}
       <Card className="p-5">

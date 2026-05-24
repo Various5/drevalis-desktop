@@ -1,0 +1,14 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "restore": "Wiederherstellen",
+    "skipToContent": "Zum Inhalt springen",
+    "loading": "Wird geladen…"
+  },
+  "settings": {
+    "language": "Sprache",
+    "languageHint": "Sprache der Benutzeroberfläche. Beim ersten Start vom Betriebssystem erkannt; mit der Zeit wird mehr übersetzt."
+  }
+}
