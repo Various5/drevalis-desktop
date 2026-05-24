@@ -33,6 +33,9 @@ export interface RouteMeta {
   icon?: string;
   /** Hidden from sidebars / palette (login, editor, 404). */
   hidden?: boolean;
+  /** The page renders its own content-header H1, so the global Header
+   *  suppresses its banner title here (no duplicate H1 — Phase 3). */
+  ownTitle?: boolean;
 }
 
 export const ROUTES: Record<string, RouteMeta> = {
@@ -53,6 +56,7 @@ export const ROUTES: Record<string, RouteMeta> = {
     path: '/series/:seriesId',
     title: 'Series Detail',
     hidden: true,
+    ownTitle: true,
   },
   '/episodes': {
     path: '/episodes',
@@ -65,11 +69,13 @@ export const ROUTES: Record<string, RouteMeta> = {
     path: '/episodes/:episodeId',
     title: 'Episode Detail',
     hidden: true,
+    ownTitle: true,
   },
   '/episodes/:episodeId/shot-list': {
     path: '/episodes/:episodeId/shot-list',
     title: 'Shot List',
     hidden: true,
+    ownTitle: true,
   },
   '/episodes/:episodeId/edit': {
     path: '/episodes/:episodeId/edit',
@@ -118,6 +124,7 @@ export const ROUTES: Record<string, RouteMeta> = {
     navLabel: 'Calendar',
     navGroup: 'publish',
     icon: 'Calendar',
+    ownTitle: true,
   },
   '/channels': {
     path: '/channels',
@@ -149,6 +156,7 @@ export const ROUTES: Record<string, RouteMeta> = {
     path: '/social/:platform',
     title: 'Social',
     hidden: true,
+    ownTitle: true,
   },
   '/jobs': {
     path: '/jobs',
@@ -191,6 +199,7 @@ export const ROUTES: Record<string, RouteMeta> = {
     navLabel: 'Help',
     navGroup: 'system',
     icon: 'HelpCircle',
+    ownTitle: true,
   },
   '/login': {
     path: '/login',
@@ -272,6 +281,14 @@ export function getRouteTitle(pathname: string): string {
   }
   const meta = getRouteMeta(pathname);
   return meta?.title ?? APP_NAME;
+}
+
+/**
+ * Whether the route's page renders its own content-header H1, so the global
+ * Header should NOT render its banner title (avoids duplicate H1s — Phase 3).
+ */
+export function routeOwnsTitle(pathname: string): boolean {
+  return getRouteMeta(pathname)?.ownTitle ?? false;
 }
 
 /**

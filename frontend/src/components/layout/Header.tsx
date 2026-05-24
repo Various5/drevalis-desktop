@@ -4,7 +4,7 @@ import { ChevronDown, LogOut, User as UserIcon, Search, Command } from 'lucide-r
 import { useAuth } from '@/lib/useAuth';
 import { auth } from '@/lib/api';
 import { useCommandPalette } from '@/components/layout/Layout';
-import { getRouteTitle } from '@/routes/routeMeta';
+import { getRouteTitle, routeOwnsTitle } from '@/routes/routeMeta';
 import { useActiveJobsProgress } from '@/lib/websocket';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ActiveJobsPopover } from '@/components/layout/ActiveJobsPopover';
@@ -31,6 +31,9 @@ interface HeaderProps {
 function Header({ sidebarCollapsed }: HeaderProps) {
   const location = useLocation();
   const title = getRouteTitle(location.pathname);
+  // Routes whose page renders its own content H1 suppress the banner title
+  // here, so there's exactly one H1 per page (Phase 3).
+  const ownTitle = routeOwnsTitle(location.pathname);
   const { user } = useAuth();
   const { setOpen: setPaletteOpen } = useCommandPalette();
   const { connected: wsConnected } = useActiveJobsProgress();
@@ -68,8 +71,14 @@ function Header({ sidebarCollapsed }: HeaderProps) {
         sidebarCollapsed ? 'lg:left-[56px]' : 'lg:left-[240px]',
       ].join(' ')}
     >
-      {/* Page title */}
-      <h1 className="text-lg font-display font-semibold text-txt-primary tracking-tight">{title}</h1>
+      {/* Page title — suppressed on routes that render their own content H1
+          (keeps a single H1 per page). The empty span preserves the flex
+          spacing so the right actions stay right-aligned. */}
+      {ownTitle ? (
+        <span aria-hidden="true" />
+      ) : (
+        <h1 className="text-lg font-display font-semibold text-txt-primary tracking-tight">{title}</h1>
+      )}
 
       {/* Right actions */}
       <div className="flex items-center gap-3">
