@@ -110,6 +110,11 @@ const SECTION_GROUPS: SectionGroupDef[] = [
     ],
   },
   {
+    id: 'network',
+    label: 'Network',
+    sections: [{ id: 'network', label: 'LAN API Access', icon: Network }],
+  },
+  {
     id: 'system',
     label: 'System',
     sections: [
@@ -118,7 +123,6 @@ const SECTION_GROUPS: SectionGroupDef[] = [
       { id: 'ffmpeg', label: 'FFmpeg', icon: Film },
       { id: 'backup', label: 'Backup', icon: Archive },
       { id: 'updates', label: 'Updates', icon: ArrowUpCircle },
-      { id: 'network', label: 'LAN API Access', icon: Network },
       { id: 'diagnostics', label: 'Diagnostics', icon: FileArchive },
     ],
   },

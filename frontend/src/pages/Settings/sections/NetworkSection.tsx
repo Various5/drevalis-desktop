@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDangerousDialog } from '@/components/ui/ConfirmDangerousDialog';
 
 // ---------------------------------------------------------------------------
 // NetworkSection — Settings → System → "LAN API Access".
@@ -40,6 +41,8 @@ export function NetworkSection() {
   const [saving, setSaving] = useState(false);
   const [revealToken, setRevealToken] = useState(false);
   const [copied, setCopied] = useState<'token' | 'url' | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rotating, setRotating] = useState(false);
 
   async function reload() {
     setLoading(true);
@@ -70,6 +73,34 @@ export function NetworkSection() {
     }
   }
 
+  // Enabling exposes the API to the LAN — gate it behind the typed confirm.
+  // Disabling is safe, so it applies immediately.
+  function onToggleChange(next: boolean) {
+    if (next) setConfirmOpen(true);
+    else void toggle(false);
+  }
+
+  async function confirmEnable() {
+    setConfirmOpen(false);
+    await toggle(true);
+  }
+
+  async function rotateToken() {
+    setRotating(true);
+    try {
+      const res = await fetch('/api/v1/settings/network/rotate-token', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setState(await res.json());
+        setRevealToken(true);
+      }
+    } finally {
+      setRotating(false);
+    }
+  }
+
   async function copy(text: string, kind: 'token' | 'url') {
     await navigator.clipboard.writeText(text);
     setCopied(kind);
@@ -85,8 +116,21 @@ export function NetworkSection() {
     <Card className="p-6 space-y-6">
       <header className="flex items-start gap-3">
         <Network className="w-6 h-6 text-accent flex-shrink-0 mt-0.5" />
-        <div>
-          <h2 className="text-lg font-semibold">LAN API Access</h2>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-semibold">LAN API Access</h2>
+            {enabled ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Exposed on LAN
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                Local only
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             By default the backend only accepts connections from this machine
             ({state.runtime_bind_host ?? '127.0.0.1'}). Turn this on to reach
@@ -112,7 +156,7 @@ export function NetworkSection() {
               className="w-4 h-4 rounded accent-accent"
               checked={enabled}
               disabled={saving}
-              onChange={(e) => void toggle(e.target.checked)}
+              onChange={(e) => onToggleChange(e.target.checked)}
             />
             <span className="text-sm">{enabled ? 'On' : 'Off'}</span>
           </label>
@@ -206,7 +250,20 @@ export function NetworkSection() {
               >
                 {copied === 'token' ? <Check size={15} /> : <Copy size={15} />}
               </button>
+              <button
+                type="button"
+                onClick={() => void rotateToken()}
+                disabled={rotating}
+                className="text-muted-foreground hover:text-foreground p-1 disabled:opacity-40"
+                title="Rotate token"
+              >
+                <RefreshCw size={15} className={rotating ? 'animate-spin' : ''} />
+              </button>
             </div>
+            <p className="mt-1.5 text-[11px] text-txt-tertiary">
+              Rotating invalidates the current token. Restart the backend for the new
+              token to take effect on LAN clients.
+            </p>
           </div>
         </div>
       )}
@@ -216,6 +273,28 @@ export function NetworkSection() {
           Refresh
         </Button>
       </div>
+
+      <ConfirmDangerousDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => void confirmEnable()}
+        title="Expose the API on your network?"
+        warning={
+          <>
+            This binds the backend to your whole network. Anyone who can reach this
+            machine on port {state.port} and has the access token can manage your
+            content, YouTube connections, and uploads. Only enable on a network you trust.
+          </>
+        }
+        consequences={[
+          'The API listens on all interfaces (0.0.0.0) after the next restart',
+          'Remote callers authenticate with the bearer token shown here',
+          'Keep the token secret; rotate it immediately if it leaks',
+        ]}
+        confirmWord="EXPOSE"
+        confirmLabel="Enable LAN access"
+        loading={saving}
+      />
     </Card>
   );
 }

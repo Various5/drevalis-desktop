@@ -105,6 +105,19 @@ def peek_api_token() -> str | None:
     return str(token) if token else None
 
 
+def rotate_api_token() -> str:
+    """Generate + persist a fresh LAN token, replacing the old one, and return
+    it. Remote callers keep working on the old token until the backend
+    restarts (the auth middleware reads the token once at startup), same as the
+    bind-host change — so the UI flags ``restart_required`` after a rotate too."""
+    with _LOCK:
+        data = load()
+        token = secrets.token_hex(32)
+        data["api_token"] = token
+        _save(data)
+        return token
+
+
 def get_bind_host() -> str:
     """Host uvicorn should bind to.
 

@@ -6,6 +6,7 @@ import asyncio
 import shutil
 from pathlib import Path
 
+import structlog
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,11 @@ from drevalis.schemas.settings import (
 )
 
 router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
+
+# Audit logger — LAN toggle + token rotation are security-relevant, so they're
+# logged at WARNING so they surface in the System Log UI (which filters to
+# warning+). See services/event_log.py.
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -248,6 +254,30 @@ async def set_network_settings(payload: NetworkSettingsUpdate) -> NetworkSetting
     from drevalis.core import network_config
 
     network_config.set_lan_enabled(payload.lan_api_enabled)
+    # Audit: WARNING so it lands in the System Log. "EXPOSED" is the one that
+    # matters — an operator scanning logs for exposure events can grep this.
+    logger.warning(
+        "lan.toggled",
+        enabled=payload.lan_api_enabled,
+        bind_host=network_config.get_bind_host(),
+        source="settings_ui",
+    )
+    return _network_state()
+
+
+@router.post(
+    "/network/rotate-token",
+    response_model=NetworkSettingsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Rotate the LAN API token (takes effect on app restart)",
+)
+async def rotate_network_token() -> NetworkSettingsResponse:
+    """Generate a fresh LAN token, invalidating the old one. Like the bind-host
+    change, the new token only applies to remote callers after a restart."""
+    from drevalis.core import network_config
+
+    network_config.rotate_api_token()
+    logger.warning("lan.token_rotated", source="settings_ui")
     return _network_state()
 
 
