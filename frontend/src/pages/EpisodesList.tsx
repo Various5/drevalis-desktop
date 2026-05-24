@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { CardGridSkeleton } from '@/components/ui/Skeletons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EpisodeCard } from '@/components/episodes/EpisodeCard';
+import { EpisodeTrashDialog } from '@/components/episodes/EpisodeTrashDialog';
 import { useActiveJobsProgress } from '@/lib/websocket';
 import { useToast } from '@/components/ui/Toast';
 import { episodes as episodesApi } from '@/lib/api';
@@ -166,6 +167,7 @@ function EpisodesList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   // Create episode dialog
   const showCreate = searchParams.get('create') === 'true';
@@ -498,6 +500,15 @@ function EpisodesList() {
           Browse and manage all episodes across your series.
         </p>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTrashOpen(true)}
+            title="View deleted episodes"
+          >
+            <Trash2 size={14} />
+            Trash
+          </Button>
           <Button
             variant={selectMode ? 'primary' : 'ghost'}
             size="sm"
@@ -881,6 +892,8 @@ function EpisodesList() {
           </Button>
         </DialogFooter>
       </Dialog>
+
+      <EpisodeTrashDialog open={trashOpen} onClose={() => setTrashOpen(false)} onChanged={refetch} />
     </div>
   );
 }

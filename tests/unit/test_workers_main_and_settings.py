@@ -372,6 +372,7 @@ class TestWorkerSettings:
             "cron:compute_ab_test_winners",
             "cron:scheduled_backup",
             "cron:prune_orphaned_scheduled_posts",
+            "cron:purge_trashed_episodes",
         }
 
     def test_job_timeout_uses_longform_setting(self, monkeypatch: pytest.MonkeyPatch) -> None:

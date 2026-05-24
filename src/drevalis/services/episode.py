@@ -217,6 +217,23 @@ class EpisodeService:
         log.info("episode_restored", episode_id=str(episode_id))
         return full
 
+    async def list_trashed(self) -> list[Episode]:
+        """Trashed episodes (the recoverable trash), newest-trashed first."""
+        return await self._ep_repo.list_trashed()
+
+    async def purge(self, episode_id: UUID, *, storage_delete_dir: Any | None = None) -> None:
+        """Permanently delete a TRASHED episode + its storage files. Verifies the
+        episode is trashed before touching storage so a live episode can't be
+        purged through this path."""
+        episode = await self._ep_repo.get_trashed(episode_id)
+        if episode is None:
+            raise EpisodeNotFoundError(episode_id)
+        if storage_delete_dir is not None:
+            await storage_delete_dir(episode_id)
+        await self._ep_repo.purge(episode_id)
+        await self._db.commit()
+        log.info("episode_purged", episode_id=str(episode_id))
+
     async def duplicate(self, episode_id: UUID) -> Episode:
         episode = await self.get_or_raise(episode_id)
         new_episode = await self._ep_repo.create(

@@ -443,3 +443,52 @@ class TestEpisodeSoftDeleteRestore:
         ep = MagicMock(deleted_at=None)
         repo = EpisodeRepository(self._session_with(ep))
         assert await repo.restore(uuid4()) is None
+
+
+class TestEpisodeTrashListingAndPurge:
+    async def test_list_trashed_filters_to_trashed(self) -> None:
+        session = _mock_session_returning([MagicMock()])
+        repo = EpisodeRepository(session)
+        await repo.list_trashed()
+        assert "deleted_at IS NOT NULL" in _last_compiled_sql(session)
+
+    async def test_get_trashed_filters_to_trashed(self) -> None:
+        session = _mock_session_returning([MagicMock()])
+        repo = EpisodeRepository(session)
+        await repo.get_trashed(uuid4())
+        assert "deleted_at IS NOT NULL" in _last_compiled_sql(session)
+
+    async def test_list_trashed_before_filters_and_cutoff(self) -> None:
+        session = _mock_session_returning([])
+        repo = EpisodeRepository(session)
+        await repo.list_trashed_before(datetime(2026, 1, 1, tzinfo=UTC))
+        sql = _last_compiled_sql(session)
+        assert "deleted_at IS NOT NULL" in sql
+        assert "deleted_at <" in sql
+
+    async def test_purge_hard_deletes_a_trashed_episode(self) -> None:
+        ep = MagicMock(deleted_at=datetime.now(tz=UTC))
+        session = AsyncMock()
+        session.get = AsyncMock(return_value=ep)
+        session.delete = AsyncMock()
+        session.flush = AsyncMock()
+        repo = EpisodeRepository(session)
+        assert await repo.purge(uuid4()) is True
+        session.delete.assert_awaited_once_with(ep)
+
+    async def test_purge_refuses_a_live_episode(self) -> None:
+        ep = MagicMock(deleted_at=None)
+        session = AsyncMock()
+        session.get = AsyncMock(return_value=ep)
+        session.delete = AsyncMock()
+        repo = EpisodeRepository(session)
+        assert await repo.purge(uuid4()) is False
+        session.delete.assert_not_awaited()
+
+    async def test_purge_false_when_missing(self) -> None:
+        session = AsyncMock()
+        session.get = AsyncMock(return_value=None)
+        session.delete = AsyncMock()
+        repo = EpisodeRepository(session)
+        assert await repo.purge(uuid4()) is False
+        session.delete.assert_not_awaited()

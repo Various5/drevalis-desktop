@@ -39,6 +39,7 @@ from drevalis.workers.jobs.heartbeat import worker_heartbeat
 from drevalis.workers.jobs.license_heartbeat import license_heartbeat
 from drevalis.workers.jobs.music import generate_episode_music
 from drevalis.workers.jobs.prune_scheduled_posts import prune_orphaned_scheduled_posts
+from drevalis.workers.jobs.purge_trashed_episodes import purge_trashed_episodes
 from drevalis.workers.jobs.runpod import auto_deploy_runpod_pod
 from drevalis.workers.jobs.scheduled import publish_scheduled_posts
 from drevalis.workers.jobs.seo import generate_seo_async
@@ -143,6 +144,7 @@ class WorkerSettings:
         commit_video_ingest_clip,
         render_from_edit,
         prune_orphaned_scheduled_posts,
+        func(purge_trashed_episodes, timeout=_MEDIUM_TIMEOUT),
         sync_youtube_channel_videos,
     ]
     cron_jobs = [
@@ -169,6 +171,9 @@ class WorkerSettings:
         # 03:13 UTC — runs after the backup so the orphan rows are still
         # captured in the nightly snapshot in case rollback is needed.
         cron(prune_orphaned_scheduled_posts, hour={3}, minute={13}),
+        # Permanently remove episodes trashed > 30 days ago (+ their storage).
+        # 03:20 UTC — after the backup (03:00) so the snapshot still has them.
+        cron(purge_trashed_episodes, hour={3}, minute={20}),
     ]
     on_startup = startup
     on_shutdown = shutdown

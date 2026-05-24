@@ -101,6 +101,21 @@ async def list_episodes(
     return [_episode_to_list(ep) for ep in episodes]
 
 
+@router.get(
+    "/trash",
+    response_model=list[EpisodeListResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List trashed (soft-deleted) episodes — restorable or purgeable",
+)
+async def list_trashed_episodes(
+    svc: EpisodeService = Depends(_episode_service),
+) -> list[EpisodeListResponse]:
+    """Episodes in the trash. Declared before ``/{episode_id}`` so "trash"
+    isn't parsed as an episode id."""
+    episodes = await svc.list_trashed()
+    return [_episode_to_list(ep) for ep in episodes]
+
+
 # ── Create episode ────────────────────────────────────────────────────────
 
 
@@ -258,6 +273,27 @@ async def restore_episode(
             detail=f"Episode {episode_id} not in trash",
         ) from exc
     return _episode_to_response(episode)
+
+
+@router.post(
+    "/{episode_id}/purge",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Permanently delete a trashed episode + its files (cannot be undone)",
+)
+async def purge_episode(
+    episode_id: UUID,
+    settings: Settings = Depends(get_settings),
+    svc: EpisodeService = Depends(_episode_service),
+) -> None:
+    """Permanently remove a trashed episode and its storage. 404 if not in trash."""
+    storage = LocalStorage(settings.storage_base_path)
+    try:
+        await svc.purge(episode_id, storage_delete_dir=storage.delete_episode_dir)
+    except EpisodeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Episode {episode_id} not in trash",
+        ) from exc
 
 
 # ── Generate episode ──────────────────────────────────────────────────────

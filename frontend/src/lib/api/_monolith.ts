@@ -274,6 +274,12 @@ export const episodes = {
   /** Undo a soft-delete — restore a trashed episode. */
   restore: (id: string) => post<Episode>(`/api/v1/episodes/${id}/restore`),
 
+  /** List trashed (soft-deleted) episodes. */
+  listTrash: () => get<EpisodeListItem[]>('/api/v1/episodes/trash'),
+
+  /** Permanently delete a trashed episode (cannot be undone). */
+  purge: (id: string) => post<void>(`/api/v1/episodes/${id}/purge`),
+
   generate: (id: string, data?: GenerateRequest) =>
     post<GenerateResponse>(`/api/v1/episodes/${id}/generate`, data ?? {}),
 

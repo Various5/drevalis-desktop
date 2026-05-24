@@ -173,3 +173,42 @@ class EpisodeRepository(BaseRepository[Episode]):
         await self.session.flush()
         await self.session.refresh(instance)
         return instance
+
+    # ── Trash listing + permanent purge ──────────────────────────────────
+
+    async def list_trashed(self, limit: int = 200) -> list[Episode]:
+        """List trashed episodes (deleted_at set), most-recently-trashed first."""
+        stmt = (
+            select(Episode)
+            .options(selectinload(Episode.series))
+            .where(Episode.deleted_at.is_not(None))
+            .order_by(Episode.deleted_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_trashed_before(self, cutoff: datetime) -> list[Episode]:
+        """Trashed episodes whose ``deleted_at`` is older than *cutoff* — the
+        auto-purge cron's work list."""
+        stmt = select(Episode).where(
+            Episode.deleted_at.is_not(None), Episode.deleted_at < cutoff
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_trashed(self, id: UUID) -> Episode | None:
+        """Fetch a single TRASHED episode by id, or None if it's live/missing."""
+        stmt = select(Episode).where(Episode.id == id, Episode.deleted_at.is_not(None))
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def purge(self, id: UUID) -> bool:
+        """Permanently hard-delete a TRASHED episode. Refuses to purge a live
+        episode (``deleted_at`` must be set). Returns False if missing or live."""
+        instance = await self.session.get(Episode, id)
+        if instance is None or instance.deleted_at is None:
+            return False
+        await self.session.delete(instance)
+        await self.session.flush()
+        return True
