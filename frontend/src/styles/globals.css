@@ -941,3 +941,20 @@ html[data-theme="ink"] h3 {
   /* Serif presets look better with slightly looser letter-spacing. */
   letter-spacing: -0.01em;
 }
+
+/* -------------------------------------------------------------------------
+   Reduced motion (Phase 5 a11y) — honour the OS "reduce motion" setting
+   app-wide. Neutralises every animation + transition (the few components
+   with their own reduced-motion handling, e.g. Skeleton, still work). Kept
+   last so it wins the cascade.
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

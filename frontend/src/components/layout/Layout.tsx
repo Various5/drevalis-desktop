@@ -130,6 +130,13 @@ function Layout() {
       className="min-h-[100dvh] bg-bg-base noise-overlay"
       style={demoMode ? { paddingTop: 32 } : undefined}
     >
+      {/* Skip-to-content — first tab stop; hidden until focused (Phase 5 a11y). */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-txt-on-accent focus:shadow-glass"
+      >
+        Skip to content
+      </a>
       <DemoBanner />
       {/* Sidebar — hidden on mobile, visible md+ */}
       <Sidebar
@@ -146,6 +153,7 @@ function Layout() {
           Tablet:  collapsed sidebar width (56px) + activity bar height (32px)
           Desktop: expanded (240px) or collapsed (56px) sidebar width */}
       <main
+        id="main-content"
         className={[
           'pt-12 min-h-[100dvh] transition-all duration-normal',
           // Mobile: no sidebar offset, leave room for mobile nav + floating pill

@@ -93,10 +93,13 @@ function YouTubeCallback() {
 // owning *in-flight* job state — Query layer doesn't replace WS-driven
 // progress (R6 boundary).
 //
-// staleTime 30s — the dashboard and list pages all want "looks fresh
-// when I come back" without firing a request on every render.
-// refetchOnWindowFocus true — coming back from a tab that was open
-// for hours should re-validate.
+// Aggressive caching (Phase 5): the WebSocket streams every live change
+// (job progress, status) and mutations invalidate their own query keys, so
+// the cache is the right source for list/detail reads between those events.
+// staleTime 5m keeps screens instant on navigation without refetch churn;
+// gcTime 30m keeps data warm across route hops. refetchOnWindowFocus stays on
+// but, with a 5m staleTime, only fires when data is genuinely stale (e.g. the
+// app was backgrounded for a long while or the WS was down).
 
 function App() {
   // Client lives in component state so HMR doesn't recreate it on every
@@ -107,7 +110,8 @@ function App() {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,
+            staleTime: 300_000, // 5 min
+            gcTime: 1_800_000, // 30 min — keep cache warm across navigation
             refetchOnWindowFocus: true,
             retry: 1,
           },
