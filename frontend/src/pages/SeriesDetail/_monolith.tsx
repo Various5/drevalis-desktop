@@ -13,6 +13,7 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
+import { ConfirmDangerousDialog } from '@/components/ui/ConfirmDangerousDialog';
 import { Spinner } from '@/components/ui/Spinner';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
@@ -817,27 +818,31 @@ function SeriesDetail() {
         </DialogFooter>
       </Dialog>
 
-      {/* Delete Series */}
-      <Dialog
+      {/* Delete Series — typed confirmation (Phase 4). Unlike deleting a single
+          episode (soft-delete + undo), removing a series cascade-deletes its
+          episodes permanently, so this requires typing the series name. */}
+      <ConfirmDangerousDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        title="Delete Series"
-        description="This will permanently delete the series and all its episodes. This action cannot be undone."
-      >
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            loading={deleting}
-            onClick={() => void handleDelete()}
-          >
-            <Trash2 size={14} />
-            Delete Series
-          </Button>
-        </DialogFooter>
-      </Dialog>
+        onConfirm={() => void handleDelete()}
+        title="Delete series?"
+        warning={
+          <>
+            This permanently deletes <strong className="text-txt-primary">{editName || 'this series'}</strong>
+            {episodesList.length > 0
+              ? ` and its ${episodesList.length} ${episodesList.length === 1 ? 'episode' : 'episodes'}`
+              : ''}
+            . Unlike deleting a single episode, this can&rsquo;t be undone.
+          </>
+        }
+        consequences={[
+          `${episodesList.length} ${episodesList.length === 1 ? 'episode is' : 'episodes are'} permanently removed`,
+          'All generated media (voice, scenes, renders) is deleted',
+        ]}
+        confirmWord={editName.trim() || 'DELETE'}
+        confirmLabel="Delete series"
+        loading={deleting}
+      />
 
       {/* Delete All Episodes */}
       <Dialog
