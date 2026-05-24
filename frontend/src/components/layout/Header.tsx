@@ -8,6 +8,7 @@ import { getRouteTitle } from '@/routes/routeMeta';
 import { useActiveJobsProgress } from '@/lib/websocket';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ActiveJobsPopover } from '@/components/layout/ActiveJobsPopover';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -116,6 +117,9 @@ function Header({ sidebarCollapsed }: HeaderProps) {
             <span>K</span>
           </span>
         </button>
+
+        {/* Notification centre — historical finished/failed events */}
+        <NotificationBell />
 
         {/* Active jobs popover — click to see every running step
             across workers with live progress. Self-subscribes to

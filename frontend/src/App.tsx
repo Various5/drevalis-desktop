@@ -10,6 +10,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { TooltipProvider } from '@/components/ui/Tooltip';
 import { ThemeProvider } from '@/lib/theme';
 import { ProgressProvider } from '@/lib/progress-context';
+import { NotificationProvider } from '@/lib/notifications';
 import { AuthProvider } from '@/lib/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
 import NotFound from '@/pages/NotFound';
@@ -121,6 +122,7 @@ function App() {
     <TooltipProvider delayDuration={300}>
     <AuthProvider>
     <ProgressProvider>
+    <NotificationProvider>
     <LicenseGate>
     <ErrorBoundary>
     <Suspense fallback={<PageLoadingFallback />}>
@@ -184,6 +186,7 @@ function App() {
     </Suspense>
     </ErrorBoundary>
     </LicenseGate>
+    </NotificationProvider>
     </ProgressProvider>
     </AuthProvider>
     </TooltipProvider>
