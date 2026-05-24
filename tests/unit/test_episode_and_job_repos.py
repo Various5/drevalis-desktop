@@ -9,6 +9,7 @@ SQL shape so silent regressions show up here.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -374,3 +375,71 @@ class TestJobGetDoneSteps:
         repo = GenerationJobRepository(session)
         out = await repo.get_done_steps(uuid4())
         assert out == set()
+
+
+# ══════════════════════════════════════════════════════════════════
+# Soft-delete (episodes)
+# ══════════════════════════════════════════════════════════════════
+
+
+class TestEpisodeSoftDeleteFiltering:
+    """Every read path must exclude trashed rows. A missing filter means a
+    deleted episode reappears in a list — pin the SQL shape so that can't
+    silently regress."""
+
+    async def test_all_reads_emit_deleted_at_is_null(self) -> None:
+        sid = uuid4()
+        cases: list[tuple[str, tuple[Any, ...]]] = [
+            ("get_by_id", (uuid4(),)),
+            ("get_all", ()),
+            ("count", ()),
+            ("get_by_series", (sid,)),
+            ("get_with_assets", (uuid4(),)),
+            ("get_recent", ()),
+            ("get_by_ids", ([uuid4()],)),
+            ("get_by_status", ("review",)),
+            ("count_by_status", ("review",)),
+            ("count_non_draft_for_series", (sid,)),
+        ]
+        for method, args in cases:
+            session = _mock_session_returning([MagicMock()], scalar_one_value=0)
+            repo = EpisodeRepository(session)
+            await getattr(repo, method)(*args)
+            sql = _last_compiled_sql(session)
+            assert "deleted_at IS NULL" in sql, f"{method} is missing the soft-delete filter"
+
+
+class TestEpisodeSoftDeleteRestore:
+    def _session_with(self, episode: Any | None) -> AsyncMock:
+        session = AsyncMock()
+        session.get = AsyncMock(return_value=episode)
+        session.flush = AsyncMock()
+        session.refresh = AsyncMock()
+        return session
+
+    async def test_soft_delete_sets_deleted_at(self) -> None:
+        ep = MagicMock(deleted_at=None)
+        repo = EpisodeRepository(self._session_with(ep))
+        assert await repo.soft_delete(uuid4()) is True
+        assert ep.deleted_at is not None
+
+    async def test_soft_delete_false_when_missing(self) -> None:
+        repo = EpisodeRepository(self._session_with(None))
+        assert await repo.soft_delete(uuid4()) is False
+
+    async def test_soft_delete_false_when_already_trashed(self) -> None:
+        ep = MagicMock(deleted_at=datetime.now(tz=UTC))
+        repo = EpisodeRepository(self._session_with(ep))
+        assert await repo.soft_delete(uuid4()) is False
+
+    async def test_restore_clears_deleted_at(self) -> None:
+        ep = MagicMock(deleted_at=datetime.now(tz=UTC))
+        repo = EpisodeRepository(self._session_with(ep))
+        out = await repo.restore(uuid4())
+        assert out is ep
+        assert ep.deleted_at is None
+
+    async def test_restore_none_when_not_trashed(self) -> None:
+        ep = MagicMock(deleted_at=None)
+        repo = EpisodeRepository(self._session_with(ep))
+        assert await repo.restore(uuid4()) is None
