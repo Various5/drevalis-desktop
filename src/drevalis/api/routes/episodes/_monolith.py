@@ -240,6 +240,26 @@ async def delete_episode(
         ) from exc
 
 
+@router.post(
+    "/{episode_id}/restore",
+    response_model=EpisodeResponse,
+    summary="Restore a soft-deleted episode from the trash (undo delete)",
+)
+async def restore_episode(
+    episode_id: UUID,
+    svc: EpisodeService = Depends(_episode_service),
+) -> EpisodeResponse:
+    """Undo a delete — bring a trashed episode back. 404 if it isn't in the trash."""
+    try:
+        episode = await svc.restore(episode_id)
+    except EpisodeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Episode {episode_id} not in trash",
+        ) from exc
+    return _episode_to_response(episode)
+
+
 # ── Generate episode ──────────────────────────────────────────────────────
 
 

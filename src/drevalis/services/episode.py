@@ -195,13 +195,27 @@ class EpisodeService:
         return full
 
     async def delete(self, episode_id: UUID, *, storage_delete_dir: Any | None = None) -> None:
+        """Soft-delete (move to trash) — restorable via ``restore``. Storage
+        files are intentionally kept so a restore is lossless; permanent
+        removal + storage cleanup is a separate purge step. ``storage_delete_dir``
+        is accepted for call-site compatibility but not invoked here."""
         episode = await self._ep_repo.get_by_id(episode_id)
         if episode is None:
             raise EpisodeNotFoundError(episode_id)
-        if storage_delete_dir is not None:
-            await storage_delete_dir(episode_id)
-        await self._ep_repo.delete(episode_id)
+        await self._ep_repo.soft_delete(episode_id)
         await self._db.commit()
+        log.info("episode_soft_deleted", episode_id=str(episode_id))
+
+    async def restore(self, episode_id: UUID) -> Episode:
+        """Bring a trashed episode back. Raises if it isn't in the trash."""
+        restored = await self._ep_repo.restore(episode_id)
+        if restored is None:
+            raise EpisodeNotFoundError(episode_id)
+        await self._db.commit()
+        full = await self._ep_repo.get_with_assets(episode_id)
+        assert full is not None
+        log.info("episode_restored", episode_id=str(episode_id))
+        return full
 
     async def duplicate(self, episode_id: UUID) -> Episode:
         episode = await self.get_or_raise(episode_id)
@@ -281,7 +295,9 @@ class EpisodeService:
         queued_ids: list[UUID] = []
         skipped_ids: list[UUID] = []
 
-        result = await self._db.execute(sa_select(Episode).where(Episode.id.in_(episode_ids)))
+        result = await self._db.execute(
+            sa_select(Episode).where(Episode.id.in_(episode_ids), Episode.deleted_at.is_(None))
+        )
         episodes_by_id = {ep.id: ep for ep in result.scalars().all()}
 
         for episode_id in episode_ids:
@@ -928,7 +944,9 @@ class EpisodeService:
         from sqlalchemy.orm import selectinload
 
         stmt = (
-            sa_select(Episode).where(Episode.id == episode_id).options(selectinload(Episode.series))
+            sa_select(Episode)
+            .where(Episode.id == episode_id, Episode.deleted_at.is_(None))
+            .options(selectinload(Episode.series))
         )
         result = await self._db.execute(stmt)
         episode = result.scalar_one_or_none()

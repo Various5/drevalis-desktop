@@ -52,7 +52,9 @@ class ABTestService:
 
         # Verify both episodes exist and share the named series.
         ep_rows = await self._db.execute(
-            select(Episode).where(Episode.id.in_([episode_a_id, episode_b_id]))
+            select(Episode).where(
+                Episode.id.in_([episode_a_id, episode_b_id]), Episode.deleted_at.is_(None)
+            )
         )
         eps = {e.id: e for e in ep_rows.scalars().all()}
         if len(eps) != 2:

@@ -15,6 +15,11 @@ import * as RadixToast from '@radix-ui/react-toast';
 
 type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface ToastItem {
   id: string;
   variant: ToastVariant;
@@ -22,11 +27,14 @@ interface ToastItem {
   description?: string;
   /** Duration in ms before auto-dismiss. Defaults based on variant. */
   duration?: number;
+  /** Optional action button (e.g. "Undo"). */
+  action?: ToastAction;
 }
 
 interface ToastOptions {
   description?: string;
   duration?: number;
+  action?: ToastAction;
 }
 
 interface ToastControls {
@@ -96,6 +104,7 @@ function ToastProvider({ children }: { children: ReactNode }) {
           title,
           description: options?.description,
           duration: options?.duration ?? defaultDuration,
+          action: options?.action,
         },
       ]);
     },
@@ -143,7 +152,7 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onDismiss }: ToastItemProps) {
-  const { variant, id, title, description, duration } = toast;
+  const { variant, id, title, description, duration, action } = toast;
   const { borderColor, label } = variantConfig[variant];
   const labelId = useId();
 
@@ -191,6 +200,17 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
           <RadixToast.Description className="mt-1 text-sm text-txt-secondary leading-snug">
             {description}
           </RadixToast.Description>
+        )}
+
+        {action && (
+          <RadixToast.Action altText={action.label} asChild>
+            <button
+              onClick={action.onClick}
+              className="mt-2 text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-accent rounded"
+            >
+              {action.label}
+            </button>
+          </RadixToast.Action>
         )}
       </div>
 

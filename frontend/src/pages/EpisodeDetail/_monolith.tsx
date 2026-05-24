@@ -387,8 +387,25 @@ function EpisodeDetail() {
     if (!episodeId) return;
     setAction({ kind: 'deleting' });
     try {
-      await episodesApi.delete(episodeId);
+      const deletedId = episodeId;
+      await episodesApi.delete(deletedId);
       navigate('/episodes');
+      toast.success('Episode deleted', {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            void (async () => {
+              try {
+                await episodesApi.restore(deletedId);
+                toast.success('Episode restored');
+                navigate(`/episodes/${deletedId}`);
+              } catch (err) {
+                toast.error('Restore failed', { description: String(err) });
+              }
+            })();
+          },
+        },
+      });
     } catch (err) {
       toast.error('Failed to delete episode', { description: String(err) });
       setAction({ kind: 'idle' });

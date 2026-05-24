@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, TEXT, CheckConstraint, Float, ForeignKey, Index, String
+from sqlalchemy import JSON, TEXT, CheckConstraint, DateTime, Float, ForeignKey, Index, String
 from drevalis.models._types import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,6 +58,12 @@ class Episode(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # Relative path to the episode's media directory
     base_path: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+
+    # Soft-delete: when set, the episode is in the trash — excluded from every
+    # list/detail query but restorable until purged. NULL = live.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
 
     # Human-readable reason the episode last failed. Written when the
     # pipeline aborts outside the per-step job scope (e.g. DB hiccup on

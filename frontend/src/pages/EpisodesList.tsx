@@ -280,12 +280,30 @@ function EpisodesList() {
 
   const handleDeleteEpisode = async () => {
     if (!deletingEpisodeId) return;
+    const deletedId = deletingEpisodeId;
+    const deletedTitle = deletingEpisodeTitle;
     setDeleting(true);
     try {
-      await episodesApi.delete(deletingEpisodeId);
+      await episodesApi.delete(deletedId);
       setDeleteDialogOpen(false);
       setDeletingEpisodeId(null);
-      toast.success('Episode deleted');
+      toast.success('Episode deleted', {
+        description: deletedTitle || undefined,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            void (async () => {
+              try {
+                await episodesApi.restore(deletedId);
+                refetch();
+                toast.success('Episode restored');
+              } catch (err) {
+                toast.error('Restore failed', { description: String(err) });
+              }
+            })();
+          },
+        },
+      });
       refetch();
     } catch (err) {
       toast.error('Failed to delete episode', { description: String(err) });
@@ -431,7 +449,23 @@ function EpisodesList() {
     setBulkBusy(true);
     try {
       await Promise.all(ids.map((id) => episodesApi.delete(id)));
-      toast.success('Episodes deleted', { description: `${ids.length} removed` });
+      toast.success('Episodes deleted', {
+        description: `${ids.length} removed`,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            void (async () => {
+              try {
+                await Promise.all(ids.map((id) => episodesApi.restore(id)));
+                refetch();
+                toast.success('Episodes restored', { description: `${ids.length} restored` });
+              } catch (err) {
+                toast.error('Restore failed', { description: String(err) });
+              }
+            })();
+          },
+        },
+      });
       setBulkDeleteOpen(false);
       exitSelectMode();
       refetch();
