@@ -175,7 +175,7 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
    *  free channel slot. Both flip the post back to ``scheduled`` so
    *  the cron picks it up at the new time. */
   const handleQuickReschedule = useCallback(
-    async (mode: 'tomorrow' | 'next-slot') => {
+    async (mode: 'tomorrow' | 'next-slot' | 'later-today') => {
       if (!post) return;
       setBusy('reschedule');
       try {
@@ -194,19 +194,32 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
             nextIso = d.toISOString();
           }
         } else {
-          // next-slot — ask the backend for the next allowed slot on
-          // this platform/channel. Honours the channel's upload_days +
-          // upload_time and avoids clashes with other pending posts.
-          const slot = await scheduleApi.nextSlot({
-            platform: post.platform as
-              | 'youtube'
-              | 'tiktok'
-              | 'instagram'
-              | 'facebook'
-              | 'x',
-            channelId: post.youtube_channel_id ?? undefined,
-          });
-          nextIso = slot.scheduled_at;
+          // 'next-slot' honours the channel's upload cadence + avoids
+          // clashes; 'later-today' finds a free slot LATER THE SAME DAY
+          // (for rescuing a missed post without waiting for tomorrow).
+          try {
+            const slot = await scheduleApi.nextSlot({
+              platform: post.platform as
+                | 'youtube'
+                | 'tiktok'
+                | 'instagram'
+                | 'facebook'
+                | 'x',
+              channelId: post.youtube_channel_id ?? undefined,
+              sameDay: mode === 'later-today',
+            });
+            nextIso = slot.scheduled_at;
+          } catch (slotErr) {
+            if (mode === 'later-today') {
+              toast.warning('No free slot left today', {
+                description: 'Try “Next free slot” to pick a future time.',
+              });
+            } else {
+              toast.error('Reschedule failed', { description: String(slotErr) });
+            }
+            setBusy(null);
+            return;
+          }
         }
         // The backend resets failed→scheduled + clears the error
         // automatically when a failed post is rescheduled, so we only
@@ -636,6 +649,17 @@ export function PostDetailDrawer({ post, onClose, onMutated }: PostDetailDrawerP
                   >
                     <RotateCw size={13} className="mr-1.5" />
                     Publish now
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleQuickReschedule('later-today')}
+                    loading={busy === 'reschedule'}
+                    disabled={busy !== null}
+                    title="Find a free slot later today (skips the upload cadence)"
+                  >
+                    <Clock size={13} className="mr-1.5" />
+                    Later today
                   </Button>
                   <Button
                     variant="ghost"

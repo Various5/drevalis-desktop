@@ -226,6 +226,14 @@ async def next_slot(
             "the same platform are skipped. 0 disables the de-conflict step."
         ),
     ),
+    same_day: bool = Query(
+        default=False,
+        description=(
+            "When true, find the next free slot LATER TODAY (ignoring the "
+            "upload-day/time cadence) — for rescheduling a missed post the "
+            "same day. 404 if no free time remains today."
+        ),
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Returns the next allowed, non-conflicting posting slot.
@@ -245,6 +253,7 @@ async def next_slot(
             channel_id=channel_id,
             after_utc=_datetime.now(tz=_UTC),
             exclude_window_minutes=exclude_window_minutes,
+            same_day=same_day,
             db=db,
         )
     except ValueError as exc:

@@ -26,7 +26,7 @@ Rules:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time as dtime, timedelta
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -84,12 +84,14 @@ async def _conflicts(
     window: timedelta,
     db: AsyncSession,
 ) -> bool:
-    """True if any pending / queued ``scheduled_posts`` row falls within
-    ``window`` of ``candidate_utc`` on the same platform (+ same
-    YouTube channel when applicable).
+    """True if any upcoming ``scheduled_posts`` row falls within ``window``
+    of ``candidate_utc`` on the same platform (+ same YouTube channel when
+    applicable).
 
-    ``done`` and ``failed`` rows are ignored — we only care about
-    upcoming traffic, not historical rows.
+    Only ``scheduled`` / ``publishing`` rows count — those are the live
+    statuses in the model (the old ``pending``/``queued`` values never
+    existed, so this check silently matched nothing). ``published``,
+    ``failed`` and ``cancelled`` rows are ignored as historical/inert.
     """
     lower = candidate_utc - window
     upper = candidate_utc + window
@@ -97,12 +99,47 @@ async def _conflicts(
         ScheduledPost.platform == platform,
         ScheduledPost.scheduled_at >= lower,
         ScheduledPost.scheduled_at <= upper,
-        ScheduledPost.status.in_(["pending", "queued"]),
+        ScheduledPost.status.in_(["scheduled", "publishing"]),
     ]
     if platform == "youtube" and channel_id is not None:
         where.append(ScheduledPost.youtube_channel_id == channel_id)
     row = await db.execute(select(ScheduledPost.id).where(and_(*where)).limit(1))
     return row.first() is not None
+
+
+async def _find_same_day_slot(
+    *,
+    platform: str,
+    channel_id: UUID | None,
+    local_after: datetime,
+    tz: ZoneInfo,
+    window: timedelta,
+    db: AsyncSession,
+) -> datetime:
+    """Next free, non-conflicting slot LATER on the same calendar day as
+    ``local_after`` — ignoring the upload-day/time cadence. Used to rescue a
+    missed post "later today". Rounds up to the next half hour (past a small
+    buffer) and steps by the conflict window until local end-of-day; raises
+    ``ValueError`` if nothing free remains today.
+    """
+    start = (local_after + timedelta(minutes=10)).replace(second=0, microsecond=0)
+    if start.minute % 30:
+        start += timedelta(minutes=30 - start.minute % 30)
+    step = max(window, timedelta(minutes=30))
+    day_end = datetime.combine(local_after.date(), dtime(23, 59), tzinfo=tz)
+
+    candidate = start
+    while candidate <= day_end:
+        candidate_utc = candidate.astimezone(UTC)
+        if not await _conflicts(
+            platform=platform, channel_id=channel_id, candidate_utc=candidate_utc, window=window, db=db
+        ):
+            logger.info("schedule.next_slot.same_day", platform=platform, slot=candidate_utc.isoformat())
+            return candidate_utc
+        candidate += step
+
+    msg = f"No free slot remaining today for platform={platform}"
+    raise ValueError(msg)
 
 
 async def find_next_free_slot(
@@ -111,23 +148,39 @@ async def find_next_free_slot(
     channel_id: UUID | None,
     after_utc: datetime,
     exclude_window_minutes: int = 60,
+    same_day: bool = False,
     db: AsyncSession,
 ) -> datetime:
     """Return the next allowed, non-conflicting posting slot.
 
+    With ``same_day=True`` the search is constrained to later on
+    ``after_utc``'s calendar day and ignores the upload-day/time cadence —
+    this is the "reschedule a missed post later today" path. Otherwise it
+    honours the platform's ``upload_days`` / ``upload_time`` cadence.
+
     Always returns a UTC ``datetime``. Raises ``ValueError`` if no slot
-    can be found within ``_MAX_LOOKAHEAD_DAYS`` (effectively never under
-    sane preferences).
+    can be found (no free time left today for ``same_day``; or within
+    ``_MAX_LOOKAHEAD_DAYS`` otherwise — effectively never under sane prefs).
     """
     upload_days, upload_time, tz_name = await _platform_preferences(
         platform=platform, channel_id=channel_id, db=db
     )
     tz = ZoneInfo(tz_name)
+    window = timedelta(minutes=exclude_window_minutes)
+    local_after = after_utc.astimezone(tz)
+
+    if same_day:
+        return await _find_same_day_slot(
+            platform=platform,
+            channel_id=channel_id,
+            local_after=local_after,
+            tz=tz,
+            window=window,
+            db=db,
+        )
+
     upload_at = _parse_upload_time(upload_time)
     allowed = _normalise_upload_days(upload_days)
-    window = timedelta(minutes=exclude_window_minutes)
-
-    local_after = after_utc.astimezone(tz)
     cursor = _next_allowed_date(after=local_after.date(), allowed_weekdays=allowed)
 
     for _ in range(_MAX_LOOKAHEAD_DAYS):

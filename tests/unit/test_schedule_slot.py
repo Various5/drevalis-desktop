@@ -149,6 +149,55 @@ async def test_zero_window_disables_conflict_check() -> None:
     assert slot == datetime(2026, 5, 12, 9, 0, tzinfo=UTC)
 
 
+@pytest.mark.asyncio
+async def test_same_day_returns_later_today() -> None:
+    """same_day=True → next free slot LATER the same calendar day, ignoring
+    the upload cadence. 14:00 + buffer rounds up to 14:30."""
+    db = _mock_db()
+    after = datetime(2026, 5, 11, 14, 0, tzinfo=UTC)  # Mon 14:00
+    slot = await find_next_free_slot(
+        platform="youtube",
+        channel_id=None,
+        after_utc=after,
+        same_day=True,
+        db=db,
+    )
+    assert slot == datetime(2026, 5, 11, 14, 30, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_same_day_skips_conflict_steps_within_today() -> None:
+    """A clash at the first same-day candidate steps forward by the window
+    (60 min) — still the same day."""
+    db = _mock_db(has_conflict_at=[datetime(2026, 5, 11, 14, 30, tzinfo=UTC), None])
+    after = datetime(2026, 5, 11, 14, 0, tzinfo=UTC)
+    slot = await find_next_free_slot(
+        platform="youtube",
+        channel_id=None,
+        after_utc=after,
+        same_day=True,
+        db=db,
+    )
+    assert slot == datetime(2026, 5, 11, 15, 30, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_same_day_raises_when_today_is_full() -> None:
+    """No free slot left today → ValueError (the UI falls back to a future slot)."""
+    conflicts = [datetime.now(tz=UTC) + timedelta(minutes=30 * i) for i in range(60)]
+    db = _mock_db(has_conflict_at=conflicts)
+    # Late in the day so few candidates remain before midnight.
+    after = datetime(2026, 5, 11, 21, 0, tzinfo=UTC)
+    with pytest.raises(ValueError, match="today"):
+        await find_next_free_slot(
+            platform="youtube",
+            channel_id=None,
+            after_utc=after,
+            same_day=True,
+            db=db,
+        )
+
+
 def test_module_defaults_are_sane() -> None:
     """Sanity-check the constants other tests rely on."""
     assert "monday" in _DEFAULT_UPLOAD_DAYS

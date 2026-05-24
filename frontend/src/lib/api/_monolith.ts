@@ -1230,12 +1230,15 @@ export const schedule = {
     platform: 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'x';
     channelId?: string;
     excludeWindowMinutes?: number;
+    /** Find the next free slot LATER TODAY (ignores the upload cadence). */
+    sameDay?: boolean;
   }) => {
     const qs = new URLSearchParams({ platform: params.platform });
     if (params.channelId) qs.set('channel_id', params.channelId);
     if (params.excludeWindowMinutes !== undefined) {
       qs.set('exclude_window_minutes', String(params.excludeWindowMinutes));
     }
+    if (params.sameDay) qs.set('same_day', 'true');
     return get<{ platform: string; scheduled_at: string }>(
       `/api/v1/schedule/next-slot?${qs.toString()}`,
     );
