@@ -10,6 +10,31 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    // Split slow-changing vendor code into its own cacheable chunks so the
+    // app chunk shrinks + vendors don't re-download on every app update
+    // (Phase 5 bundle trim). The editor + other routes are already lazy via
+    // React.lazy, so they stay in their own route chunks automatically.
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          // Split the react-*dependent* libraries into their own cacheable
+          // chunks. React core itself (+ its shims + misc deps) falls into
+          // the catch-all ``vendor`` chunk, which keeps ``vendor`` a true
+          // leaf: every edge points one-way INTO it, so there's no
+          // vendor <-> vendor-react cycle. Asset loading is from local disk
+          // in the Tauri shell, so a handful of extra chunks costs nothing.
+          if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('@tanstack')) return 'vendor-query';
+          if (id.includes('@radix-ui')) return 'vendor-radix';
+          if (id.includes('i18next')) return 'vendor-i18n';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          return 'vendor';
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
