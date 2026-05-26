@@ -6,9 +6,9 @@
 // background surfaces. Accent: teal/cyan — professional video-tool feel.
 //
 // ── Text-hierarchy naming convention ─────────────────────────────────────────
-//   primary    EDEDEF  15.9:1   headings, body
-//   secondary  9898A0   7.1:1   labels, descriptions
-//   tertiary   717179   4.61:1  hints, placeholders (WCAG AA)
+//   primary    EDEDEF  16.9:1   headings, body
+//   secondary  9898A0   6.9:1   labels, descriptions
+//   tertiary   86868E   5.2:1   hints, placeholders (WCAG AA, on bg.surface)
 //   muted      ALIAS    same as ``tertiary`` — kept as a separate token name
 //                       so component code can express *intent* ("this text is
 //                       quiet") without committing to a particular contrast
@@ -34,10 +34,10 @@ export const colors = {
 
   // Text hierarchy (contrast ratios measured against bg.base #0A0A0B)
   text: {
-    primary: '#EDEDEF',     // 15.9:1 — headings, body text
-    secondary: '#9898A0',   // 7.1:1  — labels, descriptions
-    tertiary: '#717179',    // 4.61:1 — hints, placeholders (WCAG AA)
-    muted: '#717179',       // Alias of tertiary — see file header for rationale
+    primary: '#EDEDEF',     // 16.9:1 — headings, body text
+    secondary: '#9898A0',   // 6.9:1  — labels, descriptions
+    tertiary: '#86868E',    // 5.2:1 on surface — hints, placeholders (WCAG AA)
+    muted: '#86868E',       // Alias of tertiary — see file header for rationale
     inverse: '#0A0A0B',     // For text on light / accent backgrounds
     onAccent: '#021F18',    // High-contrast text on accent backgrounds
   },
