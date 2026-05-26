@@ -4,6 +4,14 @@
 // etc.) so component tests can assert on rendered DOM ergonomically.
 import '@testing-library/jest-dom/vitest';
 
+// Initialise i18n for the test environment so components using
+// ``useTranslation`` resolve real strings (English by default — the detector
+// falls back to en-US under jsdom) instead of raw keys. i18next's init is
+// async (initImmediate), so await readiness here — top-level await in a setup
+// file runs before any test renders.
+import { i18nReady } from '@/lib/i18n';
+await i18nReady;
+
 // Accessibility matcher (Phase 5 a11y audit).
 //
 // We deliberately do NOT import vitest-axe's own ``toHaveNoViolations``: its

@@ -24,7 +24,11 @@ export type LocaleCode = (typeof SUPPORTED_LOCALES)[number]['code'];
 
 export const LOCALE_STORAGE_KEY = 'drevalis.locale';
 
-void i18n
+// The init promise. Exported so tests (and any caller that needs strings
+// resolved before first render) can await readiness — react-i18next already
+// re-renders consumers on the 'initialized' event at runtime, so the app
+// doesn't need to await it.
+export const i18nReady = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -34,14 +38,19 @@ void i18n
     },
     fallbackLng: 'en-US',
     supportedLngs: ['en-US', 'de-DE'],
-    // Map bare ``de`` (typical navigator.language) → ``de-DE``.
-    nonExplicitSupportedLngs: true,
     interpolation: { escapeValue: false }, // React already escapes
     detection: {
       // localStorage (explicit user choice) wins; otherwise the OS locale.
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: LOCALE_STORAGE_KEY,
       caches: ['localStorage'],
+      // Collapse any detected variant (``de``, ``de-AT``, ``en-GB`` …) onto the
+      // two region codes we actually ship, so detection always yields an exact
+      // supported code. This replaces ``nonExplicitSupportedLngs: true`` which
+      // mapped bare ``de`` → ``de-DE`` but silently broke exact-code resolution
+      // (every key fell through to its raw name).
+      convertDetectedLanguage: (lng: string) =>
+        lng.toLowerCase().startsWith('de') ? 'de-DE' : 'en-US',
     },
   });
 

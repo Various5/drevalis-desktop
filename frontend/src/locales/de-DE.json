@@ -10,5 +10,41 @@
   "settings": {
     "language": "Sprache",
     "languageHint": "Sprache der Benutzeroberfläche. Beim ersten Start vom Betriebssystem erkannt; mit der Zeit wird mehr übersetzt."
+  },
+  "nav": {
+    "sections": {
+      "create": "Erstellen",
+      "publish": "Veröffentlichen",
+      "monitor": "Überwachen",
+      "maintenance": "Wartung"
+    },
+    "dashboard": "Dashboard",
+    "series": "Serien",
+    "episodes": "Episoden",
+    "audioStudio": "Audiostudio",
+    "characters": "Charaktere",
+    "assets": "Assets",
+    "templates": "Vorlagen",
+    "calendar": "Kalender",
+    "channels": "Kanäle",
+    "jobs": "Aufträge",
+    "usage": "Nutzung",
+    "systemLog": "Systemprotokoll",
+    "cloudGpu": "Cloud-GPU",
+    "health": "Zustand",
+    "storage": "Speicher",
+    "backup": "Sicherung",
+    "updates": "Updates",
+    "ffmpeg": "FFmpeg",
+    "diagnostics": "Diagnose",
+    "settings": "Einstellungen",
+    "help": "Hilfe",
+    "collapse": "Einklappen",
+    "expandSidebar": "Seitenleiste ausklappen",
+    "collapseSidebar": "Seitenleiste einklappen",
+    "menuFor": "Menü {{group}}",
+    "groupNavigation": "Navigation {{group}}",
+    "generatingCount_one": "{{count}} Episode wird generiert",
+    "generatingCount_other": "{{count}} Episoden werden generiert"
   }
 }

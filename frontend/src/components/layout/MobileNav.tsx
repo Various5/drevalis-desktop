@@ -26,6 +26,7 @@ import {
   HelpCircle,
   type LucideIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useJobsStatus } from '@/lib/queries';
 import { useActiveJobsProgress } from '@/lib/websocket';
 
@@ -51,57 +52,59 @@ interface NavGroup {
   items: readonly NavItem[];
 }
 
+// ``label`` fields hold i18n keys (src/locales/*.json → nav.*), resolved with
+// t() at render so the mobile nav follows the active language.
 const GROUPS: readonly NavGroup[] = [
   {
     id: 'create',
-    label: 'Create',
+    label: 'nav.sections.create',
     icon: Clapperboard,
     prefixes: ['/', '/series', '/episodes', '/audiobooks', '/character-packs', '/assets', '/templates'],
     items: [
-      { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/series', icon: Layers, label: 'Series' },
-      { to: '/episodes', icon: Film, label: 'Episodes' },
-      { to: '/audiobooks', icon: Mic, label: 'Audio Studio' },
-      { to: '/character-packs', icon: Users, label: 'Characters' },
-      { to: '/assets', icon: FolderOpen, label: 'Assets' },
-      { to: '/templates', icon: LayoutTemplate, label: 'Templates' },
+      { to: '/', icon: LayoutDashboard, label: 'nav.dashboard' },
+      { to: '/series', icon: Layers, label: 'nav.series' },
+      { to: '/episodes', icon: Film, label: 'nav.episodes' },
+      { to: '/audiobooks', icon: Mic, label: 'nav.audioStudio' },
+      { to: '/character-packs', icon: Users, label: 'nav.characters' },
+      { to: '/assets', icon: FolderOpen, label: 'nav.assets' },
+      { to: '/templates', icon: LayoutTemplate, label: 'nav.templates' },
     ],
   },
   {
     id: 'publish',
-    label: 'Publish',
+    label: 'nav.sections.publish',
     icon: Send,
     prefixes: ['/calendar', '/channels', '/youtube', '/social'],
     items: [
-      { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
-      { to: '/channels', icon: Share2, label: 'Channels' },
+      { to: '/calendar', icon: CalendarDays, label: 'nav.calendar' },
+      { to: '/channels', icon: Share2, label: 'nav.channels' },
     ],
   },
   {
     id: 'monitor',
-    label: 'Monitor',
+    label: 'nav.sections.monitor',
     icon: Activity,
     prefixes: ['/jobs', '/usage', '/logs'],
     items: [
-      { to: '/jobs', icon: ListChecks, label: 'Jobs' },
-      { to: '/usage', icon: BarChart3, label: 'Usage' },
-      { to: '/logs', icon: ScrollText, label: 'System Log' },
+      { to: '/jobs', icon: ListChecks, label: 'nav.jobs' },
+      { to: '/usage', icon: BarChart3, label: 'nav.usage' },
+      { to: '/logs', icon: ScrollText, label: 'nav.systemLog' },
     ],
   },
   {
     id: 'settings',
-    label: 'Settings',
+    label: 'nav.settings',
     icon: Settings,
     prefixes: ['/settings', '/help'],
     items: [
-      { to: '/settings', icon: Settings, label: 'Settings' },
-      { to: '/settings/health', icon: HeartPulse, label: 'Health' },
-      { to: '/settings/storage', icon: HardDrive, label: 'Storage' },
-      { to: '/settings/backup', icon: Archive, label: 'Backup' },
-      { to: '/settings/updates', icon: ArrowUpCircle, label: 'Updates' },
-      { to: '/settings/ffmpeg', icon: FileVideo, label: 'FFmpeg' },
-      { to: '/settings/diagnostics', icon: Stethoscope, label: 'Diagnostics' },
-      { to: '/help', icon: HelpCircle, label: 'Help' },
+      { to: '/settings', icon: Settings, label: 'nav.settings' },
+      { to: '/settings/health', icon: HeartPulse, label: 'nav.health' },
+      { to: '/settings/storage', icon: HardDrive, label: 'nav.storage' },
+      { to: '/settings/backup', icon: Archive, label: 'nav.backup' },
+      { to: '/settings/updates', icon: ArrowUpCircle, label: 'nav.updates' },
+      { to: '/settings/ffmpeg', icon: FileVideo, label: 'nav.ffmpeg' },
+      { to: '/settings/diagnostics', icon: Stethoscope, label: 'nav.diagnostics' },
+      { to: '/help', icon: HelpCircle, label: 'nav.help' },
     ],
   },
 ];
@@ -120,6 +123,7 @@ function activeGroupId(path: string): string | null {
 // ---------------------------------------------------------------------------
 
 function MobileNav() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -167,10 +171,10 @@ function MobileNav() {
           className="md:hidden fixed bottom-[60px] left-0 right-0 z-[99] bg-bg-surface/95 backdrop-blur-xl border-t border-white/[0.06] rounded-t-xl"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           role="menu"
-          aria-label={`${openGroup.label} navigation`}
+          aria-label={t('nav.groupNavigation', { group: t(openGroup.label) })}
         >
           <div className="px-4 pt-3 text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-            {openGroup.label}
+            {t(openGroup.label)}
           </div>
           <div className="grid grid-cols-3 gap-2 p-4 pt-2">
             {openGroup.items.map((it) => (
@@ -185,7 +189,7 @@ function MobileNav() {
               >
                 <it.icon size={22} strokeWidth={1.75} aria-hidden="true" />
                 <span className="text-xs font-display font-medium text-center leading-tight">
-                  {it.label}
+                  {t(it.label)}
                 </span>
               </button>
             ))}
@@ -211,7 +215,7 @@ function MobileNav() {
                   'transition-colors duration-fast',
                   isActive ? 'text-accent' : 'text-txt-secondary',
                 ].join(' ')}
-                aria-label={`${group.label} menu`}
+                aria-label={t('nav.menuFor', { group: t(group.label) })}
                 aria-expanded={openId === group.id}
               >
                 <div className="relative">
@@ -219,12 +223,12 @@ function MobileNav() {
                   {showDot && (
                     <span
                       className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-green-500"
-                      aria-label={`${genCount} episode${genCount > 1 ? 's' : ''} generating`}
+                      aria-label={t('nav.generatingCount', { count: genCount })}
                     />
                   )}
                 </div>
                 <span className="text-[10px] font-display font-medium leading-none">
-                  {group.label}
+                  {t(group.label)}
                 </span>
               </button>
             );

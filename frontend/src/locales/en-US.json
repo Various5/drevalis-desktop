@@ -10,5 +10,41 @@
   "settings": {
     "language": "Language",
     "languageHint": "Interface language. Detected from your OS on first run; more of the app is translated over time."
+  },
+  "nav": {
+    "sections": {
+      "create": "Create",
+      "publish": "Publish",
+      "monitor": "Monitor",
+      "maintenance": "Maintenance"
+    },
+    "dashboard": "Dashboard",
+    "series": "Series",
+    "episodes": "Episodes",
+    "audioStudio": "Audio Studio",
+    "characters": "Characters",
+    "assets": "Assets",
+    "templates": "Templates",
+    "calendar": "Calendar",
+    "channels": "Channels",
+    "jobs": "Jobs",
+    "usage": "Usage",
+    "systemLog": "System Log",
+    "cloudGpu": "Cloud GPU",
+    "health": "Health",
+    "storage": "Storage",
+    "backup": "Backup",
+    "updates": "Updates",
+    "ffmpeg": "FFmpeg",
+    "diagnostics": "Diagnostics",
+    "settings": "Settings",
+    "help": "Help",
+    "collapse": "Collapse",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "menuFor": "{{group}} menu",
+    "groupNavigation": "{{group}} navigation",
+    "generatingCount_one": "{{count}} episode generating",
+    "generatingCount_other": "{{count}} episodes generating"
   }
 }
