@@ -61,5 +61,42 @@
     "social": "Social",
     "usage": "Usage & Compute",
     "signIn": "Sign in"
+  },
+  "palette": {
+    "placeholder": "Jump to a page or action…",
+    "ariaLabel": "Command palette",
+    "queryLabel": "Command palette query",
+    "close": "Close",
+    "noMatches": "No matches.",
+    "kindRoute": "Route",
+    "kindAction": "Action",
+    "footerNavigate": "navigate",
+    "footerOpen": "open",
+    "footerClose": "close",
+    "hints": {
+      "dashboard": "Home overview",
+      "episodes": "Browse all episodes",
+      "series": "Manage series",
+      "audioStudio": "Audiobooks & narration",
+      "assets": "Media library",
+      "calendar": "Content schedule",
+      "youtube": "Channel management",
+      "cloudGpu": "RunPod / Vast.ai / Lambda",
+      "jobs": "Generation queue",
+      "usage": "Compute & metrics",
+      "systemLog": "Application logs",
+      "help": "Documentation"
+    },
+    "actions": {
+      "newEpisode": "New Episode",
+      "newEpisodeHint": "Create episode in a series",
+      "newSeries": "New Series",
+      "newSeriesHint": "Create a new content series",
+      "connectYoutube": "Connect YouTube",
+      "connectYoutubeHint": "Link a channel",
+      "openLastEpisode": "Open last episode",
+      "newEpisodeIn": "New episode in {{series}}",
+      "createQueue": "Create + queue"
+    }
   }
 }

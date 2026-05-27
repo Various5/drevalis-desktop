@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSeries, useRecentEpisodes } from '@/lib/queries';
 import {
   Search,
@@ -45,6 +46,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,27 +61,28 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       onClose();
     };
     return [
-      // Routes
-      { id: 'r-dashboard', kind: 'route', label: 'Dashboard', hint: 'Home overview', icon: LayoutDashboard, go: goto('/'), keywords: ['home', 'overview'] },
-      { id: 'r-episodes', kind: 'route', label: 'Episodes', hint: 'Browse all episodes', icon: Film, go: goto('/episodes') },
-      { id: 'r-series', kind: 'route', label: 'Series', hint: 'Manage series', icon: Layers, go: goto('/series') },
-      { id: 'r-tts', kind: 'route', label: 'Audio Studio', hint: 'Audiobooks & narration', icon: Mic, go: goto('/audiobooks'), keywords: ['audiobook', 'tts', 'voice', 'text to voice'] },
-      { id: 'r-assets', kind: 'route', label: 'Assets', hint: 'Media library', icon: FolderOpen, go: goto('/assets') },
-      { id: 'r-calendar', kind: 'route', label: 'Calendar', hint: 'Content schedule', icon: CalendarDays, go: goto('/calendar') },
-      { id: 'r-youtube', kind: 'route', label: 'YouTube', hint: 'Channel management', icon: Youtube, go: goto('/youtube') },
-      { id: 'r-settings', kind: 'route', label: 'Settings', icon: Settings, go: goto('/settings') },
-      { id: 'r-cloud', kind: 'route', label: 'Cloud GPU', hint: 'RunPod / Vast.ai / Lambda', icon: Cpu, go: goto('/cloud-gpu'), keywords: ['runpod', 'vast', 'lambda', 'gpu'] },
-      { id: 'r-jobs', kind: 'route', label: 'Jobs', hint: 'Generation queue', icon: ListChecks, go: goto('/jobs') },
-      { id: 'r-usage', kind: 'route', label: 'Usage', hint: 'Compute & metrics', icon: Activity, go: goto('/usage') },
-      { id: 'r-logs', kind: 'route', label: 'System Log', hint: 'Application logs', icon: Terminal, go: goto('/logs'), keywords: ['event log', 'logs'] },
-      { id: 'r-help', kind: 'route', label: 'Help', hint: 'Documentation', icon: HelpCircle, go: goto('/help') },
+      // Routes — labels reuse the shared nav.*/titles.* keys; hints are
+      // palette-specific. Keywords stay English (fuzzy-match aids only).
+      { id: 'r-dashboard', kind: 'route', label: t('nav.dashboard'), hint: t('palette.hints.dashboard'), icon: LayoutDashboard, go: goto('/'), keywords: ['home', 'overview'] },
+      { id: 'r-episodes', kind: 'route', label: t('nav.episodes'), hint: t('palette.hints.episodes'), icon: Film, go: goto('/episodes') },
+      { id: 'r-series', kind: 'route', label: t('nav.series'), hint: t('palette.hints.series'), icon: Layers, go: goto('/series') },
+      { id: 'r-tts', kind: 'route', label: t('nav.audioStudio'), hint: t('palette.hints.audioStudio'), icon: Mic, go: goto('/audiobooks'), keywords: ['audiobook', 'tts', 'voice', 'text to voice'] },
+      { id: 'r-assets', kind: 'route', label: t('nav.assets'), hint: t('palette.hints.assets'), icon: FolderOpen, go: goto('/assets') },
+      { id: 'r-calendar', kind: 'route', label: t('nav.calendar'), hint: t('palette.hints.calendar'), icon: CalendarDays, go: goto('/calendar') },
+      { id: 'r-youtube', kind: 'route', label: t('titles.youtube'), hint: t('palette.hints.youtube'), icon: Youtube, go: goto('/youtube') },
+      { id: 'r-settings', kind: 'route', label: t('nav.settings'), icon: Settings, go: goto('/settings') },
+      { id: 'r-cloud', kind: 'route', label: t('nav.cloudGpu'), hint: t('palette.hints.cloudGpu'), icon: Cpu, go: goto('/cloud-gpu'), keywords: ['runpod', 'vast', 'lambda', 'gpu'] },
+      { id: 'r-jobs', kind: 'route', label: t('nav.jobs'), hint: t('palette.hints.jobs'), icon: ListChecks, go: goto('/jobs') },
+      { id: 'r-usage', kind: 'route', label: t('nav.usage'), hint: t('palette.hints.usage'), icon: Activity, go: goto('/usage') },
+      { id: 'r-logs', kind: 'route', label: t('nav.systemLog'), hint: t('palette.hints.systemLog'), icon: Terminal, go: goto('/logs'), keywords: ['event log', 'logs'] },
+      { id: 'r-help', kind: 'route', label: t('nav.help'), hint: t('palette.hints.help'), icon: HelpCircle, go: goto('/help') },
 
       // Actions
       {
         id: 'a-new-episode',
         kind: 'action',
-        label: 'New Episode',
-        hint: 'Create episode in a series',
+        label: t('palette.actions.newEpisode'),
+        hint: t('palette.actions.newEpisodeHint'),
         icon: Plus,
         go: () => {
           navigate('/episodes?create=true');
@@ -89,8 +92,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: 'a-new-series',
         kind: 'action',
-        label: 'New Series',
-        hint: 'Create a new content series',
+        label: t('palette.actions.newSeries'),
+        hint: t('palette.actions.newSeriesHint'),
         icon: Plus,
         go: () => {
           navigate('/series?create=true');
@@ -100,8 +103,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: 'a-connect-youtube',
         kind: 'action',
-        label: 'Connect YouTube',
-        hint: 'Link a channel',
+        label: t('palette.actions.connectYoutube'),
+        hint: t('palette.actions.connectYoutubeHint'),
         icon: Youtube,
         go: goto('/youtube'),
         keywords: ['oauth', 'channel', 'publish'],
@@ -111,7 +114,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             {
               id: 'a-last-episode',
               kind: 'action' as const,
-              label: 'Open last episode',
+              label: t('palette.actions.openLastEpisode'),
               hint: lastEpisode.title,
               icon: Film,
               go: () => {
@@ -126,8 +129,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       ...seriesList.map((s) => ({
         id: `a-new-ep-${s.id}`,
         kind: 'action' as const,
-        label: `New episode in ${s.name}`,
-        hint: 'Create + queue',
+        label: t('palette.actions.newEpisodeIn', { series: s.name }),
+        hint: t('palette.actions.createQueue'),
         icon: Plus,
         go: () => {
           navigate(`/episodes?create=true&series=${s.id}`);
@@ -136,7 +139,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         keywords: ['create', 'episode', s.name],
       })),
     ];
-  }, [navigate, onClose, seriesList, lastEpisode]);
+  }, [navigate, onClose, seriesList, lastEpisode, t]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -190,7 +193,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       className="fixed inset-0 z-modal flex items-start justify-center bg-black/50 backdrop-blur-sm pt-[10vh] px-4"
       onClick={onClose}
       role="dialog"
-      aria-label="Command palette"
+      aria-label={t('palette.ariaLabel')}
       aria-modal
     >
       <div
@@ -204,15 +207,15 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Jump to a page or action…"
+            placeholder={t('palette.placeholder')}
             className="flex-1 bg-transparent outline-none text-sm text-txt-primary placeholder:text-txt-muted"
-            aria-label="Command palette query"
+            aria-label={t('palette.queryLabel')}
           />
           <button
             type="button"
             onClick={onClose}
             className="rounded p-1 text-txt-muted hover:text-txt-primary"
-            aria-label="Close"
+            aria-label={t('palette.close')}
           >
             <X size={13} />
           </button>
@@ -220,7 +223,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         <div className="max-h-[50vh] overflow-y-auto py-1">
           {results.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-txt-muted">
-              No matches.
+              {t('palette.noMatches')}
             </div>
           ) : (
             results.map((entry, idx) => {
@@ -252,7 +255,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                     )}
                   </div>
                   <span className="text-[10px] uppercase tracking-wider text-txt-muted">
-                    {entry.kind}
+                    {entry.kind === 'route' ? t('palette.kindRoute') : t('palette.kindAction')}
                   </span>
                   <ArrowRight size={11} className="text-txt-tertiary" />
                 </button>
@@ -261,9 +264,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           )}
         </div>
         <div className="px-3 py-2 border-t border-border text-[11px] text-txt-muted flex items-center gap-3">
-          <span>↑↓ navigate</span>
-          <span>↵ open</span>
-          <span>esc close</span>
+          <span>↑↓ {t('palette.footerNavigate')}</span>
+          <span>↵ {t('palette.footerOpen')}</span>
+          <span>esc {t('palette.footerClose')}</span>
         </div>
       </div>
     </div>

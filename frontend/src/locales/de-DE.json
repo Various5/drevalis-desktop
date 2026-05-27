@@ -61,5 +61,42 @@
     "social": "Social Media",
     "usage": "Nutzung & Rechenleistung",
     "signIn": "Anmelden"
+  },
+  "palette": {
+    "placeholder": "Zu einer Seite oder Aktion springen…",
+    "ariaLabel": "Befehlspalette",
+    "queryLabel": "Suche in der Befehlspalette",
+    "close": "Schließen",
+    "noMatches": "Keine Treffer.",
+    "kindRoute": "Seite",
+    "kindAction": "Aktion",
+    "footerNavigate": "navigieren",
+    "footerOpen": "öffnen",
+    "footerClose": "schließen",
+    "hints": {
+      "dashboard": "Startübersicht",
+      "episodes": "Alle Episoden durchsuchen",
+      "series": "Serien verwalten",
+      "audioStudio": "Hörbücher & Sprachausgabe",
+      "assets": "Medienbibliothek",
+      "calendar": "Inhaltsplan",
+      "youtube": "Kanalverwaltung",
+      "cloudGpu": "RunPod / Vast.ai / Lambda",
+      "jobs": "Generierungswarteschlange",
+      "usage": "Rechenleistung & Metriken",
+      "systemLog": "Anwendungsprotokolle",
+      "help": "Dokumentation"
+    },
+    "actions": {
+      "newEpisode": "Neue Episode",
+      "newEpisodeHint": "Episode in einer Serie erstellen",
+      "newSeries": "Neue Serie",
+      "newSeriesHint": "Eine neue Inhaltsserie erstellen",
+      "connectYoutube": "YouTube verbinden",
+      "connectYoutubeHint": "Einen Kanal verknüpfen",
+      "openLastEpisode": "Letzte Episode öffnen",
+      "newEpisodeIn": "Neue Episode in {{series}}",
+      "createQueue": "Erstellen + einreihen"
+    }
   }
 }
