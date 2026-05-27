@@ -99,6 +99,15 @@
       "createQueue": "Create + queue"
     }
   },
+  "channels": {
+    "intro": "Connect the platforms you publish to. Connected channels can be scheduled from the Calendar and targeted by a series.",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "manage": "Manage",
+    "connect": "Connect",
+    "managePlatform": "Manage {{platform}}",
+    "connectPlatform": "Connect {{platform}}"
+  },
   "header": {
     "search": "Search",
     "openPalette": "Open command palette (Ctrl+K)",

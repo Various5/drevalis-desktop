@@ -99,6 +99,15 @@
       "createQueue": "Erstellen + einreihen"
     }
   },
+  "channels": {
+    "intro": "Verbinde die Plattformen, auf denen du veröffentlichst. Verbundene Kanäle können über den Kalender geplant und einer Serie zugewiesen werden.",
+    "connected": "Verbunden",
+    "notConnected": "Nicht verbunden",
+    "manage": "Verwalten",
+    "connect": "Verbinden",
+    "managePlatform": "{{platform}} verwalten",
+    "connectPlatform": "{{platform}} verbinden"
+  },
   "header": {
     "search": "Suchen",
     "openPalette": "Befehlspalette öffnen (Strg+K)",

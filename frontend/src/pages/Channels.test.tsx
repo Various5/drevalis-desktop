@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import i18n from '@/lib/i18n';
 import Channels from './Channels';
 
 // YouTube + TikTok connected; the rest disconnected.
@@ -12,6 +13,10 @@ vi.mock('@/lib/useConnectedPlatforms', () => ({
     refresh: vi.fn(),
   }),
 }));
+
+afterEach(async () => {
+  await i18n.changeLanguage('en-US');
+});
 
 describe('Channels hub', () => {
   it('shows a card for every supported platform', () => {
@@ -34,5 +39,19 @@ describe('Channels hub', () => {
     // youtube + tiktok → Manage (2); instagram + facebook + x → Connect (3)
     expect(screen.getAllByRole('button', { name: /^manage/i })).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: /^connect/i })).toHaveLength(3);
+  });
+
+  it('renders German copy after a language switch', async () => {
+    await i18n.changeLanguage('de-DE');
+    render(
+      <MemoryRouter>
+        <Channels />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/^Verbinde die Plattformen/)).toBeInTheDocument(); // intro
+    expect(screen.getAllByText('Verwalten')).toHaveLength(2); // connected
+    expect(screen.getAllByText('Verbinden')).toHaveLength(3); // disconnected
+    // Platform names stay proper nouns.
+    expect(screen.getByText('YouTube')).toBeInTheDocument();
   });
 });

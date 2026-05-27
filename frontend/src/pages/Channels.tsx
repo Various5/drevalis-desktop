@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Youtube,
   Music2,
@@ -57,6 +58,7 @@ function ChannelCard({
   onOpen: (route: string) => void;
 }) {
   const Icon = platform.icon;
+  const { t } = useTranslation();
   return (
     <Card padding="md">
       <div className="flex items-center justify-between gap-3">
@@ -68,10 +70,10 @@ function ChannelCard({
             <p className="text-sm font-semibold text-txt-primary">{platform.label}</p>
             {connected ? (
               <Badge variant="success" dot>
-                Connected
+                {t('channels.connected')}
               </Badge>
             ) : (
-              <Badge variant="neutral">Not connected</Badge>
+              <Badge variant="neutral">{t('channels.notConnected')}</Badge>
             )}
           </div>
         </div>
@@ -79,17 +81,21 @@ function ChannelCard({
           variant={connected ? 'ghost' : 'secondary'}
           size="sm"
           onClick={() => onOpen(platform.route)}
-          aria-label={connected ? `Manage ${platform.label}` : `Connect ${platform.label}`}
+          aria-label={
+            connected
+              ? t('channels.managePlatform', { platform: platform.label })
+              : t('channels.connectPlatform', { platform: platform.label })
+          }
         >
           {connected ? (
             <>
               <Settings2 size={13} />
-              Manage
+              {t('channels.manage')}
             </>
           ) : (
             <>
               <Link2 size={13} />
-              Connect
+              {t('channels.connect')}
             </>
           )}
         </Button>
@@ -100,6 +106,7 @@ function ChannelCard({
 
 function Channels() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { socials, youtubeConnected, ready } = useConnectedPlatforms();
 
   const isConnected = (id: string): boolean =>
@@ -108,10 +115,7 @@ function Channels() {
   return (
     <div>
       <div className="mb-6">
-        <p className="text-sm text-txt-secondary">
-          Connect the platforms you publish to. Connected channels can be scheduled
-          from the Calendar and targeted by a series.
-        </p>
+        <p className="text-sm text-txt-secondary">{t('channels.intro')}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
