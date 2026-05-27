@@ -23,8 +23,12 @@ export type NavGroup = 'content-studio' | 'publish' | 'system';
 export interface RouteMeta {
   /** Path pattern (react-router style; ``:param`` for dynamic segments). */
   path: string;
-  /** Browser tab title + Header banner text. */
+  /** Browser tab title + Header banner text (English fallback). */
   title: string;
+  /** i18n key for the title (src/locales → nav.* / titles.*). When set and a
+   *  translator is supplied, ``getRouteTitle`` resolves this; otherwise it
+   *  falls back to ``title``. */
+  titleKey?: string;
   /** Sidebar / MobileNav label. Falls back to ``title`` when omitted. */
   navLabel?: string;
   /** Sidebar grouping (Phase 2+ wires this). */
@@ -42,12 +46,14 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/': {
     path: '/',
     title: 'Dashboard',
+    titleKey: 'nav.dashboard',
     navLabel: 'Dashboard',
     icon: 'LayoutDashboard',
   },
   '/series': {
     path: '/series',
     title: 'Series',
+    titleKey: 'nav.series',
     navLabel: 'Series',
     navGroup: 'content-studio',
     icon: 'Library',
@@ -55,12 +61,14 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/series/:seriesId': {
     path: '/series/:seriesId',
     title: 'Series Detail',
+    titleKey: 'titles.seriesDetail',
     hidden: true,
     ownTitle: true,
   },
   '/episodes': {
     path: '/episodes',
     title: 'Episodes',
+    titleKey: 'nav.episodes',
     navLabel: 'Episodes',
     navGroup: 'content-studio',
     icon: 'Film',
@@ -68,23 +76,27 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/episodes/:episodeId': {
     path: '/episodes/:episodeId',
     title: 'Episode Detail',
+    titleKey: 'titles.episodeDetail',
     hidden: true,
     ownTitle: true,
   },
   '/episodes/:episodeId/shot-list': {
     path: '/episodes/:episodeId/shot-list',
     title: 'Shot List',
+    titleKey: 'titles.shotList',
     hidden: true,
     ownTitle: true,
   },
   '/episodes/:episodeId/edit': {
     path: '/episodes/:episodeId/edit',
     title: 'Episode Editor',
+    titleKey: 'titles.episodeEditor',
     hidden: true,
   },
   '/audiobooks': {
     path: '/audiobooks',
     title: 'Audio Studio',
+    titleKey: 'nav.audioStudio',
     navLabel: 'Audio Studio',
     navGroup: 'content-studio',
     icon: 'BookHeadphones',
@@ -92,16 +104,19 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/audiobooks/:audiobookId': {
     path: '/audiobooks/:audiobookId',
     title: 'Audiobook Detail',
+    titleKey: 'titles.audiobookDetail',
     hidden: true,
   },
   '/audiobooks/:audiobookId/edit': {
     path: '/audiobooks/:audiobookId/edit',
     title: 'Audiobook Editor',
+    titleKey: 'titles.audiobookEditor',
     hidden: true,
   },
   '/assets': {
     path: '/assets',
     title: 'Assets',
+    titleKey: 'nav.assets',
     navLabel: 'Assets',
     navGroup: 'content-studio',
     icon: 'Folder',
@@ -109,6 +124,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/templates': {
     path: '/templates',
     title: 'Templates',
+    titleKey: 'nav.templates',
     navLabel: 'Templates',
     navGroup: 'content-studio',
     icon: 'LayoutTemplate',
@@ -116,11 +132,13 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/editor-next': {
     path: '/editor-next',
     title: 'Editor (preview)',
+    titleKey: 'titles.editorPreview',
     hidden: true,
   },
   '/calendar': {
     path: '/calendar',
     title: 'Calendar',
+    titleKey: 'nav.calendar',
     navLabel: 'Calendar',
     navGroup: 'publish',
     icon: 'Calendar',
@@ -129,6 +147,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/channels': {
     path: '/channels',
     title: 'Channels',
+    titleKey: 'nav.channels',
     navLabel: 'Channels',
     navGroup: 'publish',
     icon: 'Share2',
@@ -136,6 +155,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/youtube': {
     path: '/youtube',
     title: 'YouTube',
+    titleKey: 'titles.youtube',
     navLabel: 'YouTube',
     navGroup: 'publish',
     icon: 'Youtube',
@@ -143,6 +163,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/youtube/library': {
     path: '/youtube/library',
     title: 'YouTube Library',
+    titleKey: 'titles.youtubeLibrary',
     navLabel: 'YT Library',
     navGroup: 'publish',
     icon: 'Library',
@@ -150,17 +171,20 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/youtube/callback': {
     path: '/youtube/callback',
     title: 'Connecting YouTube…',
+    titleKey: 'titles.youtubeConnecting',
     hidden: true,
   },
   '/social/:platform': {
     path: '/social/:platform',
     title: 'Social',
+    titleKey: 'titles.social',
     hidden: true,
     ownTitle: true,
   },
   '/jobs': {
     path: '/jobs',
     title: 'Jobs',
+    titleKey: 'nav.jobs',
     navLabel: 'Jobs',
     navGroup: 'system',
     icon: 'Activity',
@@ -168,6 +192,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/logs': {
     path: '/logs',
     title: 'System Log',
+    titleKey: 'nav.systemLog',
     navLabel: 'System Log',
     navGroup: 'system',
     icon: 'ScrollText',
@@ -175,6 +200,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/usage': {
     path: '/usage',
     title: 'Usage & Compute',
+    titleKey: 'titles.usage',
     navLabel: 'Usage',
     navGroup: 'system',
     icon: 'Gauge',
@@ -182,6 +208,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/cloud-gpu': {
     path: '/cloud-gpu',
     title: 'Cloud GPU',
+    titleKey: 'nav.cloudGpu',
     navLabel: 'Cloud GPU',
     navGroup: 'system',
     icon: 'Server',
@@ -189,6 +216,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/settings': {
     path: '/settings',
     title: 'Settings',
+    titleKey: 'nav.settings',
     navLabel: 'Settings',
     navGroup: 'system',
     icon: 'Settings',
@@ -196,6 +224,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/help': {
     path: '/help',
     title: 'Help',
+    titleKey: 'nav.help',
     navLabel: 'Help',
     navGroup: 'system',
     icon: 'HelpCircle',
@@ -204,6 +233,7 @@ export const ROUTES: Record<string, RouteMeta> = {
   '/login': {
     path: '/login',
     title: 'Sign in',
+    titleKey: 'titles.signIn',
     hidden: true,
   },
 };
@@ -274,12 +304,15 @@ export function getRouteMeta(pathname: string): RouteMeta | null {
  * Special case: ``/social/:platform`` interpolates the platform slug
  * into a real label so the banner reads "TikTok" instead of "Social".
  */
-export function getRouteTitle(pathname: string): string {
+export function getRouteTitle(pathname: string, t?: (key: string) => string): string {
   if (pathname.startsWith('/social/')) {
     const slug = pathname.split('/')[2] ?? '';
-    return SOCIAL_PLATFORM_LABEL[slug] ?? 'Social';
+    // Platform names are proper nouns — never translated. Only the generic
+    // "Social" fallback is localised.
+    return SOCIAL_PLATFORM_LABEL[slug] ?? (t ? t('titles.social') : 'Social');
   }
   const meta = getRouteMeta(pathname);
+  if (meta?.titleKey && t) return t(meta.titleKey);
   return meta?.title ?? APP_NAME;
 }
 
@@ -295,7 +328,7 @@ export function routeOwnsTitle(pathname: string): boolean {
  * Browser-tab title. Suffixed with the app name so multi-tab users can
  * still tell which app a tab belongs to.
  */
-export function getDocumentTitle(pathname: string): string {
-  const t = getRouteTitle(pathname);
-  return t === APP_NAME ? APP_NAME : `${t} · ${APP_NAME}`;
+export function getDocumentTitle(pathname: string, t?: (key: string) => string): string {
+  const title = getRouteTitle(pathname, t);
+  return title === APP_NAME ? APP_NAME : `${title} · ${APP_NAME}`;
 }

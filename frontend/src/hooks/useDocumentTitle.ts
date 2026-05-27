@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getDocumentTitle } from '@/routes/routeMeta';
 
 /**
@@ -44,7 +45,9 @@ export function useDocumentTitle(title: string, options: UseDocumentTitleOptions
  */
 export function useRouteDocumentTitle(): void {
   const { pathname } = useLocation();
+  const { t, i18n } = useTranslation();
   useEffect(() => {
-    document.title = getDocumentTitle(pathname);
-  }, [pathname]);
+    document.title = getDocumentTitle(pathname, t);
+    // Re-run on language change so the tab title re-localises live.
+  }, [pathname, t, i18n.language]);
 }

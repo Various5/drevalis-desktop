@@ -46,5 +46,20 @@
     "groupNavigation": "{{group}} navigation",
     "generatingCount_one": "{{count}} episode generating",
     "generatingCount_other": "{{count}} episodes generating"
+  },
+  "titles": {
+    "seriesDetail": "Series Detail",
+    "episodeDetail": "Episode Detail",
+    "shotList": "Shot List",
+    "episodeEditor": "Episode Editor",
+    "audiobookDetail": "Audiobook Detail",
+    "audiobookEditor": "Audiobook Editor",
+    "editorPreview": "Editor (preview)",
+    "youtube": "YouTube",
+    "youtubeLibrary": "YouTube Library",
+    "youtubeConnecting": "Connecting YouTube…",
+    "social": "Social",
+    "usage": "Usage & Compute",
+    "signIn": "Sign in"
   }
 }

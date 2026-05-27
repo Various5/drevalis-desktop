@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, LogOut, User as UserIcon, Search, Command } from 'lucide-react';
 import { useAuth } from '@/lib/useAuth';
 import { auth } from '@/lib/api';
@@ -30,7 +31,8 @@ interface HeaderProps {
 
 function Header({ sidebarCollapsed }: HeaderProps) {
   const location = useLocation();
-  const title = getRouteTitle(location.pathname);
+  const { t } = useTranslation();
+  const title = getRouteTitle(location.pathname, t);
   // Routes whose page renders its own content H1 suppress the banner title
   // here, so there's exactly one H1 per page (Phase 3).
   const ownTitle = routeOwnsTitle(location.pathname);
