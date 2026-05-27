@@ -89,19 +89,11 @@ function Header({ sidebarCollapsed }: HeaderProps) {
             when reconnecting / disconnected. Tooltip explains why
             users see stale progress when offline. */}
         <Tooltip
-          content={
-            wsConnected
-              ? 'Live progress channel connected'
-              : 'Live progress channel disconnected — reconnecting…'
-          }
+          content={wsConnected ? t('header.wsConnected') : t('header.wsConnecting')}
         >
           <span
             className="inline-flex items-center"
-            aria-label={
-              wsConnected
-                ? 'Live progress channel connected'
-                : 'Live progress channel disconnected'
-            }
+            aria-label={wsConnected ? t('header.wsConnected') : t('header.wsDisconnected')}
             role="status"
           >
             <span
@@ -118,11 +110,11 @@ function Header({ sidebarCollapsed }: HeaderProps) {
           type="button"
           onClick={() => setPaletteOpen(true)}
           className="hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.06] text-xs text-txt-tertiary hover:text-txt-primary hover:border-white/[0.12] transition-colors"
-          aria-label="Open command palette (Ctrl+K)"
-          title="Command palette — Ctrl+K"
+          aria-label={t('header.openPalette')}
+          title={t('header.paletteTooltip')}
         >
           <Search size={12} />
-          <span>Search</span>
+          <span>{t('header.search')}</span>
           <span className="ml-2 inline-flex items-center gap-0.5 text-txt-muted">
             <Command size={10} />
             <span>K</span>
@@ -145,7 +137,7 @@ function Header({ sidebarCollapsed }: HeaderProps) {
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-full text-txt-secondary hover:text-txt-primary hover:bg-white/[0.04] transition-colors"
-              aria-label="User menu"
+              aria-label={t('header.userMenu')}
             >
               <span className="w-6 h-6 rounded-full bg-accent/15 border border-accent/30 text-accent text-[11px] flex items-center justify-center">
                 {(user.display_name || user.email).slice(0, 1).toUpperCase()}
@@ -161,7 +153,7 @@ function Header({ sidebarCollapsed }: HeaderProps) {
                 <div className="px-3 py-2 border-b border-white/[0.04]">
                   <div className="text-xs text-txt-muted flex items-center gap-1.5">
                     <UserIcon size={11} />
-                    Signed in as
+                    {t('header.signedInAs')}
                   </div>
                   <div className="text-sm text-txt-primary truncate">{user.email}</div>
                   <div className="text-[11px] text-txt-muted mt-0.5 capitalize">{user.role}</div>
@@ -175,7 +167,7 @@ function Header({ sidebarCollapsed }: HeaderProps) {
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-txt-secondary hover:text-error hover:bg-error/10 transition-colors text-left"
                 >
                   <LogOut size={14} />
-                  Sign out
+                  {t('header.signOut')}
                 </button>
               </div>
             )}

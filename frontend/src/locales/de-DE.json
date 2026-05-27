@@ -98,5 +98,16 @@
       "newEpisodeIn": "Neue Episode in {{series}}",
       "createQueue": "Erstellen + einreihen"
     }
+  },
+  "header": {
+    "search": "Suchen",
+    "openPalette": "Befehlspalette öffnen (Strg+K)",
+    "paletteTooltip": "Befehlspalette — Strg+K",
+    "wsConnected": "Live-Fortschrittskanal verbunden",
+    "wsConnecting": "Live-Fortschrittskanal getrennt — verbinde erneut…",
+    "wsDisconnected": "Live-Fortschrittskanal getrennt",
+    "userMenu": "Benutzermenü",
+    "signedInAs": "Angemeldet als",
+    "signOut": "Abmelden"
   }
 }

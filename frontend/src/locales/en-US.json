@@ -98,5 +98,16 @@
       "newEpisodeIn": "New episode in {{series}}",
       "createQueue": "Create + queue"
     }
+  },
+  "header": {
+    "search": "Search",
+    "openPalette": "Open command palette (Ctrl+K)",
+    "paletteTooltip": "Command palette — Ctrl+K",
+    "wsConnected": "Live progress channel connected",
+    "wsConnecting": "Live progress channel disconnected — reconnecting…",
+    "wsDisconnected": "Live progress channel disconnected",
+    "userMenu": "User menu",
+    "signedInAs": "Signed in as",
+    "signOut": "Sign out"
   }
 }
