@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { isTauri } from '@/lib/tauri';
+import { FullPageSpinner } from '@/components/ui/Spinner';
 import {
   Server,
   Mic2,
@@ -21,24 +22,66 @@ import {
   ShieldCheck,
   Network,
 } from 'lucide-react';
-import { LicenseSection } from '@/pages/Settings/sections/LicenseSection';
-import { UpdatesSection } from '@/pages/Settings/sections/UpdatesSection';
-import { BackupSection } from '@/pages/Settings/sections/BackupSection';
-import { TeamSection } from '@/pages/Settings/sections/TeamSection';
-import { AppearanceSection } from '@/pages/Settings/sections/AppearanceSection';
-import { PrivacySection } from '@/pages/Settings/sections/PrivacySection';
-import { HealthSection } from '@/pages/Settings/sections/HealthSection';
-import { ComfyUISection } from '@/pages/Settings/sections/ComfyUISection';
-import { VoiceSection } from '@/pages/Settings/sections/VoiceSection';
-import { LLMSection } from '@/pages/Settings/sections/LLMSection';
-import { StorageSection } from '@/pages/Settings/sections/StorageSection';
-import { FFmpegSection } from '@/pages/Settings/sections/FFmpegSection';
-import { SocialSection } from '@/pages/Settings/sections/SocialSection';
-import { ApiKeysSection } from '@/pages/Settings/sections/ApiKeysSection';
-import { DiagnosticsSection } from '@/pages/Settings/sections/DiagnosticsSection';
-import { NetworkSection } from '@/pages/Settings/sections/NetworkSection';
-import { LoginHistorySection } from '@/pages/Settings/sections/LoginHistorySection';
-import { TwoFactorSection } from '@/pages/Settings/sections/TwoFactorSection';
+// Settings sections are code-split (Phase 5 perf) — each panel ships as its
+// own chunk and only downloads when the user actually opens it. The Suspense
+// boundary lives around the right-hand content area below, so switching
+// panels shows ``FullPageSpinner`` for the brief download/parse window
+// instead of a flash of empty space. ``lazy()`` requires a default export;
+// the adapters below turn the named export into the default React expects.
+const LicenseSection = lazy(() =>
+  import('@/pages/Settings/sections/LicenseSection').then((m) => ({ default: m.LicenseSection })),
+);
+const UpdatesSection = lazy(() =>
+  import('@/pages/Settings/sections/UpdatesSection').then((m) => ({ default: m.UpdatesSection })),
+);
+const BackupSection = lazy(() =>
+  import('@/pages/Settings/sections/BackupSection').then((m) => ({ default: m.BackupSection })),
+);
+const TeamSection = lazy(() =>
+  import('@/pages/Settings/sections/TeamSection').then((m) => ({ default: m.TeamSection })),
+);
+const AppearanceSection = lazy(() =>
+  import('@/pages/Settings/sections/AppearanceSection').then((m) => ({ default: m.AppearanceSection })),
+);
+const PrivacySection = lazy(() =>
+  import('@/pages/Settings/sections/PrivacySection').then((m) => ({ default: m.PrivacySection })),
+);
+const HealthSection = lazy(() =>
+  import('@/pages/Settings/sections/HealthSection').then((m) => ({ default: m.HealthSection })),
+);
+const ComfyUISection = lazy(() =>
+  import('@/pages/Settings/sections/ComfyUISection').then((m) => ({ default: m.ComfyUISection })),
+);
+const VoiceSection = lazy(() =>
+  import('@/pages/Settings/sections/VoiceSection').then((m) => ({ default: m.VoiceSection })),
+);
+const LLMSection = lazy(() =>
+  import('@/pages/Settings/sections/LLMSection').then((m) => ({ default: m.LLMSection })),
+);
+const StorageSection = lazy(() =>
+  import('@/pages/Settings/sections/StorageSection').then((m) => ({ default: m.StorageSection })),
+);
+const FFmpegSection = lazy(() =>
+  import('@/pages/Settings/sections/FFmpegSection').then((m) => ({ default: m.FFmpegSection })),
+);
+const SocialSection = lazy(() =>
+  import('@/pages/Settings/sections/SocialSection').then((m) => ({ default: m.SocialSection })),
+);
+const ApiKeysSection = lazy(() =>
+  import('@/pages/Settings/sections/ApiKeysSection').then((m) => ({ default: m.ApiKeysSection })),
+);
+const DiagnosticsSection = lazy(() =>
+  import('@/pages/Settings/sections/DiagnosticsSection').then((m) => ({ default: m.DiagnosticsSection })),
+);
+const NetworkSection = lazy(() =>
+  import('@/pages/Settings/sections/NetworkSection').then((m) => ({ default: m.NetworkSection })),
+);
+const LoginHistorySection = lazy(() =>
+  import('@/pages/Settings/sections/LoginHistorySection').then((m) => ({ default: m.LoginHistorySection })),
+);
+const TwoFactorSection = lazy(() =>
+  import('@/pages/Settings/sections/TwoFactorSection').then((m) => ({ default: m.TwoFactorSection })),
+);
 
 // ---------------------------------------------------------------------------
 // Settings Sections Nav
@@ -258,26 +301,30 @@ function Settings() {
           </nav>
         </div>
 
-        {/* Right content */}
+        {/* Right content — sections are lazy-loaded; Suspense shows the
+            full-page spinner during the brief download/parse of the panel
+            chunk the first time a user opens it. */}
         <div className="md:col-span-9">
-          {activeSection === 'license' && <LicenseSection />}
-          {activeSection === 'appearance' && <AppearanceSection />}
-          {activeSection === 'privacy' && <PrivacySection />}
-          {activeSection === 'team' && <TeamSection />}
-          {activeSection === 'updates' && <UpdatesSection />}
-          {activeSection === 'backup' && <BackupSection />}
-          {activeSection === 'health' && <HealthSection />}
-          {activeSection === 'comfyui' && <ComfyUISection />}
-          {activeSection === 'voice' && <VoiceSection />}
-          {activeSection === 'llm' && <LLMSection />}
-          {activeSection === 'storage' && <StorageSection />}
-          {activeSection === 'ffmpeg' && <FFmpegSection />}
-          {activeSection === 'social' && <SocialSection />}
-          {activeSection === 'apikeys' && <ApiKeysSection onNavigateToApiKeys={() => selectSection('apikeys')} />}
-          {activeSection === 'diagnostics' && <DiagnosticsSection />}
-          {activeSection === 'network' && <NetworkSection />}
-          {activeSection === 'two-factor' && <TwoFactorSection />}
-          {activeSection === 'login-history' && <LoginHistorySection />}
+          <Suspense fallback={<FullPageSpinner />}>
+            {activeSection === 'license' && <LicenseSection />}
+            {activeSection === 'appearance' && <AppearanceSection />}
+            {activeSection === 'privacy' && <PrivacySection />}
+            {activeSection === 'team' && <TeamSection />}
+            {activeSection === 'updates' && <UpdatesSection />}
+            {activeSection === 'backup' && <BackupSection />}
+            {activeSection === 'health' && <HealthSection />}
+            {activeSection === 'comfyui' && <ComfyUISection />}
+            {activeSection === 'voice' && <VoiceSection />}
+            {activeSection === 'llm' && <LLMSection />}
+            {activeSection === 'storage' && <StorageSection />}
+            {activeSection === 'ffmpeg' && <FFmpegSection />}
+            {activeSection === 'social' && <SocialSection />}
+            {activeSection === 'apikeys' && <ApiKeysSection onNavigateToApiKeys={() => selectSection('apikeys')} />}
+            {activeSection === 'diagnostics' && <DiagnosticsSection />}
+            {activeSection === 'network' && <NetworkSection />}
+            {activeSection === 'two-factor' && <TwoFactorSection />}
+            {activeSection === 'login-history' && <LoginHistorySection />}
+          </Suspense>
         </div>
       </div>
     </div>
