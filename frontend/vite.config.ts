@@ -2,9 +2,33 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
+import { visualizer } from 'rollup-plugin-visualizer';
+
+// Bundle audit (Phase 5). ``ANALYZE=1 npm run build`` writes
+// ``dist/stats.html`` (treemap) and ``dist/stats.json`` (raw, machine-
+// readable). Gated on the env var so normal + CI builds stay fast.
+const analyze = process.env.ANALYZE === '1';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(analyze
+      ? [
+          visualizer({
+            filename: 'dist/stats.html',
+            template: 'treemap',
+            gzipSize: true,
+            brotliSize: false,
+          }),
+          visualizer({
+            filename: 'dist/stats.json',
+            template: 'raw-data',
+            gzipSize: true,
+            brotliSize: false,
+          }),
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -30,6 +54,10 @@ export default defineConfig({
           if (id.includes('@radix-ui')) return 'vendor-radix';
           if (id.includes('i18next')) return 'vendor-i18n';
           if (id.includes('lucide-react')) return 'vendor-icons';
+          // @sentry/* intentionally stays in the catch-all ``vendor`` — a
+          // dedicated ``vendor-sentry`` chunk creates a vendor↔vendor-sentry
+          // cycle through transitive deps, and the Sentry SDK is only ~27 kB
+          // gzipped (well under the Phase-5 spec's 50 kB lazy-load threshold).
           return 'vendor';
         },
       },

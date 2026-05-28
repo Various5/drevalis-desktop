@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { onboarding as onboardingApi, type OnboardingStatus } from '@/lib/api';
-import { OnboardingWizard } from './OnboardingWizard';
+
+// Lazy: the wizard only renders on first-run (or when re-opened from Settings),
+// but OnboardingGate mounts on every screen via Layout. Eager-importing it
+// pulled the whole wizard module (~5.6 kB gz) onto the critical path for every
+// user past first-run. Fallback is null — the wizard is an opt-in modal, so
+// showing nothing during the brief chunk fetch is the right behaviour.
+const OnboardingWizard = lazy(() =>
+  import('./OnboardingWizard').then((m) => ({ default: m.OnboardingWizard })),
+);
 
 /**
  * Polls /api/v1/onboarding/status on mount + every 30s and mounts the
@@ -30,11 +38,13 @@ export function OnboardingGate() {
   if (!status || !status.should_show) return null;
 
   return (
-    <OnboardingWizard
-      status={status}
-      onRefresh={refresh}
-      onDismiss={refresh}
-    />
+    <Suspense fallback={null}>
+      <OnboardingWizard
+        status={status}
+        onRefresh={refresh}
+        onDismiss={refresh}
+      />
+    </Suspense>
   );
 }
 

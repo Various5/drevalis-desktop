@@ -8,6 +8,13 @@
 // "fetch then init" dance costs one round trip on startup; in
 // return we get a single source of truth for telemetry config.
 
+// ``@sentry/browser`` is statically imported so rollup can tree-shake to just
+// ``Sentry.init`` (the only call site). We tried a dynamic import to keep it
+// off the critical bundle, but it defeated tree-shaking — the whole module
+// surface was retained, ballooning vendor by ~370 kB. The Sentry SDK is
+// instead routed into its own ``vendor-sentry`` chunk via manualChunks in
+// vite.config.ts, so it ships separately while staying tree-shaken.
+
 import * as Sentry from '@sentry/browser';
 
 export type TelemetryBootstrap = {
