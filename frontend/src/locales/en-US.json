@@ -5,7 +5,15 @@
     "delete": "Delete",
     "restore": "Restore",
     "skipToContent": "Skip to content",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "on": "On",
+    "off": "Off",
+    "status": {
+      "ok": "OK",
+      "degraded": "Degraded",
+      "unhealthy": "Unhealthy",
+      "unreachable": "Unreachable"
+    }
   },
   "settings": {
     "language": "Language",
@@ -32,6 +40,27 @@
       "social": "Social Media",
       "apiKeys": "API Keys",
       "network": "LAN API Access"
+    },
+    "privacy": {
+      "loading": "Loading privacy settings…",
+      "title": "Privacy & Crash Reporting",
+      "intro": "Anonymous crash reports help us catch and fix bugs in the alpha faster. No content, file paths, or credentials are ever sent — only the exception type, stack trace, and app version. You can opt out at any time.",
+      "sendReports": "Send crash reports",
+      "sendReportsHint": "When enabled, exceptions in the backend, frontend, and desktop shell are sent to the configured error-tracking backend.",
+      "currentStatus": "Current status",
+      "sendingReports": "Sending reports",
+      "disabled": "Disabled",
+      "envLabel": "env: {{env}}",
+      "releaseLabel": "release: {{release}}",
+      "noDsnConfiguredPrefix": "No telemetry backend is configured. Set",
+      "noDsnConfiguredSuffix": "to point at your Sentry or Glitchtip project to enable crash reporting.",
+      "refresh": "Refresh status"
+    },
+    "health": {
+      "title": "System Health",
+      "refresh": "Refresh",
+      "loadFailed": "Failed to load system health",
+      "overall": "Overall: {{status}}"
     },
     "appearance": {
       "title": "Appearance",

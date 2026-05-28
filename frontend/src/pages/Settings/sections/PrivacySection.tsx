@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ShieldCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -15,6 +16,7 @@ type Preferences = {
 };
 
 export function PrivacySection() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<TelemetryStatus | null>(null);
   const [optOut, setOptOut] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export function PrivacySection() {
     }
   }
 
-  if (loading) return <Card className="p-6">Loading privacy settings...</Card>;
+  if (loading) return <Card className="p-6">{t('settings.privacy.loading')}</Card>;
 
   const dsnConfigured = Boolean(status?.dsn) || Boolean(status?.environment);
   const currentlySending = Boolean(status?.enabled) && Boolean(status?.dsn);
@@ -69,23 +71,17 @@ export function PrivacySection() {
       <header className="flex items-start gap-3">
         <ShieldCheck className="w-6 h-6 text-accent flex-shrink-0 mt-0.5" />
         <div>
-          <h2 className="text-lg font-semibold">Privacy & Crash Reporting</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Anonymous crash reports help us catch and fix bugs in the alpha
-            faster. No content, file paths, or credentials are ever sent —
-            only the exception type, stack trace, and app version. You can
-            opt out at any time.
-          </p>
+          <h2 className="text-lg font-semibold">{t('settings.privacy.title')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('settings.privacy.intro')}</p>
         </div>
       </header>
 
       <div className="rounded-lg border border-border bg-background/60 p-4 space-y-3">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium">Send crash reports</p>
+            <p className="text-sm font-medium">{t('settings.privacy.sendReports')}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              When enabled, exceptions in the backend, frontend, and desktop
-              shell are sent to the configured error-tracking backend.
+              {t('settings.privacy.sendReportsHint')}
             </p>
           </div>
           <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -96,49 +92,48 @@ export function PrivacySection() {
               disabled={saving}
               onChange={(e) => void toggleOptOut(!e.target.checked)}
             />
-            <span className="text-sm">{!optOut ? 'On' : 'Off'}</span>
+            <span className="text-sm">{!optOut ? t('common.on') : t('common.off')}</span>
           </label>
         </div>
       </div>
 
       <div className="rounded-lg border border-border bg-background/60 p-4 space-y-2">
-        <p className="text-sm font-medium">Current status</p>
+        <p className="text-sm font-medium">{t('settings.privacy.currentStatus')}</p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {currentlySending ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 text-emerald-300 px-2.5 py-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Sending reports
+              <CheckCircle2 className="w-3.5 h-3.5" /> {t('settings.privacy.sendingReports')}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-2.5 py-1">
-              <AlertTriangle className="w-3.5 h-3.5" /> Disabled
+              <AlertTriangle className="w-3.5 h-3.5" /> {t('settings.privacy.disabled')}
             </span>
           )}
           {status?.environment && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-              env: {status.environment}
+              {t('settings.privacy.envLabel', { env: status.environment })}
             </span>
           )}
           {status?.release && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-              release: {status.release}
+              {t('settings.privacy.releaseLabel', { release: status.release })}
             </span>
           )}
         </div>
         {!dsnConfigured && (
           <p className="text-xs text-muted-foreground mt-2">
-            No telemetry backend is configured. Set{' '}
+            {t('settings.privacy.noDsnConfiguredPrefix')}{' '}
             <code className="px-1 py-0.5 rounded bg-muted text-foreground">
               DREVALIS_TELEMETRY_DSN
             </code>{' '}
-            to point at your Sentry or Glitchtip project to enable
-            crash reporting.
+            {t('settings.privacy.noDsnConfiguredSuffix')}
           </p>
         )}
       </div>
 
       <div className="flex justify-end">
         <Button variant="ghost" size="sm" onClick={() => void reload()}>
-          Refresh status
+          {t('settings.privacy.refresh')}
         </Button>
       </div>
     </Card>

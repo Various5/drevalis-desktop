@@ -5,7 +5,15 @@
     "delete": "Löschen",
     "restore": "Wiederherstellen",
     "skipToContent": "Zum Inhalt springen",
-    "loading": "Wird geladen…"
+    "loading": "Wird geladen…",
+    "on": "An",
+    "off": "Aus",
+    "status": {
+      "ok": "OK",
+      "degraded": "Beeinträchtigt",
+      "unhealthy": "Fehlerhaft",
+      "unreachable": "Nicht erreichbar"
+    }
   },
   "settings": {
     "language": "Sprache",
@@ -32,6 +40,27 @@
       "social": "Soziale Medien",
       "apiKeys": "API-Schlüssel",
       "network": "LAN-API-Zugriff"
+    },
+    "privacy": {
+      "loading": "Datenschutzeinstellungen werden geladen…",
+      "title": "Datenschutz & Absturzberichte",
+      "intro": "Anonyme Absturzberichte helfen uns, Fehler im Alpha schneller zu finden und zu beheben. Es werden keine Inhalte, Dateipfade oder Anmeldedaten gesendet — nur die Ausnahmeart, der Stack-Trace und die App-Version. Du kannst jederzeit deaktivieren.",
+      "sendReports": "Absturzberichte senden",
+      "sendReportsHint": "Wenn aktiviert, werden Ausnahmen aus Backend, Frontend und Desktop-Shell an das konfigurierte Fehler-Tracking-Backend gesendet.",
+      "currentStatus": "Aktueller Status",
+      "sendingReports": "Berichte werden gesendet",
+      "disabled": "Deaktiviert",
+      "envLabel": "Umgebung: {{env}}",
+      "releaseLabel": "Release: {{release}}",
+      "noDsnConfiguredPrefix": "Kein Telemetrie-Backend konfiguriert. Setze",
+      "noDsnConfiguredSuffix": "auf dein Sentry- oder Glitchtip-Projekt, um Absturzberichte zu aktivieren.",
+      "refresh": "Status aktualisieren"
+    },
+    "health": {
+      "title": "Systemzustand",
+      "refresh": "Aktualisieren",
+      "loadFailed": "Systemzustand konnte nicht geladen werden",
+      "overall": "Gesamt: {{status}}"
     },
     "appearance": {
       "title": "Erscheinungsbild",
