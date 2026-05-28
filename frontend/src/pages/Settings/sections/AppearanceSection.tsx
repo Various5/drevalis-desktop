@@ -31,6 +31,8 @@ import {
   type ThemePreset,
 } from '@/lib/theme';
 
+// ``label`` / ``help`` hold i18n keys (settings.appearance.dock.*), resolved
+// with t() at render so the dock picker follows the active language.
 const DOCK_OPTIONS: Array<{
   id: ActivityDockPosition;
   label: string;
@@ -39,27 +41,27 @@ const DOCK_OPTIONS: Array<{
 }> = [
   {
     id: 'bottom',
-    label: 'Bottom',
+    label: 'settings.appearance.dock.bottom',
     icon: PanelBottom,
-    help: 'Classic task-bar strip across the bottom.',
+    help: 'settings.appearance.dock.bottomHelp',
   },
   {
     id: 'top',
-    label: 'Top',
+    label: 'settings.appearance.dock.top',
     icon: PanelTop,
-    help: 'Pinned above the header.',
+    help: 'settings.appearance.dock.topHelp',
   },
   {
     id: 'left',
-    label: 'Left rail',
+    label: 'settings.appearance.dock.leftRail',
     icon: PanelLeft,
-    help: 'Full-height rail on the left.',
+    help: 'settings.appearance.dock.leftRailHelp',
   },
   {
     id: 'right',
-    label: 'Right rail',
+    label: 'settings.appearance.dock.rightRail',
     icon: PanelRight,
-    help: 'Full-height rail on the right.',
+    help: 'settings.appearance.dock.rightRailHelp',
   },
 ];
 
@@ -74,7 +76,16 @@ function PresetCard({
   isLight: boolean;
   onSelect: () => void;
 }) {
+  const { t } = useTranslation();
   const accent = isLight ? preset.accentLight : preset.accentDark;
+  const radiusLabel =
+    preset.radiusBase === 0
+      ? t('settings.appearance.radius.sharp')
+      : preset.radiusBase <= 6
+        ? t('settings.appearance.radius.crisp')
+        : preset.radiusBase <= 12
+          ? t('settings.appearance.radius.soft')
+          : t('settings.appearance.radius.pill');
   return (
     <button
       type="button"
@@ -136,13 +147,7 @@ function PresetCard({
             borderRadius: `${preset.radiusBase}px`,
           }}
         >
-          {preset.radiusBase === 0
-            ? 'sharp'
-            : preset.radiusBase <= 6
-              ? 'crisp'
-              : preset.radiusBase <= 12
-                ? 'soft'
-                : 'pill'}
+          {radiusLabel}
         </span>
         <span
           className="text-[10px] text-txt-muted"
@@ -172,12 +177,8 @@ export function AppearanceSection() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold text-txt-primary">Appearance</h3>
-        <p className="text-xs text-txt-secondary mt-1">
-          Theme presets bundle accent color, display font, border radius,
-          and shadow style. Mode (dark/light) and Activity Monitor position
-          are independent choices.
-        </p>
+        <h3 className="text-lg font-semibold text-txt-primary">{t('settings.appearance.title')}</h3>
+        <p className="text-xs text-txt-secondary mt-1">{t('settings.appearance.intro')}</p>
       </div>
 
       {/* ── Language (Phase 5 i18n) ────────────────────────────── */}
@@ -209,21 +210,25 @@ export function AppearanceSection() {
       <Card className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h4 className="text-sm font-semibold text-txt-primary">Color mode</h4>
+            <h4 className="text-sm font-semibold text-txt-primary">{t('settings.appearance.colorMode')}</h4>
             <p className="text-xs text-txt-secondary mt-1">
               {isLight
-                ? 'Currently light — high contrast for bright studios.'
-                : 'Currently dark — easier on the eyes for long sessions.'}
+                ? t('settings.appearance.currentlyLight')
+                : t('settings.appearance.currentlyDark')}
             </p>
           </div>
           <button
             type="button"
             onClick={toggleMode}
             className="flex items-center gap-2 rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm font-medium text-txt-primary hover:bg-bg-hover transition-colors"
-            aria-label={`Switch to ${isLight ? 'dark' : 'light'} mode`}
+            aria-label={
+              isLight
+                ? t('settings.appearance.switchToDarkAria')
+                : t('settings.appearance.switchToLightAria')
+            }
           >
             {isLight ? <Moon size={14} /> : <Sun size={14} />}
-            {isLight ? 'Switch to dark' : 'Switch to light'}
+            {isLight ? t('settings.appearance.switchToDark') : t('settings.appearance.switchToLight')}
           </button>
         </div>
       </Card>
@@ -231,11 +236,8 @@ export function AppearanceSection() {
       {/* ── Theme presets ──────────────────────────────────────── */}
       <Card className="p-5">
         <div className="mb-4">
-          <h4 className="text-sm font-semibold text-txt-primary">Theme preset</h4>
-          <p className="text-xs text-txt-secondary mt-1">
-            Pick a mood — each preset changes fonts, colors, radii, shadows,
-            and icon weight together. Click a card to apply instantly.
-          </p>
+          <h4 className="text-sm font-semibold text-txt-primary">{t('settings.appearance.themePreset')}</h4>
+          <p className="text-xs text-txt-secondary mt-1">{t('settings.appearance.themePresetIntro')}</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {THEME_PRESETS.map((p) => (
@@ -252,13 +254,8 @@ export function AppearanceSection() {
 
       {/* ── Activity Monitor dock ─────────────────────────────── */}
       <Card className="p-5">
-        <h4 className="text-sm font-semibold text-txt-primary">
-          Activity Monitor position
-        </h4>
-        <p className="text-xs text-txt-secondary mt-1 mb-4">
-          Where the background-jobs bar lives. Top/bottom show a compact tray;
-          left/right show a collapsible full-height rail.
-        </p>
+        <h4 className="text-sm font-semibold text-txt-primary">{t('settings.appearance.dockTitle')}</h4>
+        <p className="text-xs text-txt-secondary mt-1 mb-4">{t('settings.appearance.dockIntro')}</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {DOCK_OPTIONS.map((opt) => {
             const isActive = activityDock === opt.id;
@@ -277,9 +274,9 @@ export function AppearanceSection() {
                 aria-pressed={isActive}
               >
                 <Icon size={18} className={isActive ? 'text-accent' : 'text-txt-tertiary'} />
-                <span className="text-txt-primary">{opt.label}</span>
+                <span className="text-txt-primary">{t(opt.label)}</span>
                 <span className="text-[11px] text-txt-muted leading-snug">
-                  {opt.help}
+                  {t(opt.help)}
                 </span>
               </button>
             );

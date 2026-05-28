@@ -32,6 +32,37 @@
       "social": "Soziale Medien",
       "apiKeys": "API-Schlüssel",
       "network": "LAN-API-Zugriff"
+    },
+    "appearance": {
+      "title": "Erscheinungsbild",
+      "intro": "Themen-Voreinstellungen bündeln Akzentfarbe, Anzeigeschrift, Eckenradius und Schattenstil. Modus (dunkel/hell) und Position des Aktivitätsmonitors sind unabhängige Einstellungen.",
+      "colorMode": "Farbmodus",
+      "currentlyLight": "Aktuell hell — hoher Kontrast für helle Studios.",
+      "currentlyDark": "Aktuell dunkel — schont die Augen bei langen Sitzungen.",
+      "switchToDark": "Zu dunkel wechseln",
+      "switchToLight": "Zu hell wechseln",
+      "switchToDarkAria": "In den Dunkelmodus wechseln",
+      "switchToLightAria": "In den Hellmodus wechseln",
+      "themePreset": "Themen-Voreinstellung",
+      "themePresetIntro": "Wähle eine Stimmung — jede Voreinstellung ändert Schriften, Farben, Radien, Schatten und Icon-Stärke zusammen. Klicke auf eine Karte zur sofortigen Anwendung.",
+      "dockTitle": "Position des Aktivitätsmonitors",
+      "dockIntro": "Wo die Hintergrund-Aufträge-Leiste lebt. Oben/Unten zeigen eine kompakte Leiste; Links/Rechts zeigen eine ein-/ausklappbare Vollhöhen-Leiste.",
+      "dock": {
+        "bottom": "Unten",
+        "bottomHelp": "Klassische Aufgabenleiste am unteren Rand.",
+        "top": "Oben",
+        "topHelp": "Über dem Kopfbereich angeheftet.",
+        "leftRail": "Linke Leiste",
+        "leftRailHelp": "Vollhöhen-Leiste auf der linken Seite.",
+        "rightRail": "Rechte Leiste",
+        "rightRailHelp": "Vollhöhen-Leiste auf der rechten Seite."
+      },
+      "radius": {
+        "sharp": "scharf",
+        "crisp": "knackig",
+        "soft": "weich",
+        "pill": "rund"
+      }
     }
   },
   "nav": {

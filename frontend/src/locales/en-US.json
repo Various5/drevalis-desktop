@@ -32,6 +32,37 @@
       "social": "Social Media",
       "apiKeys": "API Keys",
       "network": "LAN API Access"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "intro": "Theme presets bundle accent color, display font, border radius, and shadow style. Mode (dark/light) and Activity Monitor position are independent choices.",
+      "colorMode": "Color mode",
+      "currentlyLight": "Currently light — high contrast for bright studios.",
+      "currentlyDark": "Currently dark — easier on the eyes for long sessions.",
+      "switchToDark": "Switch to dark",
+      "switchToLight": "Switch to light",
+      "switchToDarkAria": "Switch to dark mode",
+      "switchToLightAria": "Switch to light mode",
+      "themePreset": "Theme preset",
+      "themePresetIntro": "Pick a mood — each preset changes fonts, colors, radii, shadows, and icon weight together. Click a card to apply instantly.",
+      "dockTitle": "Activity Monitor position",
+      "dockIntro": "Where the background-jobs bar lives. Top/bottom show a compact tray; left/right show a collapsible full-height rail.",
+      "dock": {
+        "bottom": "Bottom",
+        "bottomHelp": "Classic task-bar strip across the bottom.",
+        "top": "Top",
+        "topHelp": "Pinned above the header.",
+        "leftRail": "Left rail",
+        "leftRailHelp": "Full-height rail on the left.",
+        "rightRail": "Right rail",
+        "rightRailHelp": "Full-height rail on the right."
+      },
+      "radius": {
+        "sharp": "sharp",
+        "crisp": "crisp",
+        "soft": "soft",
+        "pill": "pill"
+      }
     }
   },
   "nav": {
