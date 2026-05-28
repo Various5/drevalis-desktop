@@ -1839,3 +1839,23 @@ export const characterPacks = {
       { series_id: seriesId },
     ),
 };
+
+// ---------------------------------------------------------------------------
+// Danger zone (Phase 4 typed-confirm pattern). Every endpoint is gated by a
+// confirm word in the dialog and writes a WARNING audit log on the backend.
+// ---------------------------------------------------------------------------
+
+export const danger = {
+  /** Delete every file under storage_base_path (keeps the directory). */
+  wipeStorage: () =>
+    post<{ files_removed: number; bytes_freed: number }>(
+      '/api/v1/danger/wipe-storage',
+    ),
+
+  /** Truncate every user-data table; auth + license + migration tables stay. */
+  resetDatabase: () =>
+    post<{ truncated: string[] }>('/api/v1/danger/reset-database'),
+
+  /** Hard-delete the signed-in user. 403 for owners. */
+  deleteAccount: () => del('/api/v1/danger/account'),
+};
