@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -15,6 +16,7 @@ function formatBytes(n: number): string {
 }
 
 export function StorageSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [storage, setStorage] = useState<StorageUsage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,12 +27,12 @@ export function StorageSection() {
       const res = await settingsApi.storage();
       setStorage(res);
     } catch (err) {
-      toast.error('Failed to load storage information', { description: String(err) });
+      toast.error(t('settings.storage.loadFailed'), { description: String(err) });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void fetchStorage();
@@ -46,10 +48,11 @@ export function StorageSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-txt-primary">Storage</h3>
+        {/* Heading reuses nav.storage so it matches the sidebar wording. */}
+        <h3 className="text-lg font-semibold text-txt-primary">{t('nav.storage')}</h3>
         <Button variant="ghost" size="sm" loading={refreshing} onClick={handleRefresh}>
           <RefreshCw size={14} />
-          Refresh
+          {t('common.refresh')}
         </Button>
       </div>
 
@@ -57,19 +60,28 @@ export function StorageSection() {
         <Card padding="md">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <span className="text-xs text-txt-tertiary">Total Disk Usage</span>
+              <span className="text-xs text-txt-tertiary">{t('settings.storage.totalUsage')}</span>
               <p className="text-2xl font-bold text-txt-primary mt-0.5">
                 {storage.total_size_human}
               </p>
               <p className="text-[10px] text-txt-tertiary mt-1">
-                {storage.total_size_bytes.toLocaleString()} bytes
+                {storage.total_size_bytes.toLocaleString()} {t('settings.storage.bytesSuffix')}
               </p>
             </div>
             <div>
-              <span className="text-xs text-txt-tertiary">Storage Path (container)</span>
+              <span className="text-xs text-txt-tertiary">{t('settings.storage.pathContainer')}</span>
               <p className="text-sm text-txt-secondary font-mono mt-0.5 break-all">
                 {storage.storage_base_abs || storage.storage_base_path}
               </p>
+              {/* The host_source_path block + the deep mountinfo diagnostic
+                  below are Docker-mode only — host_source_path is never
+                  populated on the desktop install (storage resolves to
+                  the OS user-data dir via core/paths.py), so this branch
+                  is effectively dead code on the desktop product. Left in
+                  English on purpose: it's legacy docker-compose
+                  troubleshooting copy that the desktop user will never see,
+                  and translation would diverge it from the long-form
+                  documentation it mirrors. */}
               {storage.host_source_path && (
                 <>
                   <span className="text-xs text-txt-tertiary mt-3 block">
@@ -100,7 +112,7 @@ export function StorageSection() {
           </div>
           {storage.subdir_sizes && Object.keys(storage.subdir_sizes).length > 0 && (
             <div className="mt-6 pt-4 border-t border-border">
-              <p className="text-xs text-txt-tertiary mb-2">Subdirectory breakdown</p>
+              <p className="text-xs text-txt-tertiary mb-2">{t('settings.storage.subdirBreakdown')}</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 {Object.entries(storage.subdir_sizes)
                   .sort((a, b) => b[1] - a[1])
@@ -122,16 +134,12 @@ export function StorageSection() {
               </div>
               {storage.total_size_bytes < 10 * 1024 * 1024 && (
                 <p className="mt-3 text-xs text-amber-300 bg-amber-500/10 p-2 rounded border border-amber-500/30">
-                  Storage is nearly empty. If you copied media files to your
-                  host, make sure the destination is
+                  {t('settings.storage.nearlyEmptyLead')}
                   {storage.host_source_path && (
                     <> <code className="font-mono">{storage.host_source_path}</code></>
                   )}
-                  {' — '}
-                  the app only sees files under the bind-mounted directory.
-                  Copying elsewhere (e.g. a sibling folder with a different
-                  case, or a drive the compose file doesn't map) won't be
-                  picked up.
+                  {' '}
+                  {t('settings.storage.nearlyEmptyTail')}
                 </p>
               )}
               {storage.mountinfo_lines && storage.mountinfo_lines.length > 0 && (
@@ -157,9 +165,7 @@ export function StorageSection() {
         </Card>
       ) : (
         <Card padding="md">
-          <p className="text-sm text-txt-secondary">
-            Unable to fetch storage information.
-          </p>
+          <p className="text-sm text-txt-secondary">{t('settings.storage.unableToFetch')}</p>
         </Card>
       )}
     </div>

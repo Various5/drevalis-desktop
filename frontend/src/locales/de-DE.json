@@ -8,6 +8,7 @@
     "loading": "Wird geladen…",
     "on": "An",
     "off": "Aus",
+    "refresh": "Aktualisieren",
     "status": {
       "ok": "OK",
       "degraded": "Beeinträchtigt",
@@ -58,9 +59,25 @@
     },
     "health": {
       "title": "Systemzustand",
-      "refresh": "Aktualisieren",
       "loadFailed": "Systemzustand konnte nicht geladen werden",
       "overall": "Gesamt: {{status}}"
+    },
+    "ffmpeg": {
+      "available": "Verfügbar",
+      "notAvailable": "Nicht verfügbar",
+      "path": "Pfad",
+      "version": "Version",
+      "loadFailed": "FFmpeg-Informationen konnten nicht geladen werden."
+    },
+    "storage": {
+      "loadFailed": "Speicherinformationen konnten nicht geladen werden",
+      "unableToFetch": "Speicherinformationen konnten nicht geladen werden.",
+      "totalUsage": "Gesamter Speicherverbrauch",
+      "bytesSuffix": "Bytes",
+      "pathContainer": "Speicherpfad (Container)",
+      "subdirBreakdown": "Unterverzeichnis-Aufschlüsselung",
+      "nearlyEmptyLead": "Der Speicher ist fast leer. Wenn du Mediendateien auf den Host kopiert hast, stelle sicher, dass das Ziel",
+      "nearlyEmptyTail": "ist — die App sieht nur Dateien unter dem bind-gemounteten Verzeichnis. Kopien anderswo (z. B. ein Geschwisterordner mit anderer Groß-/Kleinschreibung oder ein Laufwerk, das die Compose-Datei nicht abbildet) werden nicht erkannt."
     },
     "appearance": {
       "title": "Erscheinungsbild",

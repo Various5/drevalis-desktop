@@ -8,6 +8,7 @@
     "loading": "Loading…",
     "on": "On",
     "off": "Off",
+    "refresh": "Refresh",
     "status": {
       "ok": "OK",
       "degraded": "Degraded",
@@ -58,9 +59,25 @@
     },
     "health": {
       "title": "System Health",
-      "refresh": "Refresh",
       "loadFailed": "Failed to load system health",
       "overall": "Overall: {{status}}"
+    },
+    "ffmpeg": {
+      "available": "Available",
+      "notAvailable": "Not Available",
+      "path": "Path",
+      "version": "Version",
+      "loadFailed": "Unable to fetch FFmpeg information."
+    },
+    "storage": {
+      "loadFailed": "Failed to load storage information",
+      "unableToFetch": "Unable to fetch storage information.",
+      "totalUsage": "Total Disk Usage",
+      "bytesSuffix": "bytes",
+      "pathContainer": "Storage Path (container)",
+      "subdirBreakdown": "Subdirectory breakdown",
+      "nearlyEmptyLead": "Storage is nearly empty. If you copied media files to your host, make sure the destination is",
+      "nearlyEmptyTail": "— the app only sees files under the bind-mounted directory. Copying elsewhere (e.g. a sibling folder with a different case, or a drive the compose file doesn't map) won't be picked up."
     },
     "appearance": {
       "title": "Appearance",

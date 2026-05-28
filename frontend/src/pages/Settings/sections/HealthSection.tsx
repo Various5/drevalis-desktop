@@ -54,7 +54,7 @@ export function HealthSection() {
         <h3 className="text-lg font-semibold text-txt-primary">{t('settings.health.title')}</h3>
         <Button variant="ghost" size="sm" onClick={() => void fetch()}>
           <RefreshCw size={14} />
-          {t('settings.health.refresh')}
+          {t('common.refresh')}
         </Button>
       </div>
 
