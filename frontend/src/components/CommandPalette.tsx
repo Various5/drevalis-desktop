@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSeries, useRecentEpisodes } from '@/lib/queries';
+import { useDialogFocus } from '@/lib/useDialogFocus';
 import {
   Search,
   X,
@@ -50,6 +51,12 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Trap Tab inside the panel, restore focus to the opener on close, and
+  // lock body scroll for the modal lifetime. ``onKeyDown`` on the input
+  // still owns Escape so it can also clear state mid-typing.
+  useDialogFocus({ open, panelRef, onClose });
 
   // Dynamic actions indexed from the current project (Phase 3).
   const seriesList = useSeries().data ?? [];
@@ -197,6 +204,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       aria-modal
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className="w-full max-w-xl rounded-xl border border-border bg-bg-surface shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >

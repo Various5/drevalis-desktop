@@ -70,23 +70,26 @@ describe('ShortcutOverlay', () => {
   it('closes on Escape keypress', () => {
     const onClose = vi.fn();
     render(<ShortcutOverlay open={true} onClose={onClose} />);
-    fireEvent.keyDown(window, { key: 'Escape' });
+    // useDialogFocus attaches the Escape listener to ``document`` (same as
+    // the Dialog primitive); a real Escape keystroke bubbles through both
+    // window and document so the user experience is unchanged.
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('does not close on other keypresses', () => {
     const onClose = vi.fn();
     render(<ShortcutOverlay open={true} onClose={onClose} />);
-    fireEvent.keyDown(window, { key: 'Enter' });
-    fireEvent.keyDown(window, { key: 'a' });
-    fireEvent.keyDown(window, { key: '?' });
+    fireEvent.keyDown(document, { key: 'Enter' });
+    fireEvent.keyDown(document, { key: 'a' });
+    fireEvent.keyDown(document, { key: '?' });
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it('does not bind the Escape listener when open is false', () => {
     const onClose = vi.fn();
     render(<ShortcutOverlay open={false} onClose={onClose} />);
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
   });
 });

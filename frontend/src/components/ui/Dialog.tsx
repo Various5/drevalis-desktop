@@ -1,6 +1,7 @@
-import { useEffect, useRef, type ReactNode, useCallback } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useDialogFocus } from '@/lib/useDialogFocus';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -48,77 +49,11 @@ function Dialog({
 }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  // Element that had focus before the dialog opened — restored on close
-  // so keyboard users land back on the trigger button instead of body.
-  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Tab cycle: keep keyboard focus inside the panel while the dialog is
-  // open. Without this, Tab quietly walks behind the dialog into the
-  // page underneath — the dialog appears modal but isn't.
-  const trapTab = useCallback((e: KeyboardEvent) => {
-    if (e.key !== 'Tab' || !panelRef.current) return;
-    const focusables = panelRef.current.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    if (focusables.length === 0) {
-      e.preventDefault();
-      panelRef.current.focus();
-      return;
-    }
-    const first = focusables[0]!;
-    const last = focusables[focusables.length - 1]!;
-    const active = document.activeElement as HTMLElement | null;
-    if (e.shiftKey && (active === first || active === panelRef.current)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }, []);
-
-  // Close on Escape; cycle Tab inside the panel.
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
-      trapTab(e);
-    },
-    [onClose, trapTab],
-  );
-
-  useEffect(() => {
-    if (open) {
-      previousFocusRef.current = document.activeElement as HTMLElement | null;
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-      // Return focus to whatever opened the dialog. Guarded against
-      // disconnected nodes (e.g. trigger unmounted while dialog was open).
-      if (previousFocusRef.current && previousFocusRef.current.isConnected) {
-        try {
-          previousFocusRef.current.focus();
-        } catch {
-          // ignore — focus restoration is best-effort
-        }
-      }
-    };
-  }, [open, handleKeyDown]);
-
-  // Initial focus: prefer the first focusable child so keyboard users
-  // can immediately Tab forward; fall back to the panel itself.
-  useEffect(() => {
-    if (!open || !panelRef.current) return;
-    const first = panelRef.current.querySelector<HTMLElement>(
-      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    (first ?? panelRef.current).focus();
-  }, [open]);
+  // Trap Tab inside the panel, restore focus on close, lock body scroll,
+  // and close on Escape — shared with CommandPalette / ShortcutOverlay /
+  // any future custom modal via the same hook.
+  useDialogFocus({ open, panelRef, onClose });
 
   if (!open) return null;
 

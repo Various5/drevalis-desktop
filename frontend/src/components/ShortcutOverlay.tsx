@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useDialogFocus } from '@/lib/useDialogFocus';
 
 // ---------------------------------------------------------------------------
 // App-wide keyboard shortcut cheat sheet
@@ -66,14 +67,10 @@ function Kbd({ label }: { label: string }) {
 }
 
 function ShortcutOverlay({ open, onClose }: ShortcutOverlayProps) {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Escape-to-close + Tab trap + focus restore + body scroll lock, shared
+  // with Dialog and CommandPalette via the same hook.
+  useDialogFocus({ open, panelRef, onClose });
 
   if (!open) return null;
 
@@ -86,6 +83,8 @@ function ShortcutOverlay({ open, onClose }: ShortcutOverlayProps) {
       aria-label="Keyboard shortcuts"
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className="bg-bg-elevated border border-white/[0.06] rounded-xl shadow-xl max-w-2xl w-[92%] max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
