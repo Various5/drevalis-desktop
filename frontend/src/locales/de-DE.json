@@ -137,6 +137,39 @@
         "toastFailed": "Löschen fehlgeschlagen"
       }
     },
+    "network": {
+      "loading": "Netzwerkeinstellungen werden geladen…",
+      "loadFailed": "Netzwerkeinstellungen konnten nicht geladen werden.",
+      "pillExposed": "Im LAN freigegeben",
+      "pillLocalOnly": "Nur lokal",
+      "intro": "Standardmäßig akzeptiert das Backend nur Verbindungen von diesem Gerät ({{host}}). Aktiviere dies, um die API von anderen Computern im Netzwerk zu erreichen — nützlich, um eine Test- oder Staging-Installation aus der Ferne zu verwalten.",
+      "toggleLabel": "Zugriff aus dem Netzwerk erlauben",
+      "toggleHint": "Bindet die API an <1>0.0.0.0</1> statt an <2>127.0.0.1</2>.",
+      "warningTitle": "Gibt die gesamte API in deinem Netzwerk frei.",
+      "warningBody": "Jeder, der dieses Gerät auf Port {{port}} erreichen kann und das untenstehende Token besitzt, kann Inhalte, YouTube-Verbindungen und Uploads verwalten. Aktiviere dies nur in einem Netzwerk, dem du vertraust, und halte das Token geheim. Remote-Anfragen müssen <1>Authorization: Bearer &lt;token&gt;</1> senden. Die App auf diesem Gerät benötigt es nie.",
+      "restartLabel": "Neustart erforderlich.",
+      "restartTextTauri": "Die Änderung ist gespeichert, aber die API ist noch an <1>{{runtimeHost}}</1> gebunden. Starte das Backend neu, damit es auf <2>{{bindHost}}</2> lauscht.",
+      "restartTextBrowser": "Die Änderung ist gespeichert, aber die API ist noch an <1>{{runtimeHost}}</1> gebunden. Beende die App vollständig und öffne sie erneut, damit sie auf <2>{{bindHost}}</2> lauscht.",
+      "restartBackend": "Backend neu starten",
+      "reachableAt": "Erreichbar unter",
+      "noAddress": "Keine Netzwerkadresse erkannt.",
+      "copyUrl": "URL kopieren",
+      "accessToken": "Zugriffstoken",
+      "tokenNone": "(keins)",
+      "hide": "Ausblenden",
+      "reveal": "Anzeigen",
+      "copyToken": "Token kopieren",
+      "rotateToken": "Token rotieren",
+      "rotateHint": "Beim Rotieren wird das aktuelle Token ungültig. Starte das Backend neu, damit das neue Token bei LAN-Clients wirksam wird.",
+      "exposeDialogTitle": "API im Netzwerk freigeben?",
+      "exposeWarning": "Dies bindet das Backend an dein gesamtes Netzwerk. Jeder, der dieses Gerät auf Port {{port}} erreichen kann und das Zugriffstoken besitzt, kann deine Inhalte, YouTube-Verbindungen und Uploads verwalten. Aktiviere dies nur in einem Netzwerk, dem du vertraust.",
+      "exposeConsequences": [
+        "Die API lauscht nach dem nächsten Neustart auf allen Schnittstellen (0.0.0.0)",
+        "Remote-Aufrufer authentifizieren sich mit dem hier gezeigten Bearer-Token",
+        "Halte das Token geheim; rotiere es sofort, falls es bekannt wird"
+      ],
+      "exposeConfirmLabel": "LAN-Zugriff aktivieren"
+    },
     "storage": {
       "loadFailed": "Speicherinformationen konnten nicht geladen werden",
       "unableToFetch": "Speicherinformationen konnten nicht geladen werden.",

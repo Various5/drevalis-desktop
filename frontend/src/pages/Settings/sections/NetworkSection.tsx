@@ -8,6 +8,7 @@ import {
   EyeOff,
   RefreshCw,
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDangerousDialog } from '@/components/ui/ConfirmDangerousDialog';
@@ -37,6 +38,7 @@ interface NetworkState {
 }
 
 export function NetworkSection() {
+  const { t } = useTranslation();
   const [state, setState] = useState<NetworkState | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,8 +127,8 @@ export function NetworkSection() {
     setTimeout(() => setCopied(null), 1500);
   }
 
-  if (loading) return <Card className="p-6">Loading network settings…</Card>;
-  if (!state) return <Card className="p-6">Couldn't load network settings.</Card>;
+  if (loading) return <Card className="p-6">{t('settings.network.loading')}</Card>;
+  if (!state) return <Card className="p-6">{t('settings.network.loadFailed')}</Card>;
 
   const enabled = state.lan_api_enabled;
 
@@ -136,24 +138,22 @@ export function NetworkSection() {
         <Network className="w-6 h-6 text-accent flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-semibold">LAN API Access</h2>
+            {/* Heading reuses settings.sections.network so it matches the sidebar wording. */}
+            <h2 className="text-lg font-semibold">{t('settings.sections.network')}</h2>
             {enabled ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Exposed on LAN
+                {t('settings.network.pillExposed')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                 <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                Local only
+                {t('settings.network.pillLocalOnly')}
               </span>
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            By default the backend only accepts connections from this machine
-            ({state.runtime_bind_host ?? '127.0.0.1'}). Turn this on to reach
-            the API from other computers on your network — useful for managing
-            a testing or staging install remotely.
+            {t('settings.network.intro', { host: state.runtime_bind_host ?? '127.0.0.1' })}
           </p>
         </div>
       </header>
@@ -162,10 +162,15 @@ export function NetworkSection() {
       <div className="rounded-lg border border-border bg-background/60 p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium">Allow access from the network</p>
+            <p className="text-sm font-medium">{t('settings.network.toggleLabel')}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Binds the API to <code className="px-1 rounded bg-muted">0.0.0.0</code>{' '}
-              instead of <code className="px-1 rounded bg-muted">127.0.0.1</code>.
+              <Trans
+                i18nKey="settings.network.toggleHint"
+                components={{
+                  1: <code className="px-1 rounded bg-muted" />,
+                  2: <code className="px-1 rounded bg-muted" />,
+                }}
+              />
             </p>
           </div>
           <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -176,7 +181,7 @@ export function NetworkSection() {
               disabled={saving}
               onChange={(e) => onToggleChange(e.target.checked)}
             />
-            <span className="text-sm">{enabled ? 'On' : 'Off'}</span>
+            <span className="text-sm">{enabled ? t('common.on') : t('common.off')}</span>
           </label>
         </div>
       </div>
@@ -185,14 +190,13 @@ export function NetworkSection() {
       <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-amber-200/90 space-y-1">
-          <p className="font-medium text-amber-200">Exposes the full API to your network.</p>
+          <p className="font-medium text-amber-200">{t('settings.network.warningTitle')}</p>
           <p>
-            Anyone who can reach this machine on port {state.port} and has the
-            token below can manage content, YouTube connections, and uploads.
-            Only enable this on a network you trust, and keep the token secret.
-            Remote requests must send{' '}
-            <code className="px-1 rounded bg-black/30">Authorization: Bearer &lt;token&gt;</code>.
-            The app on this machine never needs it.
+            <Trans
+              i18nKey="settings.network.warningBody"
+              values={{ port: state.port }}
+              components={{ 1: <code className="px-1 rounded bg-black/30" /> }}
+            />
           </p>
         </div>
       </div>
@@ -207,13 +211,19 @@ export function NetworkSection() {
           <RefreshCw className={`w-5 h-5 text-accent flex-shrink-0 mt-0.5 ${restarting ? 'animate-spin' : ''}`} />
           <div className="flex-1 space-y-2">
             <p className="text-sm text-txt-secondary">
-              <span className="font-medium text-txt-primary">Restart required.</span>{' '}
-              The change is saved, but the API is still bound to{' '}
-              <code className="px-1 rounded bg-muted">{state.runtime_bind_host}</code>.
-              {isTauri()
-                ? ' Restart the backend to start listening on '
-                : ' Fully quit and reopen the app to start listening on '}
-              <code className="px-1 rounded bg-muted">{state.bind_host}</code>.
+              <span className="font-medium text-txt-primary">{t('settings.network.restartLabel')}</span>{' '}
+              <Trans
+                i18nKey={
+                  isTauri()
+                    ? 'settings.network.restartTextTauri'
+                    : 'settings.network.restartTextBrowser'
+                }
+                values={{ runtimeHost: state.runtime_bind_host, bindHost: state.bind_host }}
+                components={{
+                  1: <code className="px-1 rounded bg-muted" />,
+                  2: <code className="px-1 rounded bg-muted" />,
+                }}
+              />
             </p>
             {isTauri() && (
               <div className="flex items-center gap-3">
@@ -223,7 +233,7 @@ export function NetworkSection() {
                   loading={restarting}
                   disabled={restarting}
                 >
-                  Restart backend
+                  {t('settings.network.restartBackend')}
                 </Button>
                 {restartError && (
                   <span className="text-xs text-error" role="alert">
@@ -240,11 +250,9 @@ export function NetworkSection() {
       {enabled && (
         <div className="rounded-lg border border-border bg-background/60 p-4 space-y-4">
           <div>
-            <p className="text-sm font-medium mb-1.5">Reachable at</p>
+            <p className="text-sm font-medium mb-1.5">{t('settings.network.reachableAt')}</p>
             {state.lan_urls.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                No network address detected.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('settings.network.noAddress')}</p>
             ) : (
               <ul className="space-y-1">
                 {state.lan_urls.map((url) => (
@@ -256,7 +264,7 @@ export function NetworkSection() {
                       type="button"
                       onClick={() => void copy(url, 'url')}
                       className="text-muted-foreground hover:text-foreground"
-                      title="Copy URL"
+                      title={t('settings.network.copyUrl')}
                     >
                       {copied === 'url' ? <Check size={13} /> : <Copy size={13} />}
                     </button>
@@ -267,20 +275,20 @@ export function NetworkSection() {
           </div>
 
           <div>
-            <p className="text-sm font-medium mb-1.5">Access token</p>
+            <p className="text-sm font-medium mb-1.5">{t('settings.network.accessToken')}</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs px-2 py-1.5 rounded bg-muted text-foreground font-mono break-all">
                 {state.api_token
                   ? revealToken
                     ? state.api_token
                     : '•'.repeat(Math.min(48, state.api_token.length))
-                  : '(none)'}
+                  : t('settings.network.tokenNone')}
               </code>
               <button
                 type="button"
                 onClick={() => setRevealToken((v) => !v)}
                 className="text-muted-foreground hover:text-foreground p-1"
-                title={revealToken ? 'Hide' : 'Reveal'}
+                title={revealToken ? t('settings.network.hide') : t('settings.network.reveal')}
               >
                 {revealToken ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
@@ -289,7 +297,7 @@ export function NetworkSection() {
                 onClick={() => state.api_token && void copy(state.api_token, 'token')}
                 disabled={!state.api_token}
                 className="text-muted-foreground hover:text-foreground p-1 disabled:opacity-40"
-                title="Copy token"
+                title={t('settings.network.copyToken')}
               >
                 {copied === 'token' ? <Check size={15} /> : <Copy size={15} />}
               </button>
@@ -298,44 +306,35 @@ export function NetworkSection() {
                 onClick={() => void rotateToken()}
                 disabled={rotating}
                 className="text-muted-foreground hover:text-foreground p-1 disabled:opacity-40"
-                title="Rotate token"
+                title={t('settings.network.rotateToken')}
               >
                 <RefreshCw size={15} className={rotating ? 'animate-spin' : ''} />
               </button>
             </div>
-            <p className="mt-1.5 text-[11px] text-txt-tertiary">
-              Rotating invalidates the current token. Restart the backend for the new
-              token to take effect on LAN clients.
-            </p>
+            <p className="mt-1.5 text-[11px] text-txt-tertiary">{t('settings.network.rotateHint')}</p>
           </div>
         </div>
       )}
 
       <div className="flex justify-end">
         <Button variant="ghost" size="sm" onClick={() => void reload()}>
-          Refresh
+          {t('common.refresh')}
         </Button>
       </div>
 
+      {/* EXPOSE stays English on purpose — action-code typed confirm, not
+          prose. Same rule as WIPE/RESET/DELETE in DiagnosticsSection. */}
       <ConfirmDangerousDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => void confirmEnable()}
-        title="Expose the API on your network?"
-        warning={
-          <>
-            This binds the backend to your whole network. Anyone who can reach this
-            machine on port {state.port} and has the access token can manage your
-            content, YouTube connections, and uploads. Only enable on a network you trust.
-          </>
+        title={t('settings.network.exposeDialogTitle')}
+        warning={t('settings.network.exposeWarning', { port: state.port })}
+        consequences={
+          t('settings.network.exposeConsequences', { returnObjects: true }) as string[]
         }
-        consequences={[
-          'The API listens on all interfaces (0.0.0.0) after the next restart',
-          'Remote callers authenticate with the bearer token shown here',
-          'Keep the token secret; rotate it immediately if it leaks',
-        ]}
         confirmWord="EXPOSE"
-        confirmLabel="Enable LAN access"
+        confirmLabel={t('settings.network.exposeConfirmLabel')}
         loading={saving}
       />
     </Card>

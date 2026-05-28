@@ -137,6 +137,39 @@
         "toastFailed": "Delete failed"
       }
     },
+    "network": {
+      "loading": "Loading network settings…",
+      "loadFailed": "Couldn't load network settings.",
+      "pillExposed": "Exposed on LAN",
+      "pillLocalOnly": "Local only",
+      "intro": "By default the backend only accepts connections from this machine ({{host}}). Turn this on to reach the API from other computers on your network — useful for managing a testing or staging install remotely.",
+      "toggleLabel": "Allow access from the network",
+      "toggleHint": "Binds the API to <1>0.0.0.0</1> instead of <2>127.0.0.1</2>.",
+      "warningTitle": "Exposes the full API to your network.",
+      "warningBody": "Anyone who can reach this machine on port {{port}} and has the token below can manage content, YouTube connections, and uploads. Only enable this on a network you trust, and keep the token secret. Remote requests must send <1>Authorization: Bearer &lt;token&gt;</1>. The app on this machine never needs it.",
+      "restartLabel": "Restart required.",
+      "restartTextTauri": "The change is saved, but the API is still bound to <1>{{runtimeHost}}</1>. Restart the backend to start listening on <2>{{bindHost}}</2>.",
+      "restartTextBrowser": "The change is saved, but the API is still bound to <1>{{runtimeHost}}</1>. Fully quit and reopen the app to start listening on <2>{{bindHost}}</2>.",
+      "restartBackend": "Restart backend",
+      "reachableAt": "Reachable at",
+      "noAddress": "No network address detected.",
+      "copyUrl": "Copy URL",
+      "accessToken": "Access token",
+      "tokenNone": "(none)",
+      "hide": "Hide",
+      "reveal": "Reveal",
+      "copyToken": "Copy token",
+      "rotateToken": "Rotate token",
+      "rotateHint": "Rotating invalidates the current token. Restart the backend for the new token to take effect on LAN clients.",
+      "exposeDialogTitle": "Expose the API on your network?",
+      "exposeWarning": "This binds the backend to your whole network. Anyone who can reach this machine on port {{port}} and has the access token can manage your content, YouTube connections, and uploads. Only enable on a network you trust.",
+      "exposeConsequences": [
+        "The API listens on all interfaces (0.0.0.0) after the next restart",
+        "Remote callers authenticate with the bearer token shown here",
+        "Keep the token secret; rotate it immediately if it leaks"
+      ],
+      "exposeConfirmLabel": "Enable LAN access"
+    },
     "storage": {
       "loadFailed": "Failed to load storage information",
       "unableToFetch": "Unable to fetch storage information.",
