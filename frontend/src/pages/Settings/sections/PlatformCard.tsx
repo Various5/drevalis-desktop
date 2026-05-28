@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { ConfirmDangerousDialog } from '@/components/ui/ConfirmDangerousDialog';
 import { SocialConnectWizard } from '@/components/social/SocialConnectWizard';
 import type { SocialPlatform } from '@/lib/api';
 
@@ -113,11 +114,14 @@ export function PlatformCard({
     }
   };
 
+  const [disconnectConfirmOpen, setDisconnectConfirmOpen] = useState(false);
+
   const handleDisconnect = async () => {
     if (!connectedAccount) return;
     setDisconnecting(true);
     try {
       await onDisconnect(connectedAccount.id);
+      setDisconnectConfirmOpen(false);
     } catch {
       // swallow — parent state will remain until next reload
     } finally {
@@ -158,8 +162,7 @@ export function PlatformCard({
               <Button
                 variant="ghost"
                 size="sm"
-                loading={disconnecting}
-                onClick={() => void handleDisconnect()}
+                onClick={() => setDisconnectConfirmOpen(true)}
                 className="text-txt-tertiary hover:text-error"
                 aria-label={`Disconnect ${platform.name}`}
               >
@@ -372,6 +375,38 @@ export function PlatformCard({
           platform="tiktok"
           onClose={() => setWizardOpen(false)}
           onConnected={() => setWizardOpen(false)}
+        />
+      )}
+
+      {/* Disconnect — typed-confirm (Phase 4). The confirm word is the
+          platform's short id so users must scope what they're disconnecting
+          per-platform rather than blast through a generic "DELETE". */}
+      {isConnected && (
+        <ConfirmDangerousDialog
+          open={disconnectConfirmOpen}
+          onClose={() => setDisconnectConfirmOpen(false)}
+          onConfirm={() => void handleDisconnect()}
+          title={`Disconnect ${platform.name}?`}
+          warning={
+            <>
+              This disconnects{' '}
+              <strong className="text-txt-primary">
+                {connectedAccount?.account_name
+                  ? `@${connectedAccount.account_name}`
+                  : platform.name}
+              </strong>{' '}
+              from Drevalis. Re-connecting later goes through the same OAuth or
+              token flow as a first-time setup.
+            </>
+          }
+          consequences={[
+            'Uploads currently in progress will fail',
+            `Scheduled posts targeting ${platform.name} will need to be re-targeted`,
+            'Saved tokens are revoked locally — Drevalis can no longer publish to this channel',
+          ]}
+          confirmWord={platform.id.toUpperCase()}
+          confirmLabel={`Disconnect ${platform.name}`}
+          loading={disconnecting}
         />
       )}
     </Card>

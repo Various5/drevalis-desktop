@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmDangerousDialog } from '@/components/ui/ConfirmDangerousDialog';
 import {
   SocialConnectWizard,
   type SocialPlatform as WizardPlatform,
@@ -51,6 +52,8 @@ function PlatformPage() {
   const [stats, setStats] = useState<SocialPlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [disconnectConfirmOpen, setDisconnectConfirmOpen] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   const label = PLATFORM_LABELS[platform] ?? platform;
   // Only YouTube + TikTok have a wizard spec today; the others fall
@@ -106,20 +109,16 @@ function PlatformPage() {
 
   const onDisconnect = async () => {
     if (!account) return;
-    if (
-      !confirm(
-        `Disconnect ${label} account "${account.account_name ?? account.id}"? ` +
-          'Uploads in progress will fail; scheduled posts will need to be re-targeted.',
-      )
-    ) {
-      return;
-    }
+    setDisconnecting(true);
     try {
       await socialApi.disconnectPlatform(account.id);
       toast.success(`${label} disconnected`);
       setAccount(null);
+      setDisconnectConfirmOpen(false);
     } catch (err) {
       toast.error('Disconnect failed', { description: String(err) });
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -192,7 +191,7 @@ function PlatformPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onDisconnect}>
+          <Button variant="ghost" size="sm" onClick={() => setDisconnectConfirmOpen(true)}>
             <Unlink size={14} />
             Disconnect
           </Button>
@@ -324,6 +323,37 @@ function PlatformPage() {
           </div>
         )}
       </Card>
+
+      {/* Disconnect — typed-confirm (Phase 4). Replaces the native confirm()
+          with the same dialog used by Settings → Integrations and matching
+          consequence copy, so the experience is identical wherever a user
+          can disconnect a channel. */}
+      {account && (
+        <ConfirmDangerousDialog
+          open={disconnectConfirmOpen}
+          onClose={() => setDisconnectConfirmOpen(false)}
+          onConfirm={() => void onDisconnect()}
+          title={`Disconnect ${label}?`}
+          warning={
+            <>
+              This disconnects{' '}
+              <strong className="text-txt-primary">
+                {account.account_name ? `@${account.account_name}` : account.id}
+              </strong>{' '}
+              from Drevalis. Re-connecting later goes through the same OAuth or
+              token flow as a first-time setup.
+            </>
+          }
+          consequences={[
+            'Uploads currently in progress will fail',
+            `Scheduled posts targeting ${label} will need to be re-targeted`,
+            'Saved tokens are revoked locally — Drevalis can no longer publish to this channel',
+          ]}
+          confirmWord={platform.toUpperCase()}
+          confirmLabel={`Disconnect ${label}`}
+          loading={disconnecting}
+        />
+      )}
     </div>
   );
 }
