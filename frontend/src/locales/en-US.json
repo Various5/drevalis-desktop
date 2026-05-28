@@ -9,7 +9,30 @@
   },
   "settings": {
     "language": "Language",
-    "languageHint": "Interface language. Detected from your OS on first run; more of the app is translated over time."
+    "languageHint": "Interface language. Detected from your OS on first run; more of the app is translated over time.",
+    "subtitle": "Configure backend services, voice profiles, and system settings.",
+    "groups": {
+      "account": "Account & Billing",
+      "appearance": "Appearance",
+      "privacy": "Privacy",
+      "integrations": "Integrations",
+      "network": "Network",
+      "system": "System"
+    },
+    "sections": {
+      "license": "License",
+      "team": "Team",
+      "twoFactor": "Two-factor auth",
+      "loginHistory": "Login history",
+      "appearance": "Theme",
+      "privacy": "Crash reporting",
+      "llm": "LLM Configs",
+      "comfyui": "ComfyUI Servers",
+      "voice": "Voice Profiles",
+      "social": "Social Media",
+      "apiKeys": "API Keys",
+      "network": "LAN API Access"
+    }
   },
   "nav": {
     "sections": {

@@ -9,7 +9,30 @@
   },
   "settings": {
     "language": "Sprache",
-    "languageHint": "Sprache der Benutzeroberfläche. Beim ersten Start vom Betriebssystem erkannt; mit der Zeit wird mehr übersetzt."
+    "languageHint": "Sprache der Benutzeroberfläche. Beim ersten Start vom Betriebssystem erkannt; mit der Zeit wird mehr übersetzt.",
+    "subtitle": "Backend-Dienste, Sprachprofile und Systemeinstellungen konfigurieren.",
+    "groups": {
+      "account": "Konto & Abrechnung",
+      "appearance": "Erscheinungsbild",
+      "privacy": "Datenschutz",
+      "integrations": "Integrationen",
+      "network": "Netzwerk",
+      "system": "System"
+    },
+    "sections": {
+      "license": "Lizenz",
+      "team": "Team",
+      "twoFactor": "Zwei-Faktor-Authentifizierung",
+      "loginHistory": "Anmeldeverlauf",
+      "appearance": "Design",
+      "privacy": "Absturzberichte",
+      "llm": "LLM-Konfigurationen",
+      "comfyui": "ComfyUI-Server",
+      "voice": "Sprachprofile",
+      "social": "Soziale Medien",
+      "apiKeys": "API-Schlüssel",
+      "network": "LAN-API-Zugriff"
+    }
   },
   "nav": {
     "sections": {

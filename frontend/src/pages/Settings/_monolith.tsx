@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { isTauri } from '@/lib/tauri';
 import {
   Server,
@@ -75,55 +76,60 @@ interface SectionGroupDef {
   sections: SectionDef[];
 }
 
-const SECTION_GROUPS: SectionGroupDef[] = [
+// ``label`` fields hold i18n keys, resolved with t() at render. Section
+// labels that mirror a top-level nav concept (Health/Storage/Backup/Updates/
+// FFmpeg/Diagnostics) reuse nav.* for wording consistency with the sidebar
+// shortcuts; everything else lives under settings.{groups,sections}.*.
+// Exported so Settings.i18n.test.ts can assert every label resolves in en+de.
+export const SECTION_GROUPS: SectionGroupDef[] = [
   {
     id: 'account',
-    label: 'Account & Billing',
+    label: 'settings.groups.account',
     sections: [
-      { id: 'license', label: 'License', icon: KeyRound },
-      { id: 'team', label: 'Team', icon: Users },
-      { id: 'two-factor', label: 'Two-factor auth', icon: ShieldCheck },
-      { id: 'login-history', label: 'Login history', icon: History },
+      { id: 'license', label: 'settings.sections.license', icon: KeyRound },
+      { id: 'team', label: 'settings.sections.team', icon: Users },
+      { id: 'two-factor', label: 'settings.sections.twoFactor', icon: ShieldCheck },
+      { id: 'login-history', label: 'settings.sections.loginHistory', icon: History },
     ],
   },
   {
     id: 'appearance-group',
-    label: 'Appearance',
-    sections: [{ id: 'appearance', label: 'Theme', icon: Palette }],
+    label: 'settings.groups.appearance',
+    sections: [{ id: 'appearance', label: 'settings.sections.appearance', icon: Palette }],
   },
   {
     id: 'privacy-group',
-    label: 'Privacy',
+    label: 'settings.groups.privacy',
     sections: [
-      { id: 'privacy', label: 'Crash reporting', icon: ShieldCheck },
+      { id: 'privacy', label: 'settings.sections.privacy', icon: ShieldCheck },
     ],
   },
   {
     id: 'integrations',
-    label: 'Integrations',
+    label: 'settings.groups.integrations',
     sections: [
-      { id: 'llm', label: 'LLM Configs', icon: Brain },
-      { id: 'comfyui', label: 'ComfyUI Servers', icon: Server },
-      { id: 'voice', label: 'Voice Profiles', icon: Mic2 },
-      { id: 'social', label: 'Social Media', icon: Globe },
-      { id: 'apikeys', label: 'API Keys', icon: Key },
+      { id: 'llm', label: 'settings.sections.llm', icon: Brain },
+      { id: 'comfyui', label: 'settings.sections.comfyui', icon: Server },
+      { id: 'voice', label: 'settings.sections.voice', icon: Mic2 },
+      { id: 'social', label: 'settings.sections.social', icon: Globe },
+      { id: 'apikeys', label: 'settings.sections.apiKeys', icon: Key },
     ],
   },
   {
     id: 'network',
-    label: 'Network',
-    sections: [{ id: 'network', label: 'LAN API Access', icon: Network }],
+    label: 'settings.groups.network',
+    sections: [{ id: 'network', label: 'settings.sections.network', icon: Network }],
   },
   {
     id: 'system',
-    label: 'System',
+    label: 'settings.groups.system',
     sections: [
-      { id: 'health', label: 'Health', icon: CheckCircle2 },
-      { id: 'storage', label: 'Storage', icon: HardDrive },
-      { id: 'ffmpeg', label: 'FFmpeg', icon: Film },
-      { id: 'backup', label: 'Backup', icon: Archive },
-      { id: 'updates', label: 'Updates', icon: ArrowUpCircle },
-      { id: 'diagnostics', label: 'Diagnostics', icon: FileArchive },
+      { id: 'health', label: 'nav.health', icon: CheckCircle2 },
+      { id: 'storage', label: 'nav.storage', icon: HardDrive },
+      { id: 'ffmpeg', label: 'nav.ffmpeg', icon: Film },
+      { id: 'backup', label: 'nav.backup', icon: Archive },
+      { id: 'updates', label: 'nav.updates', icon: ArrowUpCircle },
+      { id: 'diagnostics', label: 'nav.diagnostics', icon: FileArchive },
     ],
   },
 ];
@@ -154,6 +160,7 @@ function buildVisibleGroups(isDesktop: boolean): SectionGroupDef[] {
 // ---------------------------------------------------------------------------
 
 function Settings() {
+  const { t } = useTranslation();
   const visibleGroups = useMemo(() => buildVisibleGroups(isTauri()), []);
   const visibleSections = useMemo(
     () => visibleGroups.flatMap((g) => g.sections),
@@ -193,9 +200,7 @@ function Settings() {
   return (
     <div>
       {/* Banner already shows "Settings" — keep subtitle only. */}
-      <p className="text-sm text-txt-secondary mb-6">
-        Configure backend services, voice profiles, and system settings.
-      </p>
+      <p className="text-sm text-txt-secondary mb-6">{t('settings.subtitle')}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left nav — grouped sections with collapsible-style headers.
@@ -218,7 +223,7 @@ function Settings() {
                   ].join(' ')}
                 >
                   <section.icon size={16} />
-                  {section.label}
+                  {t(section.label)}
                 </button>
               );
             })}
@@ -228,7 +233,7 @@ function Settings() {
             {visibleGroups.map((group) => (
               <div key={group.id} className="space-y-0.5">
                 <div className="px-3 pb-1 text-[10px] font-display font-bold uppercase tracking-[0.15em] text-txt-tertiary">
-                  {group.label}
+                  {t(group.label)}
                 </div>
                 {group.sections.map((section) => {
                   const isActive = activeSection === section.id;
@@ -244,7 +249,7 @@ function Settings() {
                       ].join(' ')}
                     >
                       <section.icon size={16} />
-                      {section.label}
+                      {t(section.label)}
                     </button>
                   );
                 })}
