@@ -69,6 +69,74 @@
       "version": "Version",
       "loadFailed": "FFmpeg-Informationen konnten nicht geladen werden."
     },
+    "diagnostics": {
+      "title": "Support-Diagnose",
+      "intro": "Lade ein ZIP-Bundle herunter, das du beim Support einreichen kannst. Es enthält die bereinigte Konfiguration, den Health-Status, aktuelle Logs, Systeminformationen und die aktuelle Datenbankversion.",
+      "bundle": {
+        "configPrefix": "alle Einstellungen mit Geheimnissen ersetzt durch",
+        "health": "Datenbank-, FFmpeg- und Piper-Status",
+        "logs": "letzte 1000 Logzeilen (falls eine Logdatei konfiguriert ist)",
+        "system": "Python-Version, Plattform, Speicherplatz",
+        "dbRevision": "aktuelle Alembic-Migrationsversion"
+      },
+      "preparing": "Wird vorbereitet…",
+      "download": "Diagnose herunterladen",
+      "downloadSuccess": "Diagnose-Bundle heruntergeladen",
+      "downloadFailed": "Download fehlgeschlagen",
+      "dangerZone": {
+        "title": "Gefahrenzone",
+        "intro": "Diese Aktionen können nicht rückgängig gemacht werden. Mache immer zuerst eine Sicherung (Einstellungen → Sicherung → Sicherung erstellen)."
+      },
+      "wipe": {
+        "label": "Speicher leeren",
+        "description": "Löscht alle generierten Dateien (Sprach-Clips, Szenen, Renderings, Thumbnails, Zwischen-Caches) aus dem Speicherverzeichnis. Datenbankzeilen, die auf diese Dateien verweisen, bleiben unverändert — verwende <1>Datenbank zurücksetzen</1> für eine koordinierte Bereinigung beider.",
+        "button": "Leeren…",
+        "dialogTitle": "Speicher leeren?",
+        "warning": "Dies löscht dauerhaft jede generierte Datei im Speicherverzeichnis. <1>Es gibt kein Rückgängig</1> — stelle bei Bedarf aus einer Sicherung wieder her.",
+        "consequences": [
+          "Alle Sprach-Clips, Szenen, Renderings, Thumbnails und Caches werden gelöscht",
+          "Datenbankzeilen, die auf diese Dateien verweisen, bleiben bestehen (defekte Thumbnails bis zum erneuten Rendern)",
+          "Für alles, was du zurückhaben möchtest, fallen erneute Generierungskosten an"
+        ],
+        "confirmLabel": "Speicher leeren",
+        "toastSuccess": "Speicher geleert",
+        "toastSuccessDesc": "{{count}} Dateien entfernt, {{mb}} MB freigegeben.",
+        "toastFailed": "Leeren fehlgeschlagen"
+      },
+      "reset": {
+        "label": "Datenbank zurücksetzen",
+        "description": "Leert jede Nutzerdaten-Tabelle (Episoden, Serien, Aufträge, geplante Posts, Integrationen, API-Schlüssel, Sprach-/LLM-/ComfyUI-Konfigurationen). Du bleibst angemeldet — Authentifizierung, Lizenz und Migrationsverfolgung bleiben erhalten.",
+        "button": "Zurücksetzen…",
+        "dialogTitle": "Datenbank zurücksetzen?",
+        "warning": "Dies leert jede Nutzerdaten-Tabelle. Du bleibst angemeldet, aber jede Episode, Serie, jeder geplante Post und jede gespeicherte Konfiguration ist weg.<1> Es gibt kein Rückgängig</1> — stelle bei Bedarf aus einer Sicherung wieder her.",
+        "consequences": [
+          "Alle Episoden, Serien, Generierungs-Aufträge und geplanten Posts werden entfernt",
+          "Alle gespeicherten API-Schlüssel, Sprachprofile, LLM-Konfigurationen, ComfyUI-Server werden gelöscht",
+          "Alle verbundenen sozialen Plattformen werden vergessen (Verbindung muss neu hergestellt werden)",
+          "Die Seite wird neu geladen, damit zwischengespeicherte Anfragen nichts wiederbeleben"
+        ],
+        "confirmLabel": "Datenbank zurücksetzen",
+        "toastSuccess": "Datenbank zurückgesetzt",
+        "toastSuccessDesc": "{{count}} Tabellen geleert. Du bist weiterhin angemeldet.",
+        "toastFailed": "Zurücksetzen fehlgeschlagen"
+      },
+      "delete": {
+        "label": "Konto löschen",
+        "descriptionOwner": "Eigentümer-Konten können von diesem Gerät nicht gelöscht werden — die Installation wäre nicht wiederherstellbar. Verwende Datenbank zurücksetzen, um Inhalte zu entfernen.",
+        "description": "Löscht dieses Benutzerkonto dauerhaft aus der Installation und meldet dich ab. Von dir erstellte Inhalte bleiben unter ihrem ursprünglichen Eigentümer.",
+        "button": "Löschen…",
+        "dialogTitle": "Konto löschen?",
+        "warning": "Dies löscht <1>{{email}}</1> dauerhaft aus der Installation und meldet dich ab.<2> Es gibt kein Rückgängig.</2>",
+        "thisAccount": "dieses Konto",
+        "consequences": [
+          "Du wirst sofort abgemeldet",
+          "Zukünftige Anmeldungen für diese E-Mail schlagen fehl, bis das Konto neu erstellt wird",
+          "Von diesem Nutzer erstellte Inhalte bleiben in der Installation (keine Kaskade)"
+        ],
+        "confirmLabel": "Konto löschen",
+        "toastFailed": "Löschen fehlgeschlagen"
+      }
+    },
     "storage": {
       "loadFailed": "Speicherinformationen konnten nicht geladen werden",
       "unableToFetch": "Speicherinformationen konnten nicht geladen werden.",

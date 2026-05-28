@@ -69,6 +69,74 @@
       "version": "Version",
       "loadFailed": "Unable to fetch FFmpeg information."
     },
+    "diagnostics": {
+      "title": "Support Diagnostics",
+      "intro": "Download a ZIP bundle to send to support when reporting an issue. The bundle contains redacted configuration, health status, recent logs, system info, and the current database revision.",
+      "bundle": {
+        "configPrefix": "all settings with secrets replaced by",
+        "health": "database, FFmpeg, and Piper status",
+        "logs": "last 1000 log lines (if a log file is configured)",
+        "system": "Python version, platform, disk space",
+        "dbRevision": "current Alembic migration head"
+      },
+      "preparing": "Preparing…",
+      "download": "Download diagnostics",
+      "downloadSuccess": "Diagnostics bundle downloaded",
+      "downloadFailed": "Download failed",
+      "dangerZone": {
+        "title": "Danger zone",
+        "intro": "These actions can’t be undone. Always take a backup first (Settings → Backup → Create backup)."
+      },
+      "wipe": {
+        "label": "Wipe storage",
+        "description": "Deletes every generated file (voice clips, scenes, renders, thumbnails, intermediate caches) from the storage directory. Database rows that reference those files are left untouched — use <1>Reset database</1> for a coordinated wipe of both.",
+        "button": "Wipe…",
+        "dialogTitle": "Wipe storage?",
+        "warning": "This permanently deletes every generated file under the storage directory. <1>There is no undo</1> — restore from a backup if you change your mind.",
+        "consequences": [
+          "All voice clips, scenes, renders, thumbnails, and caches are deleted",
+          "Database rows referencing those files remain (broken thumbnails until re-rendered)",
+          "Re-generation cost is incurred for anything you want back"
+        ],
+        "confirmLabel": "Wipe storage",
+        "toastSuccess": "Storage wiped",
+        "toastSuccessDesc": "{{count}} files removed, {{mb}} MB freed.",
+        "toastFailed": "Wipe failed"
+      },
+      "reset": {
+        "label": "Reset database",
+        "description": "Truncates every user-data table (episodes, series, jobs, scheduled posts, integrations, API keys, voice/LLM/ComfyUI configs). You stay signed in — auth, license, and migration tracking are preserved.",
+        "button": "Reset…",
+        "dialogTitle": "Reset database?",
+        "warning": "This truncates every user-data table. You stay signed in, but every episode, series, scheduled post, and saved configuration is gone.<1> There is no undo</1> — restore from a backup if you change your mind.",
+        "consequences": [
+          "All episodes, series, generation jobs, and scheduled posts are removed",
+          "All saved API keys, voice profiles, LLM configs, ComfyUI servers are deleted",
+          "All connected social platforms are forgotten (you’ll need to reconnect)",
+          "The page reloads so cached queries don’t resurrect anything"
+        ],
+        "confirmLabel": "Reset database",
+        "toastSuccess": "Database reset",
+        "toastSuccessDesc": "{{count}} tables cleared. You're still signed in.",
+        "toastFailed": "Reset failed"
+      },
+      "delete": {
+        "label": "Delete account",
+        "descriptionOwner": "Owner accounts can’t be deleted from this device — the install would be unrecoverable. Use Reset database to clear content instead.",
+        "description": "Permanently deletes this user account from the install and signs you out. Content you authored stays under its original owner.",
+        "button": "Delete…",
+        "dialogTitle": "Delete account?",
+        "warning": "This permanently deletes <1>{{email}}</1> from the install and signs you out.<2> There is no undo.</2>",
+        "thisAccount": "this account",
+        "consequences": [
+          "You are signed out immediately",
+          "Future sign-ins for this email will fail until the account is re-created",
+          "Content authored by this user stays in the install (no cascade)"
+        ],
+        "confirmLabel": "Delete account",
+        "toastFailed": "Delete failed"
+      }
+    },
     "storage": {
       "loadFailed": "Failed to load storage information",
       "unableToFetch": "Unable to fetch storage information.",

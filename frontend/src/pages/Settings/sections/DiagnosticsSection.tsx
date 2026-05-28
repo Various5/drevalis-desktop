@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Database, Download, FileArchive, Trash2, UserX } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -13,6 +14,7 @@ import { useAuth } from '@/lib/useAuth';
  * health status, recent logs, system info, and the current DB revision.
  */
 export function DiagnosticsSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [downloading, setDownloading] = useState(false);
@@ -29,12 +31,12 @@ export function DiagnosticsSection() {
     try {
       const { files_removed, bytes_freed } = await danger.wipeStorage();
       const mb = (bytes_freed / (1024 * 1024)).toFixed(1);
-      toast.success('Storage wiped', {
-        description: `${files_removed} files removed, ${mb} MB freed.`,
+      toast.success(t('settings.diagnostics.wipe.toastSuccess'), {
+        description: t('settings.diagnostics.wipe.toastSuccessDesc', { count: files_removed, mb }),
       });
       setWipeOpen(false);
     } catch (err) {
-      toast.error('Wipe failed', { description: formatError(err) });
+      toast.error(t('settings.diagnostics.wipe.toastFailed'), { description: formatError(err) });
     } finally {
       setBusy(null);
     }
@@ -44,14 +46,14 @@ export function DiagnosticsSection() {
     setBusy('reset');
     try {
       const { truncated } = await danger.resetDatabase();
-      toast.success('Database reset', {
-        description: `${truncated.length} tables cleared. You're still signed in.`,
+      toast.success(t('settings.diagnostics.reset.toastSuccess'), {
+        description: t('settings.diagnostics.reset.toastSuccessDesc', { count: truncated.length }),
       });
       setResetOpen(false);
       // Hard reload so every cached query starts from a clean DB.
       setTimeout(() => window.location.reload(), 800);
     } catch (err) {
-      toast.error('Reset failed', { description: formatError(err) });
+      toast.error(t('settings.diagnostics.reset.toastFailed'), { description: formatError(err) });
     } finally {
       setBusy(null);
     }
@@ -64,7 +66,7 @@ export function DiagnosticsSection() {
       // Cookie was cleared on the server; bounce to /login to clear local state.
       window.location.href = '/login';
     } catch (err) {
-      toast.error('Delete failed', { description: formatError(err) });
+      toast.error(t('settings.diagnostics.delete.toastFailed'), { description: formatError(err) });
       setBusy(null);
     }
   };
@@ -97,11 +99,11 @@ export function DiagnosticsSection() {
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
       }
 
-      toast.success('Diagnostics bundle downloaded', {
+      toast.success(t('settings.diagnostics.downloadSuccess'), {
         description: filename,
       });
     } catch (err) {
-      toast.error('Download failed', { description: formatError(err) });
+      toast.error(t('settings.diagnostics.downloadFailed'), { description: formatError(err) });
     } finally {
       setDownloading(false);
     }
@@ -114,30 +116,25 @@ export function DiagnosticsSection() {
           <div>
             <h3 className="font-semibold text-lg flex items-center gap-2 mb-1">
               <FileArchive className="w-5 h-5" />
-              Support Diagnostics
+              {t('settings.diagnostics.title')}
             </h3>
-            <p className="text-sm text-txt-secondary">
-              Download a ZIP bundle to send to support when reporting an issue. The
-              bundle contains redacted configuration, health status, recent logs,
-              system info, and the current database revision.
-            </p>
+            <p className="text-sm text-txt-secondary">{t('settings.diagnostics.intro')}</p>
             <ul className="mt-3 space-y-1 text-xs text-txt-muted list-disc list-inside">
               <li>
-                <code>config.json</code> — all settings with secrets replaced by{' '}
+                <code>config.json</code> — {t('settings.diagnostics.bundle.configPrefix')}{' '}
                 <code>***REDACTED***</code>
               </li>
               <li>
-                <code>health.json</code> — database, FFmpeg, and Piper status
+                <code>health.json</code> — {t('settings.diagnostics.bundle.health')}
               </li>
               <li>
-                <code>recent_logs.txt</code> — last 1000 log lines (if a log file is
-                configured)
+                <code>recent_logs.txt</code> — {t('settings.diagnostics.bundle.logs')}
               </li>
               <li>
-                <code>system.json</code> — Python version, platform, disk space
+                <code>system.json</code> — {t('settings.diagnostics.bundle.system')}
               </li>
               <li>
-                <code>db_revision.txt</code> — current Alembic migration head
+                <code>db_revision.txt</code> — {t('settings.diagnostics.bundle.dbRevision')}
               </li>
             </ul>
           </div>
@@ -148,7 +145,7 @@ export function DiagnosticsSection() {
             className="shrink-0"
           >
             <Download className="w-4 h-4 mr-1.5" />
-            {downloading ? 'Preparing...' : 'Download diagnostics'}
+            {downloading ? t('settings.diagnostics.preparing') : t('settings.diagnostics.download')}
           </Button>
         </div>
       </Card>
@@ -157,12 +154,9 @@ export function DiagnosticsSection() {
       <Card className="p-6 border-error/30">
         <h3 className="font-semibold text-lg flex items-center gap-2 mb-1 text-error">
           <AlertTriangle className="w-5 h-5" />
-          Danger zone
+          {t('settings.diagnostics.dangerZone.title')}
         </h3>
-        <p className="text-sm text-txt-secondary mb-5">
-          These actions can&rsquo;t be undone. Always take a backup first
-          (Settings &rarr; Backup &rarr; Create backup).
-        </p>
+        <p className="text-sm text-txt-secondary mb-5">{t('settings.diagnostics.dangerZone.intro')}</p>
 
         <div className="divide-y divide-border">
           {/* Wipe storage */}
@@ -170,12 +164,14 @@ export function DiagnosticsSection() {
             <div className="flex items-start gap-3 min-w-0">
               <Trash2 size={18} className="text-error mt-0.5 shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-txt-primary">Wipe storage</p>
+                <p className="text-sm font-semibold text-txt-primary">
+                  {t('settings.diagnostics.wipe.label')}
+                </p>
                 <p className="text-xs text-txt-secondary mt-1">
-                  Deletes every generated file (voice clips, scenes, renders, thumbnails,
-                  intermediate caches) from the storage directory. Database rows that
-                  reference those files are left untouched &mdash; use{' '}
-                  <em>Reset database</em> for a coordinated wipe of both.
+                  <Trans
+                    i18nKey="settings.diagnostics.wipe.description"
+                    components={{ 1: <em /> }}
+                  />
                 </p>
               </div>
             </div>
@@ -185,7 +181,7 @@ export function DiagnosticsSection() {
               onClick={() => setWipeOpen(true)}
               className="shrink-0"
             >
-              Wipe&hellip;
+              {t('settings.diagnostics.wipe.button')}
             </Button>
           </div>
 
@@ -194,11 +190,11 @@ export function DiagnosticsSection() {
             <div className="flex items-start gap-3 min-w-0">
               <Database size={18} className="text-error mt-0.5 shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-txt-primary">Reset database</p>
+                <p className="text-sm font-semibold text-txt-primary">
+                  {t('settings.diagnostics.reset.label')}
+                </p>
                 <p className="text-xs text-txt-secondary mt-1">
-                  Truncates every user-data table (episodes, series, jobs, scheduled
-                  posts, integrations, API keys, voice/LLM/ComfyUI configs). You stay
-                  signed in &mdash; auth, license, and migration tracking are preserved.
+                  {t('settings.diagnostics.reset.description')}
                 </p>
               </div>
             </div>
@@ -208,7 +204,7 @@ export function DiagnosticsSection() {
               onClick={() => setResetOpen(true)}
               className="shrink-0"
             >
-              Reset&hellip;
+              {t('settings.diagnostics.reset.button')}
             </Button>
           </div>
 
@@ -217,11 +213,13 @@ export function DiagnosticsSection() {
             <div className="flex items-start gap-3 min-w-0">
               <UserX size={18} className="text-error mt-0.5 shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-txt-primary">Delete account</p>
+                <p className="text-sm font-semibold text-txt-primary">
+                  {t('settings.diagnostics.delete.label')}
+                </p>
                 <p className="text-xs text-txt-secondary mt-1">
                   {isOwner
-                    ? 'Owner accounts can’t be deleted from this device — the install would be unrecoverable. Use Reset database to clear content instead.'
-                    : 'Permanently deletes this user account from the install and signs you out. Content you authored stays under its original owner.'}
+                    ? t('settings.diagnostics.delete.descriptionOwner')
+                    : t('settings.diagnostics.delete.description')}
                 </p>
               </div>
             </div>
@@ -232,31 +230,34 @@ export function DiagnosticsSection() {
               disabled={isOwner}
               className="shrink-0"
             >
-              Delete&hellip;
+              {t('settings.diagnostics.delete.button')}
             </Button>
           </div>
         </div>
       </Card>
 
+      {/* Confirm words (WIPE / RESET / DELETE) stay in English on purpose —
+          they're action codes the user types to gate the operation, not
+          prose. The dialog primitive itself still hardcodes "Type X to
+          confirm" in English; that lives in ConfirmDangerousDialog and is a
+          separate i18n task. ``returnObjects: true`` returns the
+          ``consequences`` arrays directly from the locale JSON. */}
       <ConfirmDangerousDialog
         open={wipeOpen}
         onClose={() => setWipeOpen(false)}
         onConfirm={() => void onWipeStorage()}
-        title="Wipe storage?"
+        title={t('settings.diagnostics.wipe.dialogTitle')}
         warning={
-          <>
-            This permanently deletes every generated file under the storage
-            directory. <strong className="text-txt-primary">There is no undo</strong>
-            &mdash; restore from a backup if you change your mind.
-          </>
+          <Trans
+            i18nKey="settings.diagnostics.wipe.warning"
+            components={{ 1: <strong className="text-txt-primary" /> }}
+          />
         }
-        consequences={[
-          'All voice clips, scenes, renders, thumbnails, and caches are deleted',
-          'Database rows referencing those files remain (broken thumbnails until re-rendered)',
-          'Re-generation cost is incurred for anything you want back',
-        ]}
+        consequences={
+          t('settings.diagnostics.wipe.consequences', { returnObjects: true }) as string[]
+        }
         confirmWord="WIPE"
-        confirmLabel="Wipe storage"
+        confirmLabel={t('settings.diagnostics.wipe.confirmLabel')}
         loading={busy === 'wipe'}
       />
 
@@ -264,23 +265,18 @@ export function DiagnosticsSection() {
         open={resetOpen}
         onClose={() => setResetOpen(false)}
         onConfirm={() => void onResetDatabase()}
-        title="Reset database?"
+        title={t('settings.diagnostics.reset.dialogTitle')}
         warning={
-          <>
-            This truncates every user-data table. You stay signed in, but every
-            episode, series, scheduled post, and saved configuration is gone.
-            <strong className="text-txt-primary"> There is no undo</strong> &mdash;
-            restore from a backup if you change your mind.
-          </>
+          <Trans
+            i18nKey="settings.diagnostics.reset.warning"
+            components={{ 1: <strong className="text-txt-primary" /> }}
+          />
         }
-        consequences={[
-          'All episodes, series, generation jobs, and scheduled posts are removed',
-          'All saved API keys, voice profiles, LLM configs, ComfyUI servers are deleted',
-          'All connected social platforms are forgotten (you’ll need to reconnect)',
-          'The page reloads so cached queries don’t resurrect anything',
-        ]}
+        consequences={
+          t('settings.diagnostics.reset.consequences', { returnObjects: true }) as string[]
+        }
         confirmWord="RESET"
-        confirmLabel="Reset database"
+        confirmLabel={t('settings.diagnostics.reset.confirmLabel')}
         loading={busy === 'reset'}
       />
 
@@ -288,22 +284,22 @@ export function DiagnosticsSection() {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => void onDeleteAccount()}
-        title="Delete account?"
+        title={t('settings.diagnostics.delete.dialogTitle')}
         warning={
-          <>
-            This permanently deletes{' '}
-            <strong className="text-txt-primary">{user?.email ?? 'this account'}</strong>{' '}
-            from the install and signs you out.
-            <strong className="text-txt-primary"> There is no undo.</strong>
-          </>
+          <Trans
+            i18nKey="settings.diagnostics.delete.warning"
+            values={{ email: user?.email ?? t('settings.diagnostics.delete.thisAccount') }}
+            components={{
+              1: <strong className="text-txt-primary" />,
+              2: <strong className="text-txt-primary" />,
+            }}
+          />
         }
-        consequences={[
-          'You are signed out immediately',
-          'Future sign-ins for this email will fail until the account is re-created',
-          'Content authored by this user stays in the install (no cascade)',
-        ]}
+        consequences={
+          t('settings.diagnostics.delete.consequences', { returnObjects: true }) as string[]
+        }
         confirmWord="DELETE"
-        confirmLabel="Delete account"
+        confirmLabel={t('settings.diagnostics.delete.confirmLabel')}
         loading={busy === 'delete'}
       />
     </div>
