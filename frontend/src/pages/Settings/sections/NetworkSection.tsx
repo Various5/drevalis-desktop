@@ -11,6 +11,7 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDangerousDialog } from '@/components/ui/ConfirmDangerousDialog';
+import { isTauri, restartBackend } from '@/lib/tauri';
 
 // ---------------------------------------------------------------------------
 // NetworkSection — Settings → System → "LAN API Access".
@@ -43,6 +44,23 @@ export function NetworkSection() {
   const [copied, setCopied] = useState<'token' | 'url' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+  const [restartError, setRestartError] = useState<string | null>(null);
+
+  async function doRestart() {
+    setRestartError(null);
+    setRestarting(true);
+    try {
+      await restartBackend();
+      // The backend just respawned with the new bind host; refetch so the
+      // banner clears and ``runtime_bind_host`` matches ``bind_host``.
+      await reload();
+    } catch (err) {
+      setRestartError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRestarting(false);
+    }
+  }
 
   async function reload() {
     setLoading(true);
@@ -179,17 +197,42 @@ export function NetworkSection() {
         </div>
       </div>
 
-      {/* Restart banner */}
+      {/* Restart banner — coloured strip at the top of the section.
+          In the desktop shell, exposes a "Restart backend" button that calls
+          the Rust ``restart_backend`` command (graceful kill + respawn,
+          resolves once the API port is back). In a browser run the button is
+          omitted; the inline copy still tells the user how to recover. */}
       {state.restart_required && (
         <div className="rounded-lg border border-accent/40 bg-accent-muted/40 p-4 flex items-start gap-3">
-          <RefreshCw className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-txt-secondary">
-            <span className="font-medium text-txt-primary">Restart required.</span>{' '}
-            The change is saved, but the API is still bound to{' '}
-            <code className="px-1 rounded bg-muted">{state.runtime_bind_host}</code>.
-            Fully quit and reopen the app to start listening on{' '}
-            <code className="px-1 rounded bg-muted">{state.bind_host}</code>.
-          </p>
+          <RefreshCw className={`w-5 h-5 text-accent flex-shrink-0 mt-0.5 ${restarting ? 'animate-spin' : ''}`} />
+          <div className="flex-1 space-y-2">
+            <p className="text-sm text-txt-secondary">
+              <span className="font-medium text-txt-primary">Restart required.</span>{' '}
+              The change is saved, but the API is still bound to{' '}
+              <code className="px-1 rounded bg-muted">{state.runtime_bind_host}</code>.
+              {isTauri()
+                ? ' Restart the backend to start listening on '
+                : ' Fully quit and reopen the app to start listening on '}
+              <code className="px-1 rounded bg-muted">{state.bind_host}</code>.
+            </p>
+            {isTauri() && (
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  onClick={() => void doRestart()}
+                  loading={restarting}
+                  disabled={restarting}
+                >
+                  Restart backend
+                </Button>
+                {restartError && (
+                  <span className="text-xs text-error" role="alert">
+                    {restartError}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

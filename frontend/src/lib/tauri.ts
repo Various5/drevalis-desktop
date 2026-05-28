@@ -256,3 +256,21 @@ export function installTauriBridges(): void {
     return originalOpen(...args);
   } as typeof window.open;
 }
+
+/**
+ * Restart the bundled backend (Tauri-only). Calls the ``restart_backend``
+ * Rust command, which gracefully kills the current ``drevalis.exe`` subtree
+ * and respawns it — returning only once the backend's port is reachable
+ * again, so callers can re-issue API requests on a successful resolve.
+ *
+ * In a plain browser run (no Tauri shell) there's no embedded backend to
+ * restart; we throw so the UI can show "available in the desktop app only"
+ * rather than silently no-op.
+ */
+export async function restartBackend(): Promise<void> {
+  if (!isTauri()) {
+    throw new Error('Restart backend is only available in the desktop app.');
+  }
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('restart_backend');
+}

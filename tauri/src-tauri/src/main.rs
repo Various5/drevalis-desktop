@@ -184,6 +184,40 @@ fn kill_backend(state: &BackendProcess) {
     let _ = child.wait();
 }
 
+/// Stop the bundled backend and respawn it.
+///
+/// Surfaced through the "Restart backend" button on the Settings → Network
+/// restart-required banner (Phase 4). Returns only once the backend's API
+/// port is back up, so the frontend can re-issue requests on a successful
+/// resolve. Errors are surfaced as ``Result<_, String>`` so they show up in
+/// the JS catch block with a useful message instead of an opaque rejection.
+#[tauri::command]
+fn restart_backend(app: tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<BackendProcess>();
+    kill_backend(&state);
+
+    let child = match spawn_backend(&app) {
+        Ok(Some(c)) => c,
+        Ok(None) => return Err("backend executable not found".to_string()),
+        Err(err) => return Err(format!("backend spawn failed: {err}")),
+    };
+    {
+        let mut guard = state
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *guard = Some(child);
+    }
+
+    if !wait_for_port("127.0.0.1", 8000, BACKEND_READY_TIMEOUT) {
+        return Err(format!(
+            "backend didn't reopen :8000 within {:?}",
+            BACKEND_READY_TIMEOUT
+        ));
+    }
+    Ok(())
+}
+
 /// Initialise crash telemetry for the Tauri shell process.
 ///
 /// DSN is read at compile time via ``option_env!`` so CI release
@@ -227,6 +261,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![restart_backend])
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
             // Spawn the backend before the window loads so the webview's
