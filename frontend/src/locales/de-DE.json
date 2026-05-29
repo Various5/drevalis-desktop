@@ -16,6 +16,112 @@
       "unreachable": "Nicht erreichbar"
     }
   },
+  "episodes": {
+    "subtitle": "Alle Episoden über deine Serien hinweg durchsuchen und verwalten.",
+    "loadFailed": "Episoden konnten nicht geladen werden",
+    "trash": "Papierkorb",
+    "trashTitle": "Gelöschte Episoden anzeigen",
+    "select": "Auswählen",
+    "cancel": "Abbrechen",
+    "generateAllDraft": "Alle Entwürfe generieren ({{count}})",
+    "newEpisode": "Neue Episode",
+    "filters": {
+      "all": "Alle",
+      "draft": "Entwurf",
+      "generating": "Wird generiert",
+      "review": "Prüfung",
+      "failed": "Fehlgeschlagen"
+    },
+    "sort": {
+      "newest": "Neueste",
+      "oldest": "Älteste",
+      "title": "Titel (A→Z)",
+      "duration": "Dauer"
+    },
+    "allSeries": "Alle Serien",
+    "searchPlaceholder": "Titel oder Thema suchen...",
+    "clearSearch": "Suche leeren",
+    "countSingular": "{{count}} Episode",
+    "countPlural": "{{count}} Episoden",
+    "countFiltered": "{{shown}} von {{total}}",
+    "empty": {
+      "title": "Keine Episoden gefunden",
+      "withFilters": "Versuche, Filter oder Suche zu leeren.",
+      "noFilters": "Erstelle deine erste Episode, um zu beginnen."
+    },
+    "actions": {
+      "generate": "Generieren",
+      "generateAria": "{{title}} generieren",
+      "cancelGenerationTitle": "Generierung abbrechen",
+      "cancelGenerationAria": "Generierung von {{title}} abbrechen",
+      "duplicateTitle": "Duplizieren",
+      "duplicateAria": "{{title}} duplizieren",
+      "deleteTitle": "Löschen",
+      "deleteAria": "{{title}} löschen",
+      "selectAria": "{{title}} auswählen",
+      "unselectAria": "{{title}} abwählen"
+    },
+    "toasts": {
+      "createFailed": "Episode konnte nicht erstellt werden",
+      "cancelFailed": "Episode konnte nicht abgebrochen werden",
+      "generationStarted": "Episoden-Generierung gestartet",
+      "generationFailed": "Generierung konnte nicht gestartet werden",
+      "duplicateFailed": "Episode konnte nicht dupliziert werden",
+      "deletedToast": "Episode gelöscht",
+      "deleteFailed": "Episode konnte nicht gelöscht werden",
+      "undo": "Rückgängig",
+      "restoredToast": "Episode wiederhergestellt",
+      "restoreFailed": "Wiederherstellung fehlgeschlagen",
+      "draftsQueued_one": "{{count}} Entwurf eingereiht",
+      "draftsQueued_other": "{{count}} Entwürfe eingereiht",
+      "generateAllFailed": "Generierung aller Entwürfe fehlgeschlagen",
+      "nothingToGenerate": "Nichts zu generieren",
+      "nothingToGenerateDesc": "Die ausgewählten Episoden sind weder im Entwurfs- noch im Fehlgeschlagen-Status.",
+      "episodesQueued": "Episoden eingereiht",
+      "episodesQueuedDesc": "{{eligible}} von {{total}} ausgewählten eingereiht",
+      "bulkGenerateFailed": "Massen-Generierung fehlgeschlagen",
+      "episodesDeleted": "Episoden gelöscht",
+      "episodesDeletedDesc": "{{count}} entfernt",
+      "episodesRestoredDesc": "{{count}} wiederhergestellt",
+      "bulkDeleteFailed": "Massen-Löschung fehlgeschlagen"
+    },
+    "create": {
+      "title": "Neue Episode erstellen",
+      "seriesLabel": "Serie",
+      "seriesPlaceholder": "Serie auswählen...",
+      "titleLabel": "Titel",
+      "titlePlaceholder": "Episoden-Titel...",
+      "topicLabel": "Thema",
+      "topicPlaceholder": "Worum soll es in dieser Episode gehen?",
+      "cancel": "Abbrechen",
+      "submit": "Episode erstellen"
+    },
+    "delete": {
+      "title": "Episode löschen?",
+      "body": "Dies löscht <1>{{title}}</1> und alle generierten Medien dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "confirm": "Endgültig löschen"
+    },
+    "bulkDelete": {
+      "title_one": "{{count}} Episode löschen?",
+      "title_other": "{{count}} Episoden löschen?",
+      "body": "Dies löscht die ausgewählten Episoden und alle generierten Medien dauerhaft. Dies kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "confirm": "{{count}} löschen"
+    },
+    "bulkBar": {
+      "selectedCount": "{{count}} ausgewählt",
+      "selectAllVisible": "Alle sichtbaren auswählen",
+      "generate": "Generieren",
+      "delete": "Löschen"
+    },
+    "titleConflict": {
+      "title_one": "Ähnlich zu einem vorhandenen Video auf deinem Kanal",
+      "title_other": "Ähnlich zu vorhandenen Videos auf deinem Kanal",
+      "matchSuffix": "{{pct}}% Übereinstimmung",
+      "shortSuffix": " · Short"
+    }
+  },
   "jobs": {
     "subtitle": "Alle Generierungs-Aufgaben überwachen und steuern.",
     "stopAll": "Alle stoppen",

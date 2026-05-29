@@ -1,5 +1,6 @@
-﻿import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   Plus,
   Film,
@@ -52,6 +53,7 @@ interface TitleMatch {
 }
 
 function TitleConflictWarning({ title }: { title: string }) {
+  const { t } = useTranslation();
   const [matches, setMatches] = useState<TitleMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const trimmed = title.trim();
@@ -93,7 +95,7 @@ function TitleConflictWarning({ title }: { title: string }) {
         <AlertTriangle size={14} className="text-warning shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-warning">
-            Similar to existing video{matches.length > 1 ? 's' : ''} on your channel
+            {t('episodes.titleConflict.title', { count: matches.length })}
           </p>
           <ul className="mt-1.5 space-y-1">
             {matches.map((m) => (
@@ -111,8 +113,8 @@ function TitleConflictWarning({ title }: { title: string }) {
                   <ExternalLink size={10} className="shrink-0 opacity-60" />
                 </a>
                 <span className="text-[10px] tabular-nums text-txt-tertiary shrink-0">
-                  {Math.round(m.similarity * 100)}% match
-                  {m.is_short ? ' · short' : ''}
+                  {t('episodes.titleConflict.matchSuffix', { pct: Math.round(m.similarity * 100) })}
+                  {m.is_short ? t('episodes.titleConflict.shortSuffix') : ''}
                 </span>
               </li>
             ))}
@@ -124,30 +126,21 @@ function TitleConflictWarning({ title }: { title: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Status filter tabs
+// Status / sort tab identifiers — labels come from i18n
 // ---------------------------------------------------------------------------
 
-const STATUS_TABS = [
-  { value: '', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'generating', label: 'Generating' },
-  { value: 'review', label: 'Review' },
-  { value: 'failed', label: 'Failed' },
-] as const;
+const STATUS_TAB_KEYS = ['', 'draft', 'generating', 'review', 'failed'] as const;
+type StatusTabKey = (typeof STATUS_TAB_KEYS)[number];
 
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'oldest', label: 'Oldest' },
-  { value: 'title', label: 'Title (A→Z)' },
-  { value: 'duration', label: 'Duration' },
-] as const;
-type SortKey = (typeof SORT_OPTIONS)[number]['value'];
+const SORT_KEYS = ['newest', 'oldest', 'title', 'duration'] as const;
+type SortKey = (typeof SORT_KEYS)[number];
 
 // ---------------------------------------------------------------------------
 // Episodes List Page
 // ---------------------------------------------------------------------------
 
 function EpisodesList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -155,7 +148,7 @@ function EpisodesList() {
   // ``invalidateQueries`` on the same keys so this list refreshes
   // automatically when an episode is created / deleted / generated.
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusTabKey>('');
   const [seriesFilter, setSeriesFilter] = useState('');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('newest');
@@ -215,18 +208,23 @@ function EpisodesList() {
 
   useEffect(() => {
     if (episodesQ.error) {
-      toast.error('Failed to load episodes', { description: String(episodesQ.error) });
+      toast.error(t('episodes.loadFailed'), { description: String(episodesQ.error) });
     }
-  }, [episodesQ.error, toast]);
+  }, [episodesQ.error, toast, t]);
 
   useEffect(() => {
     if (showCreate) setCreateDialogOpen(true);
   }, [showCreate]);
 
   const seriesOptions = [
-    { value: '', label: 'All Series' },
+    { value: '', label: t('episodes.allSeries') },
     ...seriesList.map((s) => ({ value: s.id, label: s.name })),
   ];
+
+  const sortOptions = SORT_KEYS.map((value) => ({
+    value,
+    label: t(`episodes.sort.${value}`),
+  }));
 
   const handleCreate = async () => {
     if (!newSeriesId || !newTitle.trim()) return;
@@ -243,7 +241,7 @@ function EpisodesList() {
       setNewTopic('');
       navigate(`/episodes/${ep.id}`);
     } catch (err) {
-      toast.error('Failed to create episode', { description: String(err) });
+      toast.error(t('episodes.toasts.createFailed'), { description: String(err) });
     } finally {
       setCreating(false);
     }
@@ -254,17 +252,17 @@ function EpisodesList() {
       await episodesApi.cancel(episodeId);
       refetch();
     } catch (err) {
-      toast.error('Failed to cancel episode', { description: String(err) });
+      toast.error(t('episodes.toasts.cancelFailed'), { description: String(err) });
     }
   };
 
   const handleGenerateEpisode = async (episodeId: string) => {
     try {
       await episodesApi.generate(episodeId);
-      toast.success('Episode generation started');
+      toast.success(t('episodes.toasts.generationStarted'));
       refetch();
     } catch (err) {
-      toast.error('Failed to start generation', { description: String(err) });
+      toast.error(t('episodes.toasts.generationFailed'), { description: String(err) });
     }
   };
 
@@ -274,7 +272,7 @@ function EpisodesList() {
       const dup = await episodesApi.duplicate(episodeId);
       navigate(`/episodes/${dup.id}`);
     } catch (err) {
-      toast.error('Failed to duplicate episode', { description: String(err) });
+      toast.error(t('episodes.toasts.duplicateFailed'), { description: String(err) });
     } finally {
       setDuplicatingId(null);
     }
@@ -289,18 +287,18 @@ function EpisodesList() {
       await episodesApi.delete(deletedId);
       setDeleteDialogOpen(false);
       setDeletingEpisodeId(null);
-      toast.success('Episode deleted', {
+      toast.success(t('episodes.toasts.deletedToast'), {
         description: deletedTitle || undefined,
         action: {
-          label: 'Undo',
+          label: t('episodes.toasts.undo'),
           onClick: () => {
             void (async () => {
               try {
                 await episodesApi.restore(deletedId);
                 refetch();
-                toast.success('Episode restored');
+                toast.success(t('episodes.toasts.restoredToast'));
               } catch (err) {
-                toast.error('Restore failed', { description: String(err) });
+                toast.error(t('episodes.toasts.restoreFailed'), { description: String(err) });
               }
             })();
           },
@@ -308,7 +306,7 @@ function EpisodesList() {
       });
       refetch();
     } catch (err) {
-      toast.error('Failed to delete episode', { description: String(err) });
+      toast.error(t('episodes.toasts.deleteFailed'), { description: String(err) });
     } finally {
       setDeleting(false);
     }
@@ -320,10 +318,12 @@ function EpisodesList() {
     setGeneratingAllDrafts(true);
     try {
       await Promise.all(drafts.map((ep) => episodesApi.generate(ep.id)));
-      toast.success('Episode generation started', { description: `${drafts.length} draft${drafts.length === 1 ? '' : 's'} queued` });
+      toast.success(t('episodes.toasts.generationStarted'), {
+        description: t('episodes.toasts.draftsQueued', { count: drafts.length }),
+      });
       refetch();
     } catch (err) {
-      toast.error('Failed to generate all drafts', { description: String(err) });
+      toast.error(t('episodes.toasts.generateAllFailed'), { description: String(err) });
     } finally {
       setGeneratingAllDrafts(false);
     }
@@ -331,10 +331,6 @@ function EpisodesList() {
 
   // Filtered + sorted view — server returns episodes filtered by
   // status/series; search + sort are client-side over that result.
-  // Memoise so unrelated state changes (selectMode, dialog flags,
-  // bulkBusy, etc.) don't reorder the up-to-500 episode list every
-  // render. Deps are explicit: only the inputs that actually affect
-  // the output trigger a recompute.
   const visibleEpisodes = useMemo(() => {
     let list = episodesList;
     const q = search.trim().toLowerCase();
@@ -425,21 +421,24 @@ function EpisodesList() {
         (ep.status === 'draft' || ep.status === 'failed'),
     );
     if (eligible.length === 0) {
-      toast.error('Nothing to generate', {
-        description: 'Selected episodes are not in a draft or failed state.',
+      toast.error(t('episodes.toasts.nothingToGenerate'), {
+        description: t('episodes.toasts.nothingToGenerateDesc'),
       });
       return;
     }
     setBulkBusy(true);
     try {
       await Promise.all(eligible.map((ep) => episodesApi.generate(ep.id)));
-      toast.success('Episodes queued', {
-        description: `${eligible.length} of ${ids.length} selected enqueued`,
+      toast.success(t('episodes.toasts.episodesQueued'), {
+        description: t('episodes.toasts.episodesQueuedDesc', {
+          eligible: eligible.length,
+          total: ids.length,
+        }),
       });
       exitSelectMode();
       refetch();
     } catch (err) {
-      toast.error('Bulk generate failed', { description: String(err) });
+      toast.error(t('episodes.toasts.bulkGenerateFailed'), { description: String(err) });
     } finally {
       setBulkBusy(false);
     }
@@ -451,18 +450,20 @@ function EpisodesList() {
     setBulkBusy(true);
     try {
       await Promise.all(ids.map((id) => episodesApi.delete(id)));
-      toast.success('Episodes deleted', {
-        description: `${ids.length} removed`,
+      toast.success(t('episodes.toasts.episodesDeleted'), {
+        description: t('episodes.toasts.episodesDeletedDesc', { count: ids.length }),
         action: {
-          label: 'Undo',
+          label: t('episodes.toasts.undo'),
           onClick: () => {
             void (async () => {
               try {
                 await Promise.all(ids.map((id) => episodesApi.restore(id)));
                 refetch();
-                toast.success('Episodes restored', { description: `${ids.length} restored` });
+                toast.success(t('episodes.toasts.restoredToast'), {
+                  description: t('episodes.toasts.episodesRestoredDesc', { count: ids.length }),
+                });
               } catch (err) {
-                toast.error('Restore failed', { description: String(err) });
+                toast.error(t('episodes.toasts.restoreFailed'), { description: String(err) });
               }
             })();
           },
@@ -472,7 +473,7 @@ function EpisodesList() {
       exitSelectMode();
       refetch();
     } catch (err) {
-      toast.error('Bulk delete failed', { description: String(err) });
+      toast.error(t('episodes.toasts.bulkDeleteFailed'), { description: String(err) });
     } finally {
       setBulkBusy(false);
     }
@@ -497,17 +498,17 @@ function EpisodesList() {
           subtitle and the page-level CTAs. */}
       <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
         <p className="text-sm text-txt-secondary">
-          Browse and manage all episodes across your series.
+          {t('episodes.subtitle')}
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setTrashOpen(true)}
-            title="View deleted episodes"
+            title={t('episodes.trashTitle')}
           >
             <Trash2 size={14} />
-            Trash
+            {t('episodes.trash')}
           </Button>
           <Button
             variant={selectMode ? 'primary' : 'ghost'}
@@ -515,7 +516,7 @@ function EpisodesList() {
             onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
           >
             <CheckSquare size={14} />
-            {selectMode ? 'Cancel' : 'Select'}
+            {selectMode ? t('episodes.cancel') : t('episodes.select')}
           </Button>
           {draftCount > 0 && (
             <Button
@@ -524,7 +525,7 @@ function EpisodesList() {
               onClick={() => void handleGenerateAllDrafts()}
             >
               <Play size={14} />
-              Generate All Draft ({draftCount})
+              {t('episodes.generateAllDraft', { count: draftCount })}
             </Button>
           )}
           <Button
@@ -532,23 +533,25 @@ function EpisodesList() {
             onClick={() => setCreateDialogOpen(true)}
           >
             <Plus size={14} />
-            New Episode
+            {t('episodes.newEpisode')}
           </Button>
         </div>
       </div>
 
       {/* Status filter tabs */}
       <div className="flex items-center gap-1 mb-4 border-b border-white/[0.06]">
-        {STATUS_TABS.map((tab) => {
-          const isActive = statusFilter === tab.value;
-          // For the "All" tab, use total; for specific statuses, use current unfiltered count
-          // (We show the count from currently fetched list which respects series filter)
-          const count = tab.value === '' ? episodesList.length : statusCounts[tab.value] ?? 0;
-
+        {STATUS_TAB_KEYS.map((key) => {
+          const isActive = statusFilter === key;
+          // For the "All" tab, use total; for specific statuses, use the
+          // memoised counts map.
+          const count = key === '' ? episodesList.length : statusCounts[key] ?? 0;
+          const label = key === ''
+            ? t('episodes.filters.all')
+            : t(`episodes.filters.${key}`);
           return (
             <button
-              key={tab.value}
-              onClick={() => setStatusFilter(tab.value)}
+              key={key || 'all'}
+              onClick={() => setStatusFilter(key)}
               className={[
                 'flex items-center gap-1.5 px-4 py-2.5 text-sm font-display font-medium transition-colors duration-fast',
                 'border-b-2 -mb-px',
@@ -557,7 +560,7 @@ function EpisodesList() {
                   : 'border-transparent text-txt-tertiary hover:text-txt-secondary hover:bg-white/[0.04]',
               ].join(' ')}
             >
-              {tab.label}
+              {label}
               {count > 0 && (
                 <span className={[
                   'text-xs px-1.5 py-0.5 rounded-full',
@@ -571,9 +574,7 @@ function EpisodesList() {
         })}
       </div>
 
-      {/* Toolbar — series filter + search + sort. The filter funnels
-          the server query (status / series); search and sort act on
-          the result set on the client. */}
+      {/* Toolbar — series filter + search + sort. */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
         <Filter size={14} className="text-txt-tertiary" />
         <div className="w-48">
@@ -592,14 +593,14 @@ function EpisodesList() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title or topic..."
+            placeholder={t('episodes.searchPlaceholder')}
             className="w-full h-9 pl-7 pr-7 bg-bg-base border border-white/[0.08] rounded-md text-sm text-txt-primary placeholder:text-txt-tertiary focus:outline-none focus:border-accent/40"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-white/[0.06] text-txt-tertiary hover:text-txt-primary"
-              aria-label="Clear search"
+              aria-label={t('episodes.clearSearch')}
             >
               <X size={12} />
             </button>
@@ -607,15 +608,17 @@ function EpisodesList() {
         </div>
         <div className="w-44">
           <Select
-            options={SORT_OPTIONS as unknown as { value: string; label: string }[]}
+            options={sortOptions}
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
           />
         </div>
         <span className="text-xs text-txt-tertiary ml-auto">
           {visibleEpisodes.length === episodesList.length
-            ? `${episodesList.length} ${episodesList.length === 1 ? 'episode' : 'episodes'}`
-            : `${visibleEpisodes.length} of ${episodesList.length}`}
+            ? episodesList.length === 1
+              ? t('episodes.countSingular', { count: episodesList.length })
+              : t('episodes.countPlural', { count: episodesList.length })
+            : t('episodes.countFiltered', { shown: visibleEpisodes.length, total: episodesList.length })}
         </span>
       </div>
 
@@ -623,17 +626,17 @@ function EpisodesList() {
       {visibleEpisodes.length === 0 ? (
         <EmptyState
           icon={Film}
-          title="No episodes found"
+          title={t('episodes.empty.title')}
           description={
             statusFilter || seriesFilter || search
-              ? 'Try clearing your filters or search.'
-              : 'Create your first episode to get started.'
+              ? t('episodes.empty.withFilters')
+              : t('episodes.empty.noFilters')
           }
           action={
             !statusFilter && !seriesFilter && !search ? (
               <Button variant="primary" onClick={() => setCreateDialogOpen(true)}>
                 <Plus size={14} />
-                New Episode
+                {t('episodes.newEpisode')}
               </Button>
             ) : null
           }
@@ -656,13 +659,16 @@ function EpisodesList() {
               />
               {/* Selection mode — full-card overlay swallows the
                   underlying Card's navigate-on-click and converts it
-                  to a selection toggle. The overlay sits above the
-                  Card but below the action buttons. */}
+                  to a selection toggle. */}
               {selectMode && (
                 <button
                   type="button"
                   className="absolute inset-0 z-10 cursor-pointer rounded-xl"
-                  aria-label={`${selectedIds.has(ep.id) ? 'Unselect' : 'Select'} ${ep.title}`}
+                  aria-label={
+                    selectedIds.has(ep.id)
+                      ? t('episodes.actions.unselectAria', { title: ep.title })
+                      : t('episodes.actions.selectAria', { title: ep.title })
+                  }
                   aria-pressed={selectedIds.has(ep.id)}
                   onClick={(e) => {
                     e.preventDefault();
@@ -696,8 +702,8 @@ function EpisodesList() {
                       void handleGenerateEpisode(ep.id);
                     }}
                     className="p-1.5 rounded bg-accent/90 text-white hover:bg-accent transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                    title="Generate"
-                    aria-label={`Generate ${ep.title}`}
+                    title={t('episodes.actions.generate')}
+                    aria-label={t('episodes.actions.generateAria', { title: ep.title })}
                   >
                     <Play size={12} />
                   </button>
@@ -710,8 +716,8 @@ function EpisodesList() {
                       void handleCancelEpisode(ep.id);
                     }}
                     className="p-1.5 rounded bg-red-600/80 text-white hover:bg-red-500 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-300"
-                    title="Cancel Generation"
-                    aria-label={`Cancel generation of ${ep.title}`}
+                    title={t('episodes.actions.cancelGenerationTitle')}
+                    aria-label={t('episodes.actions.cancelGenerationAria', { title: ep.title })}
                   >
                     <Square size={12} />
                   </button>
@@ -723,8 +729,8 @@ function EpisodesList() {
                     void handleDuplicateEpisode(ep.id);
                   }}
                   className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 backdrop-blur-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                  title="Duplicate"
-                  aria-label={`Duplicate ${ep.title}`}
+                  title={t('episodes.actions.duplicateTitle')}
+                  aria-label={t('episodes.actions.duplicateAria', { title: ep.title })}
                   disabled={duplicatingId === ep.id}
                 >
                   <Copy size={12} />
@@ -738,8 +744,8 @@ function EpisodesList() {
                     setDeleteDialogOpen(true);
                   }}
                   className="p-1.5 rounded bg-black/60 text-red-400 hover:bg-red-600/80 hover:text-white backdrop-blur-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
-                  title="Delete"
-                  aria-label={`Delete ${ep.title}`}
+                  title={t('episodes.actions.deleteTitle')}
+                  aria-label={t('episodes.actions.deleteAria', { title: ep.title })}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -753,37 +759,35 @@ function EpisodesList() {
       <Dialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
-        title="Create New Episode"
+        title={t('episodes.create.title')}
       >
         <div className="space-y-4">
           <Select
-            label="Series"
-            placeholder="Select a series..."
+            label={t('episodes.create.seriesLabel')}
+            placeholder={t('episodes.create.seriesPlaceholder')}
             options={seriesList.map((s) => ({ value: s.id, label: s.name }))}
             value={newSeriesId}
             onChange={(e) => setNewSeriesId(e.target.value)}
           />
           <Input
-            label="Title"
-            placeholder="Episode title..."
+            label={t('episodes.create.titleLabel')}
+            placeholder={t('episodes.create.titlePlaceholder')}
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
           />
           {/* Debounced title-similarity check against every video already
-              on the connected YouTube channels. Warns inline if the
-              title looks like content that's already published, before
-              the user spends generation credits on a duplicate. */}
+              on the connected YouTube channels. */}
           <TitleConflictWarning title={newTitle} />
           <Textarea
-            label="Topic"
-            placeholder="What should this episode be about?"
+            label={t('episodes.create.topicLabel')}
+            placeholder={t('episodes.create.topicPlaceholder')}
             value={newTopic}
             onChange={(e) => setNewTopic(e.target.value)}
           />
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setCreateDialogOpen(false)}>
-            Cancel
+            {t('episodes.create.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -791,7 +795,7 @@ function EpisodesList() {
             disabled={!newSeriesId || !newTitle.trim()}
             onClick={() => void handleCreate()}
           >
-            Create Episode
+            {t('episodes.create.submit')}
           </Button>
         </DialogFooter>
       </Dialog>
@@ -801,14 +805,14 @@ function EpisodesList() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-fixed">
           <div className="flex items-center gap-3 bg-bg-elevated/95 backdrop-blur-xl border border-white/[0.1] rounded-full pl-4 pr-2 py-2 shadow-lg">
             <span className="text-sm text-txt-primary font-medium tabular-nums">
-              {selectedIds.size} selected
+              {t('episodes.bulkBar.selectedCount', { count: selectedIds.size })}
             </span>
             <button
               type="button"
               onClick={selectAllVisible}
               className="text-xs text-accent hover:underline"
             >
-              Select all visible
+              {t('episodes.bulkBar.selectAllVisible')}
             </button>
             <div className="h-5 w-px bg-white/[0.1]" />
             <Button
@@ -817,7 +821,7 @@ function EpisodesList() {
               disabled={selectedIds.size === 0 || bulkBusy}
               onClick={() => void handleBulkGenerate()}
             >
-              <Play size={14} /> Generate
+              <Play size={14} /> {t('episodes.bulkBar.generate')}
             </Button>
             <Button
               variant="ghost"
@@ -826,7 +830,7 @@ function EpisodesList() {
               onClick={() => setBulkDeleteOpen(true)}
               className="text-error hover:bg-error/10"
             >
-              <Trash2 size={14} /> Delete
+              <Trash2 size={14} /> {t('episodes.bulkBar.delete')}
             </Button>
             <Button variant="ghost" size="sm" onClick={exitSelectMode}>
               <X size={14} />
@@ -839,22 +843,21 @@ function EpisodesList() {
       <Dialog
         open={bulkDeleteOpen}
         onClose={() => setBulkDeleteOpen(false)}
-        title={`Delete ${selectedIds.size} episode${selectedIds.size === 1 ? '' : 's'}?`}
+        title={t('episodes.bulkDelete.title', { count: selectedIds.size })}
       >
         <p className="text-sm text-txt-secondary">
-          This permanently deletes the selected episodes and all generated
-          media. This cannot be undone.
+          {t('episodes.bulkDelete.body')}
         </p>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setBulkDeleteOpen(false)}>
-            Cancel
+            {t('episodes.bulkDelete.cancel')}
           </Button>
           <Button
             variant="destructive"
             loading={bulkBusy}
             onClick={() => void handleBulkDelete()}
           >
-            <Trash2 size={14} /> Delete {selectedIds.size}
+            <Trash2 size={14} /> {t('episodes.bulkDelete.confirm', { count: selectedIds.size })}
           </Button>
         </DialogFooter>
       </Dialog>
@@ -866,11 +869,14 @@ function EpisodesList() {
           setDeleteDialogOpen(false);
           setDeletingEpisodeId(null);
         }}
-        title="Delete Episode?"
+        title={t('episodes.delete.title')}
       >
         <p className="text-sm text-txt-secondary">
-          This will permanently delete <strong>{deletingEpisodeTitle}</strong> and
-          all generated media. This action cannot be undone.
+          <Trans
+            i18nKey="episodes.delete.body"
+            values={{ title: deletingEpisodeTitle }}
+            components={{ 1: <strong /> }}
+          />
         </p>
         <DialogFooter>
           <Button
@@ -880,7 +886,7 @@ function EpisodesList() {
               setDeletingEpisodeId(null);
             }}
           >
-            Cancel
+            {t('episodes.delete.cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -888,7 +894,7 @@ function EpisodesList() {
             onClick={() => void handleDeleteEpisode()}
           >
             <Trash2 size={14} />
-            Delete Forever
+            {t('episodes.delete.confirm')}
           </Button>
         </DialogFooter>
       </Dialog>

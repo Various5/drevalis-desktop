@@ -16,6 +16,112 @@
       "unreachable": "Unreachable"
     }
   },
+  "episodes": {
+    "subtitle": "Browse and manage all episodes across your series.",
+    "loadFailed": "Failed to load episodes",
+    "trash": "Trash",
+    "trashTitle": "View deleted episodes",
+    "select": "Select",
+    "cancel": "Cancel",
+    "generateAllDraft": "Generate All Draft ({{count}})",
+    "newEpisode": "New Episode",
+    "filters": {
+      "all": "All",
+      "draft": "Draft",
+      "generating": "Generating",
+      "review": "Review",
+      "failed": "Failed"
+    },
+    "sort": {
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "title": "Title (A→Z)",
+      "duration": "Duration"
+    },
+    "allSeries": "All Series",
+    "searchPlaceholder": "Search title or topic...",
+    "clearSearch": "Clear search",
+    "countSingular": "{{count}} episode",
+    "countPlural": "{{count}} episodes",
+    "countFiltered": "{{shown}} of {{total}}",
+    "empty": {
+      "title": "No episodes found",
+      "withFilters": "Try clearing your filters or search.",
+      "noFilters": "Create your first episode to get started."
+    },
+    "actions": {
+      "generate": "Generate",
+      "generateAria": "Generate {{title}}",
+      "cancelGenerationTitle": "Cancel Generation",
+      "cancelGenerationAria": "Cancel generation of {{title}}",
+      "duplicateTitle": "Duplicate",
+      "duplicateAria": "Duplicate {{title}}",
+      "deleteTitle": "Delete",
+      "deleteAria": "Delete {{title}}",
+      "selectAria": "Select {{title}}",
+      "unselectAria": "Unselect {{title}}"
+    },
+    "toasts": {
+      "createFailed": "Failed to create episode",
+      "cancelFailed": "Failed to cancel episode",
+      "generationStarted": "Episode generation started",
+      "generationFailed": "Failed to start generation",
+      "duplicateFailed": "Failed to duplicate episode",
+      "deletedToast": "Episode deleted",
+      "deleteFailed": "Failed to delete episode",
+      "undo": "Undo",
+      "restoredToast": "Episode restored",
+      "restoreFailed": "Restore failed",
+      "draftsQueued_one": "{{count}} draft queued",
+      "draftsQueued_other": "{{count}} drafts queued",
+      "generateAllFailed": "Failed to generate all drafts",
+      "nothingToGenerate": "Nothing to generate",
+      "nothingToGenerateDesc": "Selected episodes are not in a draft or failed state.",
+      "episodesQueued": "Episodes queued",
+      "episodesQueuedDesc": "{{eligible}} of {{total}} selected enqueued",
+      "bulkGenerateFailed": "Bulk generate failed",
+      "episodesDeleted": "Episodes deleted",
+      "episodesDeletedDesc": "{{count}} removed",
+      "episodesRestoredDesc": "{{count}} restored",
+      "bulkDeleteFailed": "Bulk delete failed"
+    },
+    "create": {
+      "title": "Create New Episode",
+      "seriesLabel": "Series",
+      "seriesPlaceholder": "Select a series...",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Episode title...",
+      "topicLabel": "Topic",
+      "topicPlaceholder": "What should this episode be about?",
+      "cancel": "Cancel",
+      "submit": "Create Episode"
+    },
+    "delete": {
+      "title": "Delete Episode?",
+      "body": "This will permanently delete <1>{{title}}</1> and all generated media. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete Forever"
+    },
+    "bulkDelete": {
+      "title_one": "Delete {{count}} episode?",
+      "title_other": "Delete {{count}} episodes?",
+      "body": "This permanently deletes the selected episodes and all generated media. This cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete {{count}}"
+    },
+    "bulkBar": {
+      "selectedCount": "{{count}} selected",
+      "selectAllVisible": "Select all visible",
+      "generate": "Generate",
+      "delete": "Delete"
+    },
+    "titleConflict": {
+      "title_one": "Similar to existing video on your channel",
+      "title_other": "Similar to existing videos on your channel",
+      "matchSuffix": "{{pct}}% match",
+      "shortSuffix": " · short"
+    }
+  },
   "jobs": {
     "subtitle": "Monitor and control all generation tasks.",
     "stopAll": "Stop All",
