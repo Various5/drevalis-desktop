@@ -170,6 +170,84 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "templates": {
+      "heading": "Video Templates",
+      "intro": "Reusable configuration presets for voice, captions, music, and visual style.",
+      "createTemplate": "Create Template",
+      "loadFailed": "Failed to load templates",
+      "createdToast": "Template created",
+      "updatedToast": "Template updated",
+      "createFailed": "Failed to create template",
+      "updateFailed": "Failed to update template",
+      "deletedToast": "Template deleted",
+      "deleteFailed": "Failed to delete template",
+      "empty": {
+        "title": "No templates yet",
+        "description": "Create a template to reuse settings across multiple series.",
+        "cta": "Create First Template"
+      },
+      "card": {
+        "defaultAria": "Default template",
+        "uses": "{{count}} uses",
+        "voiceFallback": "Voice",
+        "edit": "Edit",
+        "editAria": "Edit template {{name}}",
+        "deleteAria": "Delete template {{name}}"
+      },
+      "dialog": {
+        "createTitle": "Create Template",
+        "editTitle": "Edit Template",
+        "createDescription": "Define a reusable configuration preset for your series.",
+        "editDescription": "Update the template settings below.",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Sci-Fi Shorts, Dark Drama...",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "Optional description of this template...",
+        "voiceProfileLabel": "Voice Profile",
+        "noVoicePreference": "No voice preference",
+        "visualStyleLabel": "Visual Style",
+        "visualStylePlaceholder": "Describe the visual aesthetic: color palette, lighting, mood, art style...",
+        "captionStyleLabel": "Caption Style",
+        "musicMoodLabel": "Music Mood",
+        "musicVolumeLabel": "Music Volume: {{value}} dB",
+        "musicVolumeAria": "Music volume in decibels",
+        "musicVolumeHint": "Lower values make the music quieter relative to narration",
+        "targetDurationLabel": "Target Duration: {{value}}s",
+        "targetDurationAria": "Target video duration in seconds",
+        "setDefaultLabel": "Set as default template",
+        "setDefaultHint": "Applied automatically when creating new series.",
+        "cancel": "Cancel",
+        "saveChanges": "Save Changes",
+        "createSubmit": "Create Template"
+      },
+      "delete": {
+        "title": "Delete Template",
+        "description": "Are you sure? This template will be permanently removed. Series that used it will keep their current settings.",
+        "cancel": "Cancel",
+        "confirm": "Delete Template"
+      },
+      "captionPresets": {
+        "default": "Default",
+        "bold": "Bold",
+        "minimal": "Minimal",
+        "cinematic": "Cinematic",
+        "neon": "Neon"
+      },
+      "musicMoods": {
+        "upbeat": "Upbeat",
+        "dramatic": "Dramatic",
+        "calm": "Calm",
+        "energetic": "Energetic",
+        "mysterious": "Mysterious",
+        "playful": "Playful",
+        "inspirational": "Inspirational",
+        "dark": "Dark",
+        "romantic": "Romantic",
+        "epic": "Epic",
+        "chill": "Chill",
+        "tense": "Tense"
+      }
+    },
     "backup": {
       "loading": "Loading backups...",
       "unavailable": "Backup service unavailable.",

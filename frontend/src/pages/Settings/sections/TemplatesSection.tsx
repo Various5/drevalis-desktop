@@ -10,6 +10,7 @@ import {
   Volume2,
   Mic2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
@@ -24,28 +25,32 @@ import { videoTemplates as videoTemplatesApi, voiceProfiles } from '@/lib/api';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
+//
+// Preset value identifiers are the API contract; only the user-visible
+// labels are localised via settings.templates.captionPresets.* and
+// settings.templates.musicMoods.* keys.
 
 export const CAPTION_STYLE_PRESETS = [
-  { value: 'default', label: 'Default' },
-  { value: 'bold', label: 'Bold' },
-  { value: 'minimal', label: 'Minimal' },
-  { value: 'cinematic', label: 'Cinematic' },
-  { value: 'neon', label: 'Neon' },
+  'default',
+  'bold',
+  'minimal',
+  'cinematic',
+  'neon',
 ] as const;
 
 export const MUSIC_MOOD_OPTIONS = [
-  { value: 'upbeat', label: 'Upbeat' },
-  { value: 'dramatic', label: 'Dramatic' },
-  { value: 'calm', label: 'Calm' },
-  { value: 'energetic', label: 'Energetic' },
-  { value: 'mysterious', label: 'Mysterious' },
-  { value: 'playful', label: 'Playful' },
-  { value: 'inspirational', label: 'Inspirational' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'romantic', label: 'Romantic' },
-  { value: 'epic', label: 'Epic' },
-  { value: 'chill', label: 'Chill' },
-  { value: 'tense', label: 'Tense' },
+  'upbeat',
+  'dramatic',
+  'calm',
+  'energetic',
+  'mysterious',
+  'playful',
+  'inspirational',
+  'dark',
+  'romantic',
+  'epic',
+  'chill',
+  'tense',
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -85,6 +90,7 @@ type TemplateRecord = Record<string, unknown> & { id: string; name?: string };
 // ---------------------------------------------------------------------------
 
 export function TemplatesSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [voices, setVoices] = useState<{ id: string; name: string }[]>([]);
@@ -97,6 +103,17 @@ export function TemplatesSection() {
   const [deleting, setDeleting] = useState(false);
 
   const [form, setForm] = useState<TemplateFormState>(DEFAULT_TEMPLATE_FORM);
+
+  // Translate a known preset/mood value; fall back to the raw value if the
+  // backend ever ships an unknown one (forward compatibility).
+  const translateCaption = (value: string): string => {
+    const known = ['default', 'bold', 'minimal', 'cinematic', 'neon'];
+    return known.includes(value) ? t(`settings.templates.captionPresets.${value}`) : value;
+  };
+  const translateMood = (value: string): string => {
+    const known = MUSIC_MOOD_OPTIONS as readonly string[];
+    return known.includes(value) ? t(`settings.templates.musicMoods.${value}`) : value;
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -114,11 +131,11 @@ export function TemplatesSection() {
       setTemplates(tmpl as unknown as TemplateRecord[]);
       setVoices(vp.map((v) => ({ id: v.id, name: v.name })));
     } catch (err) {
-      toast.error('Failed to load templates', { description: String(err) });
+      toast.error(t('settings.templates.loadFailed'), { description: String(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void fetchData();
@@ -171,11 +188,14 @@ export function TemplatesSection() {
       } else {
         await videoTemplatesApi.create(payload);
       }
-      toast.success(editingTemplate ? 'Template updated' : 'Template created');
+      toast.success(editingTemplate ? t('settings.templates.updatedToast') : t('settings.templates.createdToast'));
       setDialogOpen(false);
       void fetchData();
     } catch (err) {
-      toast.error(editingTemplate ? 'Failed to update template' : 'Failed to create template', { description: String(err) });
+      toast.error(
+        editingTemplate ? t('settings.templates.updateFailed') : t('settings.templates.createFailed'),
+        { description: String(err) },
+      );
     } finally {
       setSaving(false);
     }
@@ -185,11 +205,11 @@ export function TemplatesSection() {
     setDeleting(true);
     try {
       await videoTemplatesApi.remove(id);
-      toast.success('Template deleted');
+      toast.success(t('settings.templates.deletedToast'));
       setDeleteConfirmId(null);
       void fetchData();
     } catch (err) {
-      toast.error('Failed to delete template', { description: String(err) });
+      toast.error(t('settings.templates.deleteFailed'), { description: String(err) });
     } finally {
       setDeleting(false);
     }
@@ -202,14 +222,14 @@ export function TemplatesSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-txt-primary">Video Templates</h3>
+          <h3 className="text-lg font-semibold text-txt-primary">{t('settings.templates.heading')}</h3>
           <p className="text-xs text-txt-secondary mt-0.5">
-            Reusable configuration presets for voice, captions, music, and visual style.
+            {t('settings.templates.intro')}
           </p>
         </div>
         <Button variant="primary" size="sm" onClick={openCreateDialog}>
           <Plus size={14} />
-          Create Template
+          {t('settings.templates.createTemplate')}
         </Button>
       </div>
 
@@ -217,12 +237,12 @@ export function TemplatesSection() {
       {templates.length === 0 && (
         <EmptyState
           icon={Layers}
-          title="No templates yet"
-          description="Create a template to reuse settings across multiple series."
+          title={t('settings.templates.empty.title')}
+          description={t('settings.templates.empty.description')}
           action={
             <Button variant="primary" size="sm" onClick={openCreateDialog}>
               <Plus size={14} />
-              Create First Template
+              {t('settings.templates.empty.cta')}
             </Button>
           }
         />
@@ -256,7 +276,7 @@ export function TemplatesSection() {
                         <Star
                           size={11}
                           className="text-warning shrink-0"
-                          aria-label="Default template"
+                          aria-label={t('settings.templates.card.defaultAria')}
                         />
                       )}
                     </div>
@@ -268,7 +288,7 @@ export function TemplatesSection() {
                   </div>
                   {tmplUsageCount !== null && (
                     <Badge variant="neutral" className="text-[10px] shrink-0">
-                      {tmplUsageCount} uses
+                      {t('settings.templates.card.uses', { count: tmplUsageCount })}
                     </Badge>
                   )}
                 </div>
@@ -278,13 +298,13 @@ export function TemplatesSection() {
                   {tmplCaptionStyle && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-medium border border-accent/20">
                       <Subtitles size={9} />
-                      {tmplCaptionStyle}
+                      {translateCaption(tmplCaptionStyle)}
                     </span>
                   )}
                   {tmplMusicMood && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-elevated text-txt-secondary text-[10px] font-medium border border-border">
                       <Volume2 size={9} />
-                      {tmplMusicMood}
+                      {translateMood(tmplMusicMood)}
                     </span>
                   )}
                   {tmplTargetDuration !== null && (
@@ -300,7 +320,7 @@ export function TemplatesSection() {
                   {tmplVoiceProfileId && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-elevated text-txt-secondary text-[10px] font-medium border border-border">
                       <Mic2 size={9} />
-                      {voices.find((v) => v.id === tmplVoiceProfileId)?.name ?? 'Voice'}
+                      {voices.find((v) => v.id === tmplVoiceProfileId)?.name ?? t('settings.templates.card.voiceFallback')}
                     </span>
                   )}
                 </div>
@@ -319,16 +339,16 @@ export function TemplatesSection() {
                     size="sm"
                     className="flex-1"
                     onClick={() => openEditDialog(tmpl)}
-                    aria-label={`Edit template ${tmplName}`}
+                    aria-label={t('settings.templates.card.editAria', { name: tmplName })}
                   >
                     <Edit3 size={12} />
-                    Edit
+                    {t('settings.templates.card.edit')}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleteConfirmId(tmpl.id)}
-                    aria-label={`Delete template ${tmplName}`}
+                    aria-label={t('settings.templates.card.deleteAria', { name: tmplName })}
                     className="text-error hover:bg-error-muted"
                   >
                     <Trash2 size={12} />
@@ -344,19 +364,19 @@ export function TemplatesSection() {
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title={editingTemplate ? 'Edit Template' : 'Create Template'}
+        title={editingTemplate ? t('settings.templates.dialog.editTitle') : t('settings.templates.dialog.createTitle')}
         description={
           editingTemplate
-            ? 'Update the template settings below.'
-            : 'Define a reusable configuration preset for your series.'
+            ? t('settings.templates.dialog.editDescription')
+            : t('settings.templates.dialog.createDescription')
         }
       >
         <div className="space-y-4">
           {/* Name */}
           <Input
-            label="Name"
+            label={t('settings.templates.dialog.nameLabel')}
             required
-            placeholder="e.g. Sci-Fi Shorts, Dark Drama..."
+            placeholder={t('settings.templates.dialog.namePlaceholder')}
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             autoFocus
@@ -364,8 +384,8 @@ export function TemplatesSection() {
 
           {/* Description */}
           <Textarea
-            label="Description"
-            placeholder="Optional description of this template..."
+            label={t('settings.templates.dialog.descriptionLabel')}
+            placeholder={t('settings.templates.dialog.descriptionPlaceholder')}
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             rows={2}
@@ -373,19 +393,19 @@ export function TemplatesSection() {
 
           {/* Voice profile */}
           <Select
-            label="Voice Profile"
+            label={t('settings.templates.dialog.voiceProfileLabel')}
             value={form.voice_profile_id}
             onChange={(e) => setForm((f) => ({ ...f, voice_profile_id: e.target.value }))}
             options={[
-              { value: '', label: 'No voice preference' },
+              { value: '', label: t('settings.templates.dialog.noVoicePreference') },
               ...voices.map((v) => ({ value: v.id, label: v.name })),
             ]}
           />
 
           {/* Visual style */}
           <Textarea
-            label="Visual Style"
-            placeholder="Describe the visual aesthetic: color palette, lighting, mood, art style..."
+            label={t('settings.templates.dialog.visualStyleLabel')}
+            placeholder={t('settings.templates.dialog.visualStylePlaceholder')}
             value={form.visual_style}
             onChange={(e) => setForm((f) => ({ ...f, visual_style: e.target.value }))}
             rows={2}
@@ -393,21 +413,21 @@ export function TemplatesSection() {
 
           {/* Caption style */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-txt-secondary">Caption Style</label>
+            <label className="text-xs font-medium text-txt-secondary">{t('settings.templates.dialog.captionStyleLabel')}</label>
             <div className="flex flex-wrap gap-1.5">
               {CAPTION_STYLE_PRESETS.map((preset) => (
                 <button
-                  key={preset.value}
+                  key={preset}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, caption_style: preset.value }))}
+                  onClick={() => setForm((f) => ({ ...f, caption_style: preset }))}
                   className={[
                     'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors duration-fast',
-                    form.caption_style === preset.value
+                    form.caption_style === preset
                       ? 'border-accent bg-accent/10 text-accent'
                       : 'border-border bg-bg-elevated text-txt-secondary hover:bg-bg-hover hover:text-txt-primary',
                   ].join(' ')}
                 >
-                  {preset.label}
+                  {translateCaption(preset)}
                 </button>
               ))}
             </div>
@@ -415,21 +435,21 @@ export function TemplatesSection() {
 
           {/* Music mood */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-txt-secondary">Music Mood</label>
+            <label className="text-xs font-medium text-txt-secondary">{t('settings.templates.dialog.musicMoodLabel')}</label>
             <div className="flex flex-wrap gap-1.5">
               {MUSIC_MOOD_OPTIONS.map((mood) => (
                 <button
-                  key={mood.value}
+                  key={mood}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, music_mood: mood.value }))}
+                  onClick={() => setForm((f) => ({ ...f, music_mood: mood }))}
                   className={[
                     'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors duration-fast',
-                    form.music_mood === mood.value
+                    form.music_mood === mood
                       ? 'border-accent bg-accent/10 text-accent'
                       : 'border-border bg-bg-elevated text-txt-secondary hover:bg-bg-hover hover:text-txt-primary',
                   ].join(' ')}
                 >
-                  {mood.label}
+                  {translateMood(mood)}
                 </button>
               ))}
             </div>
@@ -438,7 +458,7 @@ export function TemplatesSection() {
           {/* Music volume */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-txt-secondary">
-              Music Volume: {form.music_volume_db} dB
+              {t('settings.templates.dialog.musicVolumeLabel', { value: form.music_volume_db })}
             </label>
             <div className="flex items-center gap-3 h-8">
               <input
@@ -450,7 +470,7 @@ export function TemplatesSection() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, music_volume_db: Number(e.target.value) }))
                 }
-                aria-label="Music volume in decibels"
+                aria-label={t('settings.templates.dialog.musicVolumeAria')}
                 className="w-full accent-accent h-1.5 bg-bg-elevated rounded-full appearance-none cursor-pointer
                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-sm
@@ -461,14 +481,14 @@ export function TemplatesSection() {
               </span>
             </div>
             <p className="text-[10px] text-txt-tertiary">
-              Lower values make the music quieter relative to narration
+              {t('settings.templates.dialog.musicVolumeHint')}
             </p>
           </div>
 
           {/* Target duration */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-txt-secondary">
-              Target Duration: {form.target_duration_seconds}s
+              {t('settings.templates.dialog.targetDurationLabel', { value: form.target_duration_seconds })}
             </label>
             <div className="flex items-center gap-3 h-8">
               <input
@@ -480,7 +500,7 @@ export function TemplatesSection() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, target_duration_seconds: Number(e.target.value) }))
                 }
-                aria-label="Target video duration in seconds"
+                aria-label={t('settings.templates.dialog.targetDurationAria')}
                 className="w-full accent-accent h-1.5 bg-bg-elevated rounded-full appearance-none cursor-pointer
                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-sm
@@ -513,10 +533,10 @@ export function TemplatesSection() {
             </button>
             <div>
               <label className="text-sm font-medium text-txt-primary">
-                Set as default template
+                {t('settings.templates.dialog.setDefaultLabel')}
               </label>
               <p className="text-[10px] text-txt-tertiary">
-                Applied automatically when creating new series.
+                {t('settings.templates.dialog.setDefaultHint')}
               </p>
             </div>
           </div>
@@ -524,7 +544,7 @@ export function TemplatesSection() {
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-            Cancel
+            {t('settings.templates.dialog.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -532,7 +552,7 @@ export function TemplatesSection() {
             disabled={!form.name.trim()}
             onClick={() => void handleSave()}
           >
-            {editingTemplate ? 'Save Changes' : 'Create Template'}
+            {editingTemplate ? t('settings.templates.dialog.saveChanges') : t('settings.templates.dialog.createSubmit')}
           </Button>
         </DialogFooter>
       </Dialog>
@@ -541,12 +561,12 @@ export function TemplatesSection() {
       <Dialog
         open={deleteConfirmId !== null}
         onClose={() => setDeleteConfirmId(null)}
-        title="Delete Template"
-        description="Are you sure? This template will be permanently removed. Series that used it will keep their current settings."
+        title={t('settings.templates.delete.title')}
+        description={t('settings.templates.delete.description')}
       >
         <DialogFooter>
           <Button variant="ghost" onClick={() => setDeleteConfirmId(null)}>
-            Cancel
+            {t('settings.templates.delete.cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -554,7 +574,7 @@ export function TemplatesSection() {
             onClick={() => deleteConfirmId && void handleDelete(deleteConfirmId)}
           >
             <Trash2 size={13} />
-            Delete Template
+            {t('settings.templates.delete.confirm')}
           </Button>
         </DialogFooter>
       </Dialog>

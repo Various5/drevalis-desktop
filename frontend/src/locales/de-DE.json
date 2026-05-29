@@ -170,6 +170,84 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "templates": {
+      "heading": "Video-Vorlagen",
+      "intro": "Wiederverwendbare Konfigurations-Voreinstellungen für Stimme, Untertitel, Musik und visuellen Stil.",
+      "createTemplate": "Vorlage erstellen",
+      "loadFailed": "Vorlagen konnten nicht geladen werden",
+      "createdToast": "Vorlage erstellt",
+      "updatedToast": "Vorlage aktualisiert",
+      "createFailed": "Vorlage konnte nicht erstellt werden",
+      "updateFailed": "Vorlage konnte nicht aktualisiert werden",
+      "deletedToast": "Vorlage gelöscht",
+      "deleteFailed": "Vorlage konnte nicht gelöscht werden",
+      "empty": {
+        "title": "Noch keine Vorlagen",
+        "description": "Erstelle eine Vorlage, um Einstellungen für mehrere Serien wiederzuverwenden.",
+        "cta": "Erste Vorlage erstellen"
+      },
+      "card": {
+        "defaultAria": "Standardvorlage",
+        "uses": "{{count}} Verwendungen",
+        "voiceFallback": "Stimme",
+        "edit": "Bearbeiten",
+        "editAria": "Vorlage {{name}} bearbeiten",
+        "deleteAria": "Vorlage {{name}} löschen"
+      },
+      "dialog": {
+        "createTitle": "Vorlage erstellen",
+        "editTitle": "Vorlage bearbeiten",
+        "createDescription": "Definiere eine wiederverwendbare Konfigurations-Voreinstellung für deine Serien.",
+        "editDescription": "Aktualisiere unten die Vorlagen-Einstellungen.",
+        "nameLabel": "Name",
+        "namePlaceholder": "z. B. Sci-Fi Shorts, Dark Drama...",
+        "descriptionLabel": "Beschreibung",
+        "descriptionPlaceholder": "Optionale Beschreibung dieser Vorlage...",
+        "voiceProfileLabel": "Sprachprofil",
+        "noVoicePreference": "Keine Sprach-Präferenz",
+        "visualStyleLabel": "Visueller Stil",
+        "visualStylePlaceholder": "Beschreibe die visuelle Ästhetik: Farbpalette, Beleuchtung, Stimmung, Kunststil...",
+        "captionStyleLabel": "Untertitel-Stil",
+        "musicMoodLabel": "Musik-Stimmung",
+        "musicVolumeLabel": "Musik-Lautstärke: {{value}} dB",
+        "musicVolumeAria": "Musik-Lautstärke in Dezibel",
+        "musicVolumeHint": "Niedrigere Werte machen die Musik leiser im Verhältnis zur Erzählung",
+        "targetDurationLabel": "Ziel-Dauer: {{value}}s",
+        "targetDurationAria": "Ziel-Videodauer in Sekunden",
+        "setDefaultLabel": "Als Standardvorlage festlegen",
+        "setDefaultHint": "Wird beim Erstellen neuer Serien automatisch angewendet.",
+        "cancel": "Abbrechen",
+        "saveChanges": "Änderungen speichern",
+        "createSubmit": "Vorlage erstellen"
+      },
+      "delete": {
+        "title": "Vorlage löschen",
+        "description": "Bist du sicher? Diese Vorlage wird dauerhaft entfernt. Serien, die sie verwendet haben, behalten ihre aktuellen Einstellungen.",
+        "cancel": "Abbrechen",
+        "confirm": "Vorlage löschen"
+      },
+      "captionPresets": {
+        "default": "Standard",
+        "bold": "Fett",
+        "minimal": "Minimal",
+        "cinematic": "Cinematisch",
+        "neon": "Neon"
+      },
+      "musicMoods": {
+        "upbeat": "Beschwingt",
+        "dramatic": "Dramatisch",
+        "calm": "Ruhig",
+        "energetic": "Energetisch",
+        "mysterious": "Geheimnisvoll",
+        "playful": "Verspielt",
+        "inspirational": "Inspirierend",
+        "dark": "Düster",
+        "romantic": "Romantisch",
+        "epic": "Episch",
+        "chill": "Entspannt",
+        "tense": "Angespannt"
+      }
+    },
     "backup": {
       "loading": "Sicherungen werden geladen...",
       "unavailable": "Sicherungsdienst nicht verfügbar.",
