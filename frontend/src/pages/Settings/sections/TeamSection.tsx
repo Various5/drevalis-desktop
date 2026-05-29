@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Users, UserPlus, Trash2, RefreshCw, ShieldCheck, PencilLine } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,18 +15,13 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/useAuth';
 
-const ROLE_OPTIONS = [
-  { value: 'owner', label: 'Owner — full access' },
-  { value: 'editor', label: 'Editor — create & publish' },
-  { value: 'viewer', label: 'Viewer — read-only' },
-];
-
 function roleVariant(role: string): 'accent' | 'neutral' {
   if (role === 'owner') return 'accent';
   return 'neutral';
 }
 
 export function TeamSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user: me, refresh: refreshMe } = useAuth();
   const [users, setUsers] = useState<AuthUser[] | null>(null);
@@ -47,12 +43,12 @@ export function TeamSection() {
         setAuthDisabled(true);
         setUsers([]);
       } else {
-        toast.error('Failed to load users', { description: formatError(err) });
+        toast.error(t('settings.team.loadFailed'), { description: formatError(err) });
       }
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void refresh();
@@ -63,7 +59,7 @@ export function TeamSection() {
   // ── Render states ──────────────────────────────────────────────────
 
   if (loading) {
-    return <Card className="p-6 text-sm text-txt-secondary">Loading team…</Card>;
+    return <Card className="p-6 text-sm text-txt-secondary">{t('settings.team.loading')}</Card>;
   }
 
   // Single-user install with no signed-in user + 401s → team mode is off.
@@ -72,31 +68,31 @@ export function TeamSection() {
       <Card className="p-6 space-y-3">
         <h3 className="font-semibold text-lg flex items-center gap-2">
           <Users className="w-5 h-5" />
-          Team mode
+          {t('settings.team.headings.off')}
         </h3>
         <p className="text-sm text-txt-secondary">
-          Team mode is <strong className="text-txt-primary">off</strong>. This install has no user
-          accounts, so everyone with network access can use it. That's fine for a single-user local
-          setup, but not for shared or remote installs.
+          <Trans
+            i18nKey="settings.team.off.intro"
+            components={{ 1: <strong className="text-txt-primary" /> }}
+          />
         </p>
         <div className="rounded bg-bg-elevated p-4 text-xs space-y-2">
-          <div className="font-semibold text-txt-primary">Enable team mode</div>
+          <div className="font-semibold text-txt-primary">{t('settings.team.off.enableTitle')}</div>
           <ol className="list-decimal list-inside space-y-1 text-txt-secondary">
             <li>
-              Set <code>OWNER_EMAIL</code> and <code>OWNER_PASSWORD</code> in your{' '}
-              <code>.env</code>.
+              <Trans
+                i18nKey="settings.team.off.stepEnv"
+                components={{ 1: <code />, 2: <code />, 3: <code /> }}
+              />
             </li>
             <li>
-              Restart the <code>app</code> container.
+              <Trans i18nKey="settings.team.off.stepRestart" components={{ 1: <code /> }} />
             </li>
             <li>
-              Sign in at <code>/login</code> — your owner account is created automatically on the
-              first attempt.
+              <Trans i18nKey="settings.team.off.stepSignIn" components={{ 1: <code /> }} />
             </li>
           </ol>
-          <div className="text-txt-muted pt-1">
-            Once you're signed in, reload this page to manage additional users.
-          </div>
+          <div className="text-txt-muted pt-1">{t('settings.team.off.afterSignIn')}</div>
         </div>
       </Card>
     );
@@ -108,14 +104,18 @@ export function TeamSection() {
       <Card className="p-6 space-y-3">
         <h3 className="font-semibold text-lg flex items-center gap-2">
           <Users className="w-5 h-5" />
-          Team
+          {t('settings.team.headings.nonOwner')}
         </h3>
-        <p className="text-sm text-txt-secondary">
-          Only owners can manage team members. Ask an owner on your team to invite or adjust users.
-        </p>
+        <p className="text-sm text-txt-secondary">{t('settings.team.nonOwner.intro')}</p>
         <div className="rounded bg-bg-elevated p-3 text-xs text-txt-muted">
-          You are signed in as <strong className="text-txt-primary">{me?.email}</strong> (role:{' '}
-          <Badge variant="neutral">{me?.role}</Badge>).
+          <Trans
+            i18nKey="settings.team.nonOwner.signedInAs"
+            values={{ email: me?.email }}
+            components={{
+              1: <strong className="text-txt-primary" />,
+              2: <Badge variant="neutral">{me?.role}</Badge>,
+            }}
+          />
         </div>
       </Card>
     );
@@ -128,21 +128,18 @@ export function TeamSection() {
           <div>
             <h3 className="font-semibold text-lg flex items-center gap-2 mb-1">
               <Users className="w-5 h-5" />
-              Team members
+              {t('settings.team.headings.members')}
             </h3>
-            <p className="text-sm text-txt-secondary">
-              Invite collaborators and set what they can do. Owners manage billing and team;
-              editors create and publish; viewers read only.
-            </p>
+            <p className="text-sm text-txt-secondary">{t('settings.team.intro')}</p>
           </div>
           <div className="flex gap-2 shrink-0">
             <Button size="sm" variant="ghost" onClick={() => void refresh()}>
               <RefreshCw className="w-3.5 h-3.5 mr-1" />
-              Refresh
+              {t('settings.team.refresh')}
             </Button>
             <Button size="sm" variant="primary" onClick={() => setInviteOpen(true)}>
               <UserPlus className="w-4 h-4 mr-1" />
-              Invite user
+              {t('settings.team.inviteUser')}
             </Button>
           </div>
         </div>
@@ -152,10 +149,10 @@ export function TeamSection() {
         <table className="w-full text-sm">
           <thead className="bg-bg-elevated text-xs uppercase tracking-wider text-txt-muted">
             <tr>
-              <th className="text-left px-4 py-2 font-medium">User</th>
-              <th className="text-left px-4 py-2 font-medium">Role</th>
-              <th className="text-left px-4 py-2 font-medium">Status</th>
-              <th className="text-left px-4 py-2 font-medium">Last login</th>
+              <th className="text-left px-4 py-2 font-medium">{t('settings.team.table.user')}</th>
+              <th className="text-left px-4 py-2 font-medium">{t('settings.team.table.role')}</th>
+              <th className="text-left px-4 py-2 font-medium">{t('settings.team.table.status')}</th>
+              <th className="text-left px-4 py-2 font-medium">{t('settings.team.table.lastLogin')}</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
@@ -168,7 +165,7 @@ export function TeamSection() {
                     <div className="font-medium text-txt-primary">
                       {u.display_name || u.email.split('@')[0]}
                       {isSelf && (
-                        <span className="ml-2 text-[10px] uppercase text-txt-muted">you</span>
+                        <span className="ml-2 text-[10px] uppercase text-txt-muted">{t('settings.team.table.you')}</span>
                       )}
                     </div>
                     <div className="text-xs text-txt-muted">{u.email}</div>
@@ -181,13 +178,13 @@ export function TeamSection() {
                   </td>
                   <td className="px-4 py-3">
                     {u.is_active ? (
-                      <span className="text-success text-xs">Active</span>
+                      <span className="text-success text-xs">{t('settings.team.table.active')}</span>
                     ) : (
-                      <span className="text-txt-muted text-xs">Disabled</span>
+                      <span className="text-txt-muted text-xs">{t('settings.team.table.disabled')}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-txt-muted">
-                    {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}
+                    {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : t('settings.team.table.never')}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <Button size="sm" variant="ghost" onClick={() => setEditUser(u)}>
@@ -198,13 +195,13 @@ export function TeamSection() {
                         size="sm"
                         variant="ghost"
                         onClick={async () => {
-                          if (!confirm(`Delete ${u.email}? This cannot be undone.`)) return;
+                          if (!confirm(t('settings.team.deleteConfirm', { email: u.email }))) return;
                           try {
                             await usersApi.delete(u.id);
-                            toast.success('User removed');
+                            toast.success(t('settings.team.userRemoved'));
                             await refresh();
                           } catch (err) {
-                            toast.error('Delete failed', { description: formatError(err) });
+                            toast.error(t('settings.team.deleteFailed'), { description: formatError(err) });
                           }
                         }}
                         className="text-error hover:bg-error/10 ml-1"
@@ -219,7 +216,7 @@ export function TeamSection() {
             {(users ?? []).length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-sm text-txt-muted">
-                  No users yet. Invite someone to get started.
+                  {t('settings.team.table.empty')}
                 </td>
               </tr>
             )}
@@ -262,6 +259,7 @@ function InviteDialog({
   onClose: () => void;
   onCreated: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -269,9 +267,15 @@ function InviteDialog({
   const [role, setRole] = useState<'owner' | 'editor' | 'viewer'>('editor');
   const [saving, setSaving] = useState(false);
 
+  const roleOptions = [
+    { value: 'owner', label: t('settings.team.roles.owner') },
+    { value: 'editor', label: t('settings.team.roles.editor') },
+    { value: 'viewer', label: t('settings.team.roles.viewer') },
+  ];
+
   const submit = async () => {
     if (!email.includes('@') || password.length < 8) {
-      toast.error('Provide a valid email and a password of at least 8 characters');
+      toast.error(t('settings.team.invite.validation'));
       return;
     }
     setSaving(true);
@@ -282,57 +286,55 @@ function InviteDialog({
         role,
         display_name: displayName.trim() || null,
       });
-      toast.success('User invited', { description: email });
+      toast.success(t('settings.team.invite.successToast'), { description: email });
       await onCreated();
     } catch (err) {
-      toast.error('Invite failed', { description: formatError(err) });
+      toast.error(t('settings.team.invite.failedToast'), { description: formatError(err) });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open onClose={onClose} title="Invite a user">
+    <Dialog open onClose={onClose} title={t('settings.team.invite.title')}>
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-txt-secondary mb-1">Email</label>
+          <label className="block text-xs font-medium text-txt-secondary mb-1">{t('settings.team.invite.emailLabel')}</label>
           <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoFocus />
         </div>
         <div>
           <label className="block text-xs font-medium text-txt-secondary mb-1">
-            Display name (optional)
+            {t('settings.team.invite.displayNameLabel')}
           </label>
           <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
         </div>
         <div>
           <label className="block text-xs font-medium text-txt-secondary mb-1">
-            Temporary password
+            {t('settings.team.invite.tempPasswordLabel')}
           </label>
           <Input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
-            placeholder="Minimum 8 characters"
+            placeholder={t('settings.team.invite.tempPasswordPlaceholder')}
           />
-          <p className="text-[11px] text-txt-muted mt-1">
-            Share this out-of-band. The user can change it after logging in.
-          </p>
+          <p className="text-[11px] text-txt-muted mt-1">{t('settings.team.invite.passwordHint')}</p>
         </div>
         <div>
-          <label className="block text-xs font-medium text-txt-secondary mb-1">Role</label>
+          <label className="block text-xs font-medium text-txt-secondary mb-1">{t('settings.team.invite.roleLabel')}</label>
           <Select
             value={role}
             onChange={(e) => setRole(e.target.value as typeof role)}
-            options={ROLE_OPTIONS}
+            options={roleOptions}
           />
         </div>
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {t('settings.team.invite.cancel')}
         </Button>
         <Button variant="primary" onClick={submit} disabled={saving}>
-          {saving ? 'Inviting…' : 'Invite'}
+          {saving ? t('settings.team.invite.inviting') : t('settings.team.invite.submit')}
         </Button>
       </DialogFooter>
     </Dialog>
@@ -352,6 +354,7 @@ function EditUserDialog({
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user.display_name ?? '');
   const [role, setRole] = useState(user.role);
@@ -361,9 +364,15 @@ function EditUserDialog({
 
   const isSelf = me?.id === user.id;
 
+  const roleOptions = [
+    { value: 'owner', label: t('settings.team.roles.owner') },
+    { value: 'editor', label: t('settings.team.roles.editor') },
+    { value: 'viewer', label: t('settings.team.roles.viewer') },
+  ];
+
   const submit = async () => {
     if (newPassword && newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters');
+      toast.error(t('settings.team.edit.passwordTooShort'));
       return;
     }
     setSaving(true);
@@ -374,32 +383,32 @@ function EditUserDialog({
         is_active: isActive,
         password: newPassword || undefined,
       });
-      toast.success('User updated');
+      toast.success(t('settings.team.edit.updatedToast'));
       await onSaved();
     } catch (err) {
-      toast.error('Update failed', { description: formatError(err) });
+      toast.error(t('settings.team.edit.updateFailed'), { description: formatError(err) });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open onClose={onClose} title={`Edit ${user.email}`}>
+    <Dialog open onClose={onClose} title={t('settings.team.edit.title', { email: user.email })}>
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-txt-secondary mb-1">Display name</label>
+          <label className="block text-xs font-medium text-txt-secondary mb-1">{t('settings.team.edit.displayNameLabel')}</label>
           <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs font-medium text-txt-secondary mb-1">Role</label>
+          <label className="block text-xs font-medium text-txt-secondary mb-1">{t('settings.team.edit.roleLabel')}</label>
           <Select
             value={role}
             onChange={(e) => setRole(e.target.value as typeof role)}
-            options={ROLE_OPTIONS}
+            options={roleOptions}
           />
           {isSelf && (
             <p className="text-[11px] text-txt-muted mt-1">
-              You can't demote yourself if you're the last owner — the backend will block it.
+              {t('settings.team.edit.selfDemoteHint')}
             </p>
           )}
         </div>
@@ -411,26 +420,26 @@ function EditUserDialog({
             className="rounded"
             disabled={isSelf}
           />
-          <span>Active (disabling blocks login without deleting data)</span>
+          <span>{t('settings.team.edit.activeLabel')}</span>
         </label>
         <div>
           <label className="block text-xs font-medium text-txt-secondary mb-1">
-            Reset password (optional)
+            {t('settings.team.edit.resetPasswordLabel')}
           </label>
           <Input
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             type="password"
-            placeholder="Leave blank to keep current"
+            placeholder={t('settings.team.edit.resetPasswordPlaceholder')}
           />
         </div>
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {t('settings.team.edit.cancel')}
         </Button>
         <Button variant="primary" onClick={submit} disabled={saving}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? t('settings.team.edit.saving') : t('settings.team.edit.submit')}
         </Button>
       </DialogFooter>
     </Dialog>

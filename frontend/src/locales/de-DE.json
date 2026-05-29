@@ -170,6 +170,79 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "team": {
+      "loading": "Team wird geladen…",
+      "loadFailed": "Benutzer konnten nicht geladen werden",
+      "headings": {
+        "off": "Team-Modus",
+        "nonOwner": "Team",
+        "members": "Teammitglieder"
+      },
+      "off": {
+        "intro": "Der Team-Modus ist <1>aus</1>. Diese Installation hat keine Benutzerkonten, sodass jeder mit Netzwerkzugriff sie verwenden kann. Für ein lokales Einzelnutzer-Setup ist das in Ordnung, nicht aber für gemeinsame oder entfernte Installationen.",
+        "enableTitle": "Team-Modus aktivieren",
+        "stepEnv": "Setze <1>OWNER_EMAIL</1> und <2>OWNER_PASSWORD</2> in deiner <3>.env</3>.",
+        "stepRestart": "Starte den <1>app</1>-Container neu.",
+        "stepSignIn": "Melde dich unter <1>/login</1> an — dein Eigentümer-Konto wird beim ersten Versuch automatisch erstellt.",
+        "afterSignIn": "Sobald du angemeldet bist, lade diese Seite neu, um weitere Benutzer zu verwalten."
+      },
+      "nonOwner": {
+        "intro": "Nur Eigentümer können Teammitglieder verwalten. Bitte einen Eigentümer in deinem Team, Benutzer einzuladen oder anzupassen.",
+        "signedInAs": "Du bist angemeldet als <1>{{email}}</1> (Rolle: <2></2>)."
+      },
+      "intro": "Lade Mitarbeiter ein und lege fest, was sie tun dürfen. Eigentümer verwalten Abrechnung und Team; Bearbeiter erstellen und veröffentlichen; Betrachter haben nur Leserechte.",
+      "refresh": "Aktualisieren",
+      "inviteUser": "Benutzer einladen",
+      "table": {
+        "user": "Benutzer",
+        "role": "Rolle",
+        "status": "Status",
+        "lastLogin": "Letzte Anmeldung",
+        "you": "du",
+        "active": "Aktiv",
+        "disabled": "Deaktiviert",
+        "never": "Nie",
+        "empty": "Noch keine Benutzer. Lade jemanden ein, um zu beginnen."
+      },
+      "deleteConfirm": "{{email}} löschen? Dies kann nicht rückgängig gemacht werden.",
+      "userRemoved": "Benutzer entfernt",
+      "deleteFailed": "Löschen fehlgeschlagen",
+      "roles": {
+        "owner": "Eigentümer — voller Zugriff",
+        "editor": "Bearbeiter — Erstellen & Veröffentlichen",
+        "viewer": "Betrachter — nur Lesen"
+      },
+      "invite": {
+        "title": "Benutzer einladen",
+        "validation": "Gib eine gültige E-Mail-Adresse und ein Passwort mit mindestens 8 Zeichen an",
+        "successToast": "Benutzer eingeladen",
+        "failedToast": "Einladung fehlgeschlagen",
+        "emailLabel": "E-Mail",
+        "displayNameLabel": "Anzeigename (optional)",
+        "tempPasswordLabel": "Temporäres Passwort",
+        "tempPasswordPlaceholder": "Mindestens 8 Zeichen",
+        "passwordHint": "Teile es auf einem sicheren Weg mit. Der Benutzer kann es nach der Anmeldung ändern.",
+        "roleLabel": "Rolle",
+        "cancel": "Abbrechen",
+        "inviting": "Wird eingeladen…",
+        "submit": "Einladen"
+      },
+      "edit": {
+        "title": "{{email}} bearbeiten",
+        "passwordTooShort": "Neues Passwort muss mindestens 8 Zeichen haben",
+        "updatedToast": "Benutzer aktualisiert",
+        "updateFailed": "Aktualisierung fehlgeschlagen",
+        "displayNameLabel": "Anzeigename",
+        "roleLabel": "Rolle",
+        "selfDemoteHint": "Du kannst dich nicht selbst herabstufen, wenn du der letzte Eigentümer bist — das Backend blockiert das.",
+        "activeLabel": "Aktiv (Deaktivieren blockiert die Anmeldung, ohne Daten zu löschen)",
+        "resetPasswordLabel": "Passwort zurücksetzen (optional)",
+        "resetPasswordPlaceholder": "Leer lassen, um aktuelles beizubehalten",
+        "cancel": "Abbrechen",
+        "saving": "Wird gespeichert…",
+        "submit": "Speichern"
+      }
+    },
     "loginHistory": {
       "heading": "Letzte Anmeldungen",
       "intro": "Die letzten 20 Anmeldeversuche für dein Konto. Wenn du eine unbekannte IP oder einen unbekannten Standort siehst, verwende „Überall abmelden“, um alle aktiven Sitzungen zu beenden.",

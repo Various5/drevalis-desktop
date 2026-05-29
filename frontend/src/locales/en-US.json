@@ -170,6 +170,79 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "team": {
+      "loading": "Loading team…",
+      "loadFailed": "Failed to load users",
+      "headings": {
+        "off": "Team mode",
+        "nonOwner": "Team",
+        "members": "Team members"
+      },
+      "off": {
+        "intro": "Team mode is <1>off</1>. This install has no user accounts, so everyone with network access can use it. That's fine for a single-user local setup, but not for shared or remote installs.",
+        "enableTitle": "Enable team mode",
+        "stepEnv": "Set <1>OWNER_EMAIL</1> and <2>OWNER_PASSWORD</2> in your <3>.env</3>.",
+        "stepRestart": "Restart the <1>app</1> container.",
+        "stepSignIn": "Sign in at <1>/login</1> — your owner account is created automatically on the first attempt.",
+        "afterSignIn": "Once you're signed in, reload this page to manage additional users."
+      },
+      "nonOwner": {
+        "intro": "Only owners can manage team members. Ask an owner on your team to invite or adjust users.",
+        "signedInAs": "You are signed in as <1>{{email}}</1> (role: <2></2>)."
+      },
+      "intro": "Invite collaborators and set what they can do. Owners manage billing and team; editors create and publish; viewers read only.",
+      "refresh": "Refresh",
+      "inviteUser": "Invite user",
+      "table": {
+        "user": "User",
+        "role": "Role",
+        "status": "Status",
+        "lastLogin": "Last login",
+        "you": "you",
+        "active": "Active",
+        "disabled": "Disabled",
+        "never": "Never",
+        "empty": "No users yet. Invite someone to get started."
+      },
+      "deleteConfirm": "Delete {{email}}? This cannot be undone.",
+      "userRemoved": "User removed",
+      "deleteFailed": "Delete failed",
+      "roles": {
+        "owner": "Owner — full access",
+        "editor": "Editor — create & publish",
+        "viewer": "Viewer — read-only"
+      },
+      "invite": {
+        "title": "Invite a user",
+        "validation": "Provide a valid email and a password of at least 8 characters",
+        "successToast": "User invited",
+        "failedToast": "Invite failed",
+        "emailLabel": "Email",
+        "displayNameLabel": "Display name (optional)",
+        "tempPasswordLabel": "Temporary password",
+        "tempPasswordPlaceholder": "Minimum 8 characters",
+        "passwordHint": "Share this out-of-band. The user can change it after logging in.",
+        "roleLabel": "Role",
+        "cancel": "Cancel",
+        "inviting": "Inviting…",
+        "submit": "Invite"
+      },
+      "edit": {
+        "title": "Edit {{email}}",
+        "passwordTooShort": "New password must be at least 8 characters",
+        "updatedToast": "User updated",
+        "updateFailed": "Update failed",
+        "displayNameLabel": "Display name",
+        "roleLabel": "Role",
+        "selfDemoteHint": "You can't demote yourself if you're the last owner — the backend will block it.",
+        "activeLabel": "Active (disabling blocks login without deleting data)",
+        "resetPasswordLabel": "Reset password (optional)",
+        "resetPasswordPlaceholder": "Leave blank to keep current",
+        "cancel": "Cancel",
+        "saving": "Saving…",
+        "submit": "Save"
+      }
+    },
     "loginHistory": {
       "heading": "Recent logins",
       "intro": "The last 20 sign-in attempts for your account. If you see an unfamiliar IP or location, use \"Sign out everywhere\" to revoke all active sessions.",
