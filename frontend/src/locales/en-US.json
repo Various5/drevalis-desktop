@@ -1058,7 +1058,7 @@
         },
         "trustNote": "Update integrity is verified against an embedded public key. Releases must be signed with the matching private key (held by the maintainer / CI) for installation to proceed.",
         "channelLabel": "Update channel",
-        "channelHint": "Stable receives only final releases. Release candidate also receives prereleases (1.0.0-rc.X, alphas before 1.0). Switch back to Stable any time. (Pre-1.0: both channels carry identical content.)",
+        "channelHint": "Stable receives only final releases. Release candidate also receives prereleases (1.0.0-rc.X, alphas before 1.0). Switch back to Stable any time.",
         "channelStable": "Stable",
         "channelRc": "Release candidate",
         "channelSaveFailed": "Could not save update channel"

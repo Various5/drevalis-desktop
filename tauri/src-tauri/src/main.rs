@@ -24,7 +24,8 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WindowEvent};
+use tauri_plugin_updater::UpdaterExt;
 
 /// How long we wait for the backend's TCP port to come up before showing
 /// the window. The launcher needs to start uvicorn + arq + maybe Redis.
@@ -218,6 +219,164 @@ fn restart_backend(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// Auto-updater channel routing (Phase 6)
+// ---------------------------------------------------------------------------
+//
+// The Tauri 2 plugin-updater locks endpoints at compile time via
+// ``tauri.conf.json``'s ``plugins.updater.endpoints`` array — its JS
+// ``check()`` API doesn't accept a runtime override. To support
+// switching between the ``stable`` and ``rc`` channels without
+// rebuilding the app, the JS side invokes these two commands instead
+// of calling the plugin directly. Each one constructs a fresh
+// ``UpdaterBuilder`` with channel-specific URLs via ``endpoints(...)``
+// and runs the check / install through that custom updater.
+//
+// Channel URLs are GitHub release "latest" download endpoints; the
+// release workflow publishes both manifests on every cut (currently
+// identical content during the alpha era; they diverge once 1.0.0
+// stable ships and the workflow stops mirroring rc → stable for
+// prerelease tags).
+
+const UPDATER_STABLE_URL: &str =
+    "https://github.com/Various5/drevalis-desktop/releases/latest/download/latest.json";
+const UPDATER_RC_URL: &str =
+    "https://github.com/Various5/drevalis-desktop/releases/latest/download/latest-rc.json";
+
+fn channel_url(channel: &str) -> &'static str {
+    match channel {
+        "rc" => UPDATER_RC_URL,
+        _ => UPDATER_STABLE_URL,
+    }
+}
+
+#[derive(serde::Serialize)]
+struct ChannelUpdateInfo {
+    available: bool,
+    /// Version reported by the manifest, if an update is available.
+    version: Option<String>,
+    /// Currently-installed version, always populated so the UI can
+    /// render "v0.1.0-alpha.100" even when no update is offered.
+    current_version: String,
+    /// Release notes / body if the manifest carries one.
+    body: Option<String>,
+    /// Publish timestamp from the manifest.
+    date: Option<String>,
+}
+
+/// Check the channel-specific manifest for an available update and
+/// return its metadata. Mirrors what the JS plugin's ``check()`` would
+/// return except the endpoint is selected here at call time, not at
+/// compile time.
+#[tauri::command]
+async fn check_for_channel(
+    app: AppHandle,
+    channel: String,
+) -> Result<ChannelUpdateInfo, String> {
+    let url = channel_url(&channel);
+    let parsed = url
+        .parse::<url::Url>()
+        .map_err(|e| format!("invalid endpoint URL: {e}"))?;
+
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![parsed])
+        .map_err(|e| format!("endpoint config: {e}"))?
+        .build()
+        .map_err(|e| format!("updater build: {e}"))?;
+
+    let current_version = app.package_info().version.to_string();
+
+    match updater.check().await {
+        Ok(Some(update)) => Ok(ChannelUpdateInfo {
+            available: true,
+            version: Some(update.version.clone()),
+            current_version,
+            body: update.body.clone(),
+            date: update.date.map(|d| d.to_string()),
+        }),
+        Ok(None) => Ok(ChannelUpdateInfo {
+            available: false,
+            version: None,
+            current_version,
+            body: None,
+            date: None,
+        }),
+        Err(e) => Err(format!("update check failed: {e}")),
+    }
+}
+
+/// Download + install the channel-specific update. Progress events are
+/// emitted on the ``updater:progress`` event so the JS bridge can drive
+/// the existing progress UI without a stream-callback contract. Phases:
+///   - ``{"phase": "started", "total": <bytes>}`` on download start
+///   - ``{"phase": "progress", "downloaded": <bytes>}`` per chunk
+///   - ``{"phase": "finished"}`` once bytes are on disk and install runs
+#[tauri::command]
+async fn install_for_channel(app: AppHandle, channel: String) -> Result<(), String> {
+    let url = channel_url(&channel);
+    let parsed = url
+        .parse::<url::Url>()
+        .map_err(|e| format!("invalid endpoint URL: {e}"))?;
+
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![parsed])
+        .map_err(|e| format!("endpoint config: {e}"))?
+        .build()
+        .map_err(|e| format!("updater build: {e}"))?;
+
+    let update = updater
+        .check()
+        .await
+        .map_err(|e| format!("update check failed: {e}"))?
+        .ok_or_else(|| "no update available".to_string())?;
+
+    // Track the cumulative byte count for the progress event payload.
+    // Emit a 'started' the first time we know the total, then
+    // 'progress' on each subsequent chunk. 'finished' fires once the
+    // downloaded bytes are handed off to the installer.
+    let app_handle = app.clone();
+    let app_handle_finish = app.clone();
+    let mut started_emitted = false;
+    let mut downloaded: u64 = 0;
+
+    update
+        .download_and_install(
+            move |chunk_len, total| {
+                if !started_emitted {
+                    let _ = app_handle.emit(
+                        "updater:progress",
+                        serde_json::json!({
+                            "phase": "started",
+                            "total": total,
+                        }),
+                    );
+                    started_emitted = true;
+                }
+                downloaded = downloaded.saturating_add(chunk_len as u64);
+                let _ = app_handle.emit(
+                    "updater:progress",
+                    serde_json::json!({
+                        "phase": "progress",
+                        "downloaded": downloaded,
+                        "total": total,
+                    }),
+                );
+            },
+            move || {
+                let _ = app_handle_finish.emit(
+                    "updater:progress",
+                    serde_json::json!({ "phase": "finished" }),
+                );
+            },
+        )
+        .await
+        .map_err(|e| format!("install failed: {e}"))?;
+
+    Ok(())
+}
+
 /// Initialise crash telemetry for the Tauri shell process.
 ///
 /// DSN is read at compile time via ``option_env!`` so CI release
@@ -261,7 +420,11 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![restart_backend])
+        .invoke_handler(tauri::generate_handler![
+            restart_backend,
+            check_for_channel,
+            install_for_channel
+        ])
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
             // Spawn the backend before the window loads so the webview's

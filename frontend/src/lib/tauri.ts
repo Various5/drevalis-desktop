@@ -73,24 +73,6 @@ export interface TauriUpdateInfo {
 }
 
 /**
- * Resolve the running app's version via Tauri's app API. Lives separate
- * from the updater check because the plugin only exposes ``currentVersion``
- * on the ``Update`` object it returns when an update *is* available — when
- * ``check()`` returns ``null`` (you're on or above the latest), we'd
- * otherwise have no way to display the installed version, and the
- * Settings → Updates UI showed a bare "-" for both Installed and Latest.
- */
-async function _getRunningAppVersion(): Promise<string | undefined> {
-  if (!isTauri()) return undefined;
-  try {
-    const { getVersion } = await import('@tauri-apps/api/app');
-    return await getVersion();
-  } catch {
-    return undefined;
-  }
-}
-
-/**
  * Ask the Tauri updater plugin whether a newer signed release is on the
  * configured GitHub Releases endpoint. Returns ``{available: false}`` in
  * browser mode -- callers should keep their legacy code path for that.
@@ -101,42 +83,38 @@ async function _getRunningAppVersion(): Promise<string | undefined> {
  * (no update available) leaves the UI with "-" for the installed
  * version even though the app obviously has one.
  *
- * ``channel`` (Phase 6): captured for telemetry + future Rust-side
- * routing. The Tauri 2 plugin-updater locks endpoints at compile
- * time in tauri.conf.json's ``plugins.updater.endpoints`` array, so
- * runtime URL switching needs a custom ``tauri::command`` that
- * rebuilds the updater with channel-specific URLs (tracked as a
- * follow-up before rc.1 cuts). For now the parameter is accepted +
- * persisted by the UI so the picker is real and the preference
- * survives restarts; the actual fetch still hits the static
- * endpoint (latest.json), which is fine for the alpha era where
- * stable and rc carry identical content (the workflow publishes
- * latest-rc.json as a copy of latest.json).
+ * ``channel`` (Phase 6): routes the check to the channel-specific
+ * manifest URL. Tauri 2's plugin-updater locks endpoints at compile
+ * time, so we go through a custom Rust command
+ * (``check_for_channel``) that rebuilds the updater with the right
+ * endpoints array per call. The Rust side owns the URL constants;
+ * the JS side just passes the channel name string.
  */
 export type UpdaterChannel = 'stable' | 'rc';
 
+interface ChannelUpdateInfo {
+  available: boolean;
+  version?: string | null;
+  current_version: string;
+  body?: string | null;
+  date?: string | null;
+}
+
 export async function checkTauriUpdate(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _channel: UpdaterChannel = 'stable',
+  channel: UpdaterChannel = 'stable',
 ): Promise<TauriUpdateInfo> {
   if (!isTauri()) return { available: false };
-  const { check } = await import('@tauri-apps/plugin-updater');
-  const [update, runningVersion] = await Promise.all([
-    check(),
-    _getRunningAppVersion(),
-  ]);
-  if (!update) {
-    return { available: false, currentVersion: runningVersion };
+  const { invoke } = await import('@tauri-apps/api/core');
+  const info = await invoke<ChannelUpdateInfo>('check_for_channel', { channel });
+  if (!info.available) {
+    return { available: false, currentVersion: info.current_version };
   }
   return {
     available: true,
-    version: update.version,
-    // ``update.currentVersion`` should match runningVersion, but prefer
-    // the plugin's value when available since it was the one the
-    // manifest was compared against; fall back to the runtime version.
-    currentVersion: update.currentVersion ?? runningVersion,
-    body: update.body ?? undefined,
-    date: update.date ?? undefined,
+    version: info.version ?? undefined,
+    currentVersion: info.current_version,
+    body: info.body ?? undefined,
+    date: info.date ?? undefined,
   };
 }
 
@@ -160,28 +138,33 @@ export interface TauriUpdateProgress {
  */
 export async function installTauriUpdate(
   onProgress?: (p: TauriUpdateProgress) => void,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _channel: UpdaterChannel = 'stable',
+  channel: UpdaterChannel = 'stable',
 ): Promise<void> {
   if (!isTauri()) {
     throw new Error('installTauriUpdate is only available inside the Tauri app.');
   }
-  const { check } = await import('@tauri-apps/plugin-updater');
-  const update = await check();
-  if (!update) {
-    throw new Error('No update is available.');
+  const { invoke } = await import('@tauri-apps/api/core');
+  const { listen } = await import('@tauri-apps/api/event');
+
+  // Subscribe to progress events emitted by the Rust command before
+  // firing the install — otherwise the started/progress events could
+  // race the JS subscription and the bar would jump from idle to
+  // finished without showing any download progress.
+  interface ProgressPayload {
+    phase: 'started' | 'progress' | 'finished';
+    downloaded?: number;
+    total?: number;
   }
-  let downloaded = 0;
-  await update.downloadAndInstall((event) => {
-    if (event.event === 'Started') {
-      onProgress?.({ phase: 'started', total: event.data.contentLength });
-    } else if (event.event === 'Progress') {
-      downloaded += event.data.chunkLength;
-      onProgress?.({ phase: 'progress', downloaded });
-    } else if (event.event === 'Finished') {
-      onProgress?.({ phase: 'finished' });
-    }
+  const unlisten = await listen<ProgressPayload>('updater:progress', (event) => {
+    const { phase, downloaded, total } = event.payload;
+    onProgress?.({ phase, downloaded, total });
   });
+
+  try {
+    await invoke('install_for_channel', { channel });
+  } finally {
+    unlisten();
+  }
   // On Windows NSIS, the plugin shells out to the new installer which
   // exits the running app and relaunches the new one. The user may
   // briefly see the installer window before the app comes back up.
