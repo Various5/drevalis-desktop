@@ -170,6 +170,62 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "social": {
+      "heading": "Social-Media-Konten",
+      "intro": "Verbinde deine Social-Media-Konten, um Inhalte plattformübergreifend zu veröffentlichen.",
+      "refresh": "Aktualisieren",
+      "loadFailed": "Social-Media-Konten konnten nicht geladen werden",
+      "connectedToast": "Konto verbunden",
+      "connectedToastDesc": "{{platform}}-Konto verknüpft",
+      "disconnectedToast": "Konto getrennt",
+      "platform": {
+        "connected": "Verbunden",
+        "notConnected": "Nicht verbunden",
+        "disconnect": "Trennen",
+        "disconnectAria": "{{platform}} trennen",
+        "setupWizard": "Einrichtungsassistent",
+        "setupWizardTitle": "Führt dich durch die Beschaffung der TikTok-OAuth-Zugangsdaten",
+        "connectPlatform": "{{platform}} verbinden",
+        "connectGeneric": "Verbinden",
+        "cancel": "Abbrechen",
+        "accountName": "Kontoname",
+        "accountNamePlaceholder": "deinhandle",
+        "facebookPageId": "Facebook-Seiten-ID",
+        "instagramAccountId": "Instagram-Konto-ID",
+        "facebookPageIdPlaceholder": "z. B. 102034567890123",
+        "instagramAccountIdPlaceholder": "z. B. 17841400000000000",
+        "facebookPageIdHint": "Numerische ID der Seite, auf die Uploads landen sollen. Findest du unter facebook.com/{deine-seite}/about.",
+        "instagramAccountIdHint": "Business-/Creator-Konto-ID aus Meta Graph — erforderlich, um Reels-Container zu erstellen.",
+        "pageAccessToken": "Seiten-Zugriffstoken",
+        "apiAccessToken": "API-Zugriffstoken",
+        "facebookTokenPlaceholder": "Seiten-Zugriffstoken (kein Benutzertoken)",
+        "tokenPlaceholder": "Füge deinen Zugriffstoken ein...",
+        "facebookTokenHint": "Tausche ein Benutzertoken über die Graph-API-Route <1>/me/accounts</1> gegen ein langlebiges Seiten-Zugriffstoken ein. Benutzertoken schlagen beim Upload fehl.",
+        "publicVideoBaseUrl": "Öffentliche Video-Basis-URL",
+        "publicVideoBaseUrlPlaceholder": "https://cdn.deineseite.com/storage",
+        "publicVideoBaseUrlHint": "Instagram-Reels benötigen eine öffentliche HTTPS-URL, die auf den Speicherordner zeigt, in den Drevalis Videos schreibt. Ohne diese schlagen Uploads fehl.",
+        "refreshToken": "Refresh-Token",
+        "refreshTokenOptional": "(optional)",
+        "refreshTokenPlaceholder": "Füge dein Refresh-Token ein...",
+        "connectFormAria": "{{platform}}-Konto verbinden",
+        "errors": {
+          "facebookNeedsPageId": "Facebook benötigt die numerische Seiten-ID.",
+          "instagramNeedsAccountId": "Instagram benötigt die Business-/Creator-Konto-ID.",
+          "instagramNeedsPublicUrl": "Instagram-Reels benötigen eine öffentliche HTTPS-URL, die auf deinen Speicherordner zeigt.",
+          "connectFailed": "Verbindung fehlgeschlagen."
+        },
+        "disconnectDialog": {
+          "title": "{{platform}} trennen?",
+          "warning": "Dies trennt <1>{{account}}</1> von Drevalis. Eine spätere erneute Verbindung läuft über denselben OAuth- oder Token-Flow wie eine Ersteinrichtung.",
+          "consequences": [
+            "Laufende Uploads schlagen fehl",
+            "Geplante Posts für {{platform}} müssen neu zugewiesen werden",
+            "Gespeicherte Token werden lokal entzogen — Drevalis kann nicht mehr auf diesem Kanal veröffentlichen"
+          ],
+          "confirmLabel": "{{platform}} trennen"
+        }
+      }
+    },
     "llm": {
       "heading": "LLM-Konfigurationen",
       "addConfig": "Konfiguration hinzufügen",

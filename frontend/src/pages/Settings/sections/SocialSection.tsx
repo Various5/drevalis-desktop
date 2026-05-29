@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
@@ -17,6 +18,7 @@ const SOCIAL_PLATFORMS: SocialPlatformDef[] = [
 ];
 
 export function SocialSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [platforms, setPlatforms] = useState<SocialPlatform[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +29,11 @@ export function SocialSection() {
       const data = await socialApi.listPlatforms();
       setPlatforms(data);
     } catch (err) {
-      toast.error('Failed to load social media accounts', { description: String(err) });
+      toast.error(t('settings.social.loadFailed'), { description: String(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void fetchPlatforms();
@@ -51,19 +53,21 @@ export function SocialSection() {
         refresh_token: form.refreshToken.trim() || undefined,
         account_metadata: Object.keys(meta).length ? meta : undefined,
       });
-      toast.success('Account connected', { description: `${platformId} account linked` });
+      toast.success(t('settings.social.connectedToast'), {
+        description: t('settings.social.connectedToastDesc', { platform: platformId }),
+      });
       void fetchPlatforms();
     },
-    [fetchPlatforms, toast],
+    [fetchPlatforms, toast, t],
   );
 
   const handleDisconnect = useCallback(
     async (id: string) => {
       await socialApi.disconnectPlatform(id);
-      toast.success('Account disconnected');
+      toast.success(t('settings.social.disconnectedToast'));
       void fetchPlatforms();
     },
-    [fetchPlatforms, toast],
+    [fetchPlatforms, toast, t],
   );
 
   if (loading) return <Spinner />;
@@ -73,15 +77,15 @@ export function SocialSection() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-txt-primary">
-            Social Media Accounts
+            {t('settings.social.heading')}
           </h3>
           <p className="text-sm text-txt-secondary mt-0.5">
-            Connect your social media accounts to post content across platforms.
+            {t('settings.social.intro')}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => void fetchPlatforms()}>
           <RefreshCw size={14} />
-          Refresh
+          {t('settings.social.refresh')}
         </Button>
       </div>
 

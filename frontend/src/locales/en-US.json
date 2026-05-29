@@ -170,6 +170,62 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "social": {
+      "heading": "Social Media Accounts",
+      "intro": "Connect your social media accounts to post content across platforms.",
+      "refresh": "Refresh",
+      "loadFailed": "Failed to load social media accounts",
+      "connectedToast": "Account connected",
+      "connectedToastDesc": "{{platform}} account linked",
+      "disconnectedToast": "Account disconnected",
+      "platform": {
+        "connected": "Connected",
+        "notConnected": "Not connected",
+        "disconnect": "Disconnect",
+        "disconnectAria": "Disconnect {{platform}}",
+        "setupWizard": "Setup wizard",
+        "setupWizardTitle": "Walks you through getting TikTok OAuth credentials",
+        "connectPlatform": "Connect {{platform}}",
+        "connectGeneric": "Connect",
+        "cancel": "Cancel",
+        "accountName": "Account Name",
+        "accountNamePlaceholder": "yourhandle",
+        "facebookPageId": "Facebook Page ID",
+        "instagramAccountId": "Instagram Account ID",
+        "facebookPageIdPlaceholder": "e.g. 102034567890123",
+        "instagramAccountIdPlaceholder": "e.g. 17841400000000000",
+        "facebookPageIdHint": "Numeric ID of the Page you want uploads to land on. Get it from facebook.com/{your-page}/about.",
+        "instagramAccountIdHint": "Business/Creator account ID from Meta Graph — required to create Reels containers.",
+        "pageAccessToken": "Page Access Token",
+        "apiAccessToken": "API Access Token",
+        "facebookTokenPlaceholder": "Page Access Token (not a user token)",
+        "tokenPlaceholder": "Paste your access token...",
+        "facebookTokenHint": "Exchange a user token for a long-lived Page Access Token via Graph API's <1>/me/accounts</1>. User tokens will fail on upload.",
+        "publicVideoBaseUrl": "Public video base URL",
+        "publicVideoBaseUrlPlaceholder": "https://cdn.yoursite.com/storage",
+        "publicVideoBaseUrlHint": "Instagram Reels need a public HTTPS URL that maps to the storage folder Drevalis writes videos into. Without this, upload will fail.",
+        "refreshToken": "Refresh Token",
+        "refreshTokenOptional": "(optional)",
+        "refreshTokenPlaceholder": "Paste your refresh token...",
+        "connectFormAria": "Connect {{platform}} account",
+        "errors": {
+          "facebookNeedsPageId": "Facebook needs the numeric Page ID.",
+          "instagramNeedsAccountId": "Instagram needs the Business/Creator account ID.",
+          "instagramNeedsPublicUrl": "Instagram Reels need a public HTTPS URL that maps to your storage folder.",
+          "connectFailed": "Failed to connect."
+        },
+        "disconnectDialog": {
+          "title": "Disconnect {{platform}}?",
+          "warning": "This disconnects <1>{{account}}</1> from Drevalis. Re-connecting later goes through the same OAuth or token flow as a first-time setup.",
+          "consequences": [
+            "Uploads currently in progress will fail",
+            "Scheduled posts targeting {{platform}} will need to be re-targeted",
+            "Saved tokens are revoked locally — Drevalis can no longer publish to this channel"
+          ],
+          "confirmLabel": "Disconnect {{platform}}"
+        }
+      }
+    },
     "llm": {
       "heading": "LLM Configurations",
       "addConfig": "Add Config",

@@ -6,6 +6,7 @@ import {
   Link2,
   Unlink,
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -48,6 +49,7 @@ export function PlatformCard({
   onConnect,
   onDisconnect,
 }: PlatformCardProps) {
+  const { t } = useTranslation();
   const [formOpen, setFormOpen] = useState(false);
   const [accountName, setAccountName] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -80,15 +82,13 @@ export function PlatformCard({
     if (needsAccountId && !accountId.trim()) {
       setConnectError(
         platform.id === 'facebook'
-          ? 'Facebook needs the numeric Page ID.'
-          : 'Instagram needs the Business/Creator account ID.',
+          ? t('settings.social.platform.errors.facebookNeedsPageId')
+          : t('settings.social.platform.errors.instagramNeedsAccountId'),
       );
       return;
     }
     if (needsPublicUrl && !publicVideoBaseUrl.trim()) {
-      setConnectError(
-        'Instagram Reels need a public HTTPS URL that maps to your storage folder.',
-      );
+      setConnectError(t('settings.social.platform.errors.instagramNeedsPublicUrl'));
       return;
     }
     setConnecting(true);
@@ -108,7 +108,7 @@ export function PlatformCard({
       setRefreshToken('');
       setPublicVideoBaseUrl('');
     } catch (err) {
-      setConnectError(err instanceof Error ? err.message : 'Failed to connect.');
+      setConnectError(err instanceof Error ? err.message : t('settings.social.platform.errors.connectFailed'));
     } finally {
       setConnecting(false);
     }
@@ -148,7 +148,7 @@ export function PlatformCard({
                 @{connectedAccount.account_name}
               </p>
             ) : (
-              <p className="text-xs text-txt-tertiary">Not connected</p>
+              <p className="text-xs text-txt-tertiary">{t('settings.social.platform.notConnected')}</p>
             )}
           </div>
         </div>
@@ -157,30 +157,30 @@ export function PlatformCard({
           {isConnected ? (
             <>
               <Badge variant="success" dot>
-                Connected
+                {t('settings.social.platform.connected')}
               </Badge>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setDisconnectConfirmOpen(true)}
                 className="text-txt-tertiary hover:text-error"
-                aria-label={`Disconnect ${platform.name}`}
+                aria-label={t('settings.social.platform.disconnectAria', { platform: platform.name })}
               >
                 <Unlink size={13} />
-                Disconnect
+                {t('settings.social.platform.disconnect')}
               </Button>
             </>
           ) : (
             <>
-              <Badge variant="neutral">Not connected</Badge>
+              <Badge variant="neutral">{t('settings.social.platform.notConnected')}</Badge>
               {platform.id === 'tiktok' && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setWizardOpen(true)}
-                  title="Walks you through getting TikTok OAuth credentials"
+                  title={t('settings.social.platform.setupWizardTitle')}
                 >
-                  Setup wizard
+                  {t('settings.social.platform.setupWizard')}
                 </Button>
               )}
               <Button
@@ -194,17 +194,17 @@ export function PlatformCard({
                 {platform.oauth ? (
                   <>
                     <Link2 size={13} />
-                    Connect {platform.name}
+                    {t('settings.social.platform.connectPlatform', { platform: platform.name })}
                   </>
                 ) : formOpen ? (
                   <>
                     <ChevronUp size={13} />
-                    Cancel
+                    {t('settings.social.platform.cancel')}
                   </>
                 ) : (
                   <>
                     <Plus size={13} />
-                    Connect
+                    {t('settings.social.platform.connectGeneric')}
                   </>
                 )}
               </Button>
@@ -219,20 +219,20 @@ export function PlatformCard({
           id={`connect-form-${platform.id}`}
           className="mt-4 space-y-3 pt-4 border-t border-border"
           role="group"
-          aria-label={`Connect ${platform.name} account`}
+          aria-label={t('settings.social.platform.connectFormAria', { platform: platform.name })}
         >
           <div>
             <label
               htmlFor={`${platform.id}-account-name`}
               className="block text-xs font-medium text-txt-secondary mb-1"
             >
-              Account Name
+              {t('settings.social.platform.accountName')}
             </label>
             <Input
               id={`${platform.id}-account-name`}
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
-              placeholder="yourhandle"
+              placeholder={t('settings.social.platform.accountNamePlaceholder')}
               aria-required="true"
             />
           </div>
@@ -243,7 +243,9 @@ export function PlatformCard({
                 htmlFor={`${platform.id}-account-id`}
                 className="block text-xs font-medium text-txt-secondary mb-1"
               >
-                {platform.id === 'facebook' ? 'Facebook Page ID' : 'Instagram Account ID'}
+                {platform.id === 'facebook'
+                  ? t('settings.social.platform.facebookPageId')
+                  : t('settings.social.platform.instagramAccountId')}
                 <span className="text-error ml-1">*</span>
               </label>
               <Input
@@ -252,15 +254,15 @@ export function PlatformCard({
                 onChange={(e) => setAccountId(e.target.value)}
                 placeholder={
                   platform.id === 'facebook'
-                    ? 'e.g. 102034567890123'
-                    : 'e.g. 17841400000000000'
+                    ? t('settings.social.platform.facebookPageIdPlaceholder')
+                    : t('settings.social.platform.instagramAccountIdPlaceholder')
                 }
                 aria-required="true"
               />
               <p className="text-[11px] text-txt-tertiary mt-1">
                 {platform.id === 'facebook'
-                  ? 'Numeric ID of the Page you want uploads to land on. Get it from facebook.com/{your-page}/about.'
-                  : 'Business/Creator account ID from Meta Graph — required to create Reels containers.'}
+                  ? t('settings.social.platform.facebookPageIdHint')
+                  : t('settings.social.platform.instagramAccountIdHint')}
               </p>
             </div>
           )}
@@ -270,7 +272,9 @@ export function PlatformCard({
               htmlFor={`${platform.id}-access-token`}
               className="block text-xs font-medium text-txt-secondary mb-1"
             >
-              {platform.id === 'facebook' ? 'Page Access Token' : 'API Access Token'}
+              {platform.id === 'facebook'
+                ? t('settings.social.platform.pageAccessToken')
+                : t('settings.social.platform.apiAccessToken')}
               <span className="text-error ml-1">*</span>
             </label>
             <Input
@@ -280,15 +284,17 @@ export function PlatformCard({
               onChange={(e) => setAccessToken(e.target.value)}
               placeholder={
                 platform.id === 'facebook'
-                  ? 'Page Access Token (not a user token)'
-                  : 'Paste your access token...'
+                  ? t('settings.social.platform.facebookTokenPlaceholder')
+                  : t('settings.social.platform.tokenPlaceholder')
               }
               aria-required="true"
             />
             {platform.id === 'facebook' && (
               <p className="text-[11px] text-txt-tertiary mt-1">
-                Exchange a user token for a long-lived Page Access Token via Graph
-                API's <code>/me/accounts</code>. User tokens will fail on upload.
+                <Trans
+                  i18nKey="settings.social.platform.facebookTokenHint"
+                  components={{ 1: <code /> }}
+                />
               </p>
             )}
           </div>
@@ -299,19 +305,18 @@ export function PlatformCard({
                 htmlFor={`${platform.id}-public-url`}
                 className="block text-xs font-medium text-txt-secondary mb-1"
               >
-                Public video base URL
+                {t('settings.social.platform.publicVideoBaseUrl')}
                 <span className="text-error ml-1">*</span>
               </label>
               <Input
                 id={`${platform.id}-public-url`}
                 value={publicVideoBaseUrl}
                 onChange={(e) => setPublicVideoBaseUrl(e.target.value)}
-                placeholder="https://cdn.yoursite.com/storage"
+                placeholder={t('settings.social.platform.publicVideoBaseUrlPlaceholder')}
                 aria-required="true"
               />
               <p className="text-[11px] text-txt-tertiary mt-1">
-                Instagram Reels need a public HTTPS URL that maps to the storage folder
-                Drevalis writes videos into. Without this, upload will fail.
+                {t('settings.social.platform.publicVideoBaseUrlHint')}
               </p>
             </div>
           )}
@@ -321,15 +326,15 @@ export function PlatformCard({
               htmlFor={`${platform.id}-refresh-token`}
               className="block text-xs font-medium text-txt-secondary mb-1"
             >
-              Refresh Token{' '}
-              <span className="text-txt-tertiary font-normal">(optional)</span>
+              {t('settings.social.platform.refreshToken')}{' '}
+              <span className="text-txt-tertiary font-normal">{t('settings.social.platform.refreshTokenOptional')}</span>
             </label>
             <Input
               id={`${platform.id}-refresh-token`}
               type="password"
               value={refreshToken}
               onChange={(e) => setRefreshToken(e.target.value)}
-              placeholder="Paste your refresh token..."
+              placeholder={t('settings.social.platform.refreshTokenPlaceholder')}
             />
           </div>
 
@@ -353,7 +358,7 @@ export function PlatformCard({
                 setConnectError(null);
               }}
             >
-              Cancel
+              {t('settings.social.platform.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -362,7 +367,7 @@ export function PlatformCard({
               disabled={!accountName.trim() || !accessToken.trim()}
               onClick={() => void handleConnect()}
             >
-              Connect {platform.name}
+              {t('settings.social.platform.connectPlatform', { platform: platform.name })}
             </Button>
           </div>
         </div>
@@ -386,26 +391,26 @@ export function PlatformCard({
           open={disconnectConfirmOpen}
           onClose={() => setDisconnectConfirmOpen(false)}
           onConfirm={() => void handleDisconnect()}
-          title={`Disconnect ${platform.name}?`}
+          title={t('settings.social.platform.disconnectDialog.title', { platform: platform.name })}
           warning={
-            <>
-              This disconnects{' '}
-              <strong className="text-txt-primary">
-                {connectedAccount?.account_name
+            <Trans
+              i18nKey="settings.social.platform.disconnectDialog.warning"
+              values={{
+                account: connectedAccount?.account_name
                   ? `@${connectedAccount.account_name}`
-                  : platform.name}
-              </strong>{' '}
-              from Drevalis. Re-connecting later goes through the same OAuth or
-              token flow as a first-time setup.
-            </>
+                  : platform.name,
+              }}
+              components={{ 1: <strong className="text-txt-primary" /> }}
+            />
           }
-          consequences={[
-            'Uploads currently in progress will fail',
-            `Scheduled posts targeting ${platform.name} will need to be re-targeted`,
-            'Saved tokens are revoked locally — Drevalis can no longer publish to this channel',
-          ]}
+          consequences={
+            (t('settings.social.platform.disconnectDialog.consequences', {
+              returnObjects: true,
+              platform: platform.name,
+            }) as string[])
+          }
           confirmWord={platform.id.toUpperCase()}
-          confirmLabel={`Disconnect ${platform.name}`}
+          confirmLabel={t('settings.social.platform.disconnectDialog.confirmLabel', { platform: platform.name })}
           loading={disconnecting}
         />
       )}
