@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { History, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -27,19 +28,8 @@ function formatTs(iso: string): string {
   }
 }
 
-function reasonLabel(reason: string | null): string {
-  if (!reason) return '';
-  const map: Record<string, string> = {
-    unknown_email: 'Unknown email',
-    wrong_password: 'Wrong password',
-    inactive_user: 'Account disabled',
-    rate_limited: 'Rate limited',
-    totp_required: '2FA required',
-  };
-  return map[reason] ?? reason;
-}
-
 export function LoginHistorySection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user: me, refresh: refreshAuth } = useAuth();
   const [events, setEvents] = useState<LoginEvent[] | null>(null);
@@ -47,17 +37,24 @@ export function LoginHistorySection() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
+  function reasonLabel(reason: string | null): string {
+    if (!reason) return '';
+    const known = ['unknown_email', 'wrong_password', 'inactive_user', 'rate_limited', 'totp_required'];
+    if (known.includes(reason)) return t(`settings.loginHistory.reasons.${reason}`);
+    return reason;
+  }
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const rows = await authApi.loginHistory(20);
       setEvents(rows);
     } catch (err) {
-      toast.error('Failed to load login history', { description: formatError(err) });
+      toast.error(t('settings.loginHistory.loadFailed'), { description: formatError(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void refresh();
@@ -67,14 +64,14 @@ export function LoginHistorySection() {
     setLoggingOut(true);
     try {
       await authApi.logoutEverywhere();
-      toast.success('Signed out everywhere', {
-        description: 'All other sessions have been invalidated. You have been signed out.',
+      toast.success(t('settings.loginHistory.signedOutToast'), {
+        description: t('settings.loginHistory.signedOutToastDesc'),
       });
       // The current session cookie was cleared by the server — refresh
       // the auth context so the UI reflects the logged-out state.
       await refreshAuth();
     } catch (err) {
-      toast.error('Failed to sign out everywhere', { description: formatError(err) });
+      toast.error(t('settings.loginHistory.signOutFailed'), { description: formatError(err) });
     } finally {
       setLoggingOut(false);
       setConfirmOpen(false);
@@ -91,17 +88,16 @@ export function LoginHistorySection() {
           <div>
             <h3 className="font-semibold text-lg flex items-center gap-2 mb-1">
               <History className="w-5 h-5" />
-              Recent logins
+              {t('settings.loginHistory.heading')}
             </h3>
             <p className="text-sm text-txt-secondary">
-              The last 20 sign-in attempts for your account. If you see an unfamiliar
-              IP or location, use "Sign out everywhere" to revoke all active sessions.
+              {t('settings.loginHistory.intro')}
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
             <Button size="sm" variant="ghost" onClick={() => void refresh()}>
               <RefreshCw className="w-3.5 h-3.5 mr-1" />
-              Refresh
+              {t('settings.loginHistory.refresh')}
             </Button>
             <Button
               size="sm"
@@ -110,7 +106,7 @@ export function LoginHistorySection() {
               onClick={() => setConfirmOpen(true)}
             >
               <LogOut className="w-3.5 h-3.5 mr-1" />
-              Sign out everywhere
+              {t('settings.loginHistory.signOutEverywhere')}
             </Button>
           </div>
         </div>
@@ -119,17 +115,17 @@ export function LoginHistorySection() {
       {/* Event table */}
       <Card className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-sm text-txt-muted">Loading…</div>
+          <div className="p-8 text-center text-sm text-txt-muted">{t('settings.loginHistory.loading')}</div>
         ) : (events ?? []).length === 0 ? (
-          <div className="p-8 text-center text-sm text-txt-muted">No login events recorded.</div>
+          <div className="p-8 text-center text-sm text-txt-muted">{t('settings.loginHistory.empty')}</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-bg-elevated text-xs uppercase tracking-wider text-txt-muted">
               <tr>
-                <th className="text-left px-4 py-2 font-medium">When</th>
-                <th className="text-left px-4 py-2 font-medium">Result</th>
-                <th className="text-left px-4 py-2 font-medium">IP</th>
-                <th className="text-left px-4 py-2 font-medium">Agent</th>
+                <th className="text-left px-4 py-2 font-medium">{t('settings.loginHistory.tableWhen')}</th>
+                <th className="text-left px-4 py-2 font-medium">{t('settings.loginHistory.tableResult')}</th>
+                <th className="text-left px-4 py-2 font-medium">{t('settings.loginHistory.tableIp')}</th>
+                <th className="text-left px-4 py-2 font-medium">{t('settings.loginHistory.tableAgent')}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,12 +136,12 @@ export function LoginHistorySection() {
                   </td>
                   <td className="px-4 py-3">
                     {ev.success ? (
-                      <Badge variant="accent">Success</Badge>
+                      <Badge variant="accent">{t('settings.loginHistory.success')}</Badge>
                     ) : (
                       <span className="flex items-center gap-1.5">
                         <Badge variant="neutral">
                           <ShieldAlert className="w-3 h-3 mr-1 text-error" />
-                          Failed
+                          {t('settings.loginHistory.failed')}
                         </Badge>
                         {ev.failure_reason && (
                           <span className="text-xs text-txt-muted">{reasonLabel(ev.failure_reason)}</span>
@@ -169,15 +165,14 @@ export function LoginHistorySection() {
         <Dialog
           open
           onClose={() => setConfirmOpen(false)}
-          title="Sign out everywhere?"
+          title={t('settings.loginHistory.dialogTitle')}
         >
           <p className="text-sm text-txt-secondary">
-            This will immediately invalidate all active sessions on every device,
-            including this one. You will be signed out right away.
+            {t('settings.loginHistory.dialogBody')}
           </p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              {t('settings.loginHistory.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -185,7 +180,7 @@ export function LoginHistorySection() {
               onClick={() => void handleLogoutEverywhere()}
               disabled={loggingOut}
             >
-              {loggingOut ? 'Signing out…' : 'Sign out everywhere'}
+              {loggingOut ? t('settings.loginHistory.signingOut') : t('settings.loginHistory.signOutEverywhere')}
             </Button>
           </DialogFooter>
         </Dialog>

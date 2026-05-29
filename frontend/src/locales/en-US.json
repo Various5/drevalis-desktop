@@ -170,6 +170,83 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "loginHistory": {
+      "heading": "Recent logins",
+      "intro": "The last 20 sign-in attempts for your account. If you see an unfamiliar IP or location, use \"Sign out everywhere\" to revoke all active sessions.",
+      "refresh": "Refresh",
+      "signOutEverywhere": "Sign out everywhere",
+      "loadFailed": "Failed to load login history",
+      "signedOutToast": "Signed out everywhere",
+      "signedOutToastDesc": "All other sessions have been invalidated. You have been signed out.",
+      "signOutFailed": "Failed to sign out everywhere",
+      "loading": "Loading…",
+      "empty": "No login events recorded.",
+      "tableWhen": "When",
+      "tableResult": "Result",
+      "tableIp": "IP",
+      "tableAgent": "Agent",
+      "success": "Success",
+      "failed": "Failed",
+      "dialogTitle": "Sign out everywhere?",
+      "dialogBody": "This will immediately invalidate all active sessions on every device, including this one. You will be signed out right away.",
+      "cancel": "Cancel",
+      "signingOut": "Signing out…",
+      "reasons": {
+        "unknown_email": "Unknown email",
+        "wrong_password": "Wrong password",
+        "inactive_user": "Account disabled",
+        "rate_limited": "Rate limited",
+        "totp_required": "2FA required"
+      }
+    },
+    "twoFactor": {
+      "heading": "Two-factor authentication",
+      "enrollmentFailed": "Enrolment failed. Try again.",
+      "enabledToast": "Two-factor authentication enabled.",
+      "invalidCode": "Invalid code. Check your authenticator app and try again.",
+      "disabledToast": "Two-factor authentication disabled.",
+      "incorrectPassword": "Incorrect password.",
+      "copiedToast": "{{label}} copied.",
+      "copyFailed": "Copy failed — please copy manually.",
+      "labels": {
+        "uri": "URI",
+        "secret": "Secret",
+        "recoveryCodes": "Recovery codes"
+      },
+      "idle": {
+        "intro": "Two-factor authentication adds a second layer of protection. After enabling it, you will be prompted for a code from your authenticator app each time you sign in.",
+        "settingUp": "Setting up…",
+        "enable": "Enable 2FA"
+      },
+      "confirming": {
+        "intro": "Scan the link below with your authenticator app (Google Authenticator, Authy, 1Password, etc.), or manually enter the secret key.",
+        "openInAuthenticator": "Open in authenticator",
+        "openInAuthenticatorTitle": "Open in authenticator app",
+        "copyUriTitle": "Copy otpauth URI",
+        "manualSecret": "Or enter this secret manually",
+        "copySecretTitle": "Copy secret",
+        "recoveryCodes": "Recovery codes",
+        "recoveryCodesNote": "(save these now — shown once)",
+        "copyRecoveryTitle": "Copy all recovery codes",
+        "storeHint": "Store these in a password manager. Each code can be used once if you lose access to your authenticator app.",
+        "codeLabel": "Enter the 6-digit code from your app to activate",
+        "activating": "Activating…",
+        "activate": "Activate 2FA",
+        "cancel": "Cancel"
+      },
+      "active": {
+        "status": "Two-factor authentication is active",
+        "intro": "Your account is protected by a TOTP authenticator app. You will be prompted for a code on every sign-in.",
+        "disable": "Disable 2FA"
+      },
+      "disabling": {
+        "intro": "To disable two-factor authentication, confirm your account password.",
+        "currentPassword": "Current password",
+        "disabling": "Disabling…",
+        "disable": "Disable 2FA",
+        "cancel": "Cancel"
+      }
+    },
     "storage": {
       "loadFailed": "Failed to load storage information",
       "unableToFetch": "Unable to fetch storage information.",

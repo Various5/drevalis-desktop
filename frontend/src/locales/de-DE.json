@@ -170,6 +170,83 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "loginHistory": {
+      "heading": "Letzte Anmeldungen",
+      "intro": "Die letzten 20 Anmeldeversuche für dein Konto. Wenn du eine unbekannte IP oder einen unbekannten Standort siehst, verwende „Überall abmelden“, um alle aktiven Sitzungen zu beenden.",
+      "refresh": "Aktualisieren",
+      "signOutEverywhere": "Überall abmelden",
+      "loadFailed": "Anmeldeverlauf konnte nicht geladen werden",
+      "signedOutToast": "Überall abgemeldet",
+      "signedOutToastDesc": "Alle anderen Sitzungen wurden ungültig gemacht. Du wurdest abgemeldet.",
+      "signOutFailed": "Abmelden auf allen Geräten fehlgeschlagen",
+      "loading": "Wird geladen…",
+      "empty": "Keine Anmeldeereignisse aufgezeichnet.",
+      "tableWhen": "Wann",
+      "tableResult": "Ergebnis",
+      "tableIp": "IP",
+      "tableAgent": "Client",
+      "success": "Erfolg",
+      "failed": "Fehlgeschlagen",
+      "dialogTitle": "Überall abmelden?",
+      "dialogBody": "Dies macht sofort alle aktiven Sitzungen auf jedem Gerät ungültig, einschließlich dieses. Du wirst sofort abgemeldet.",
+      "cancel": "Abbrechen",
+      "signingOut": "Wird abgemeldet…",
+      "reasons": {
+        "unknown_email": "Unbekannte E-Mail",
+        "wrong_password": "Falsches Passwort",
+        "inactive_user": "Konto deaktiviert",
+        "rate_limited": "Zu viele Versuche",
+        "totp_required": "2FA erforderlich"
+      }
+    },
+    "twoFactor": {
+      "heading": "Zwei-Faktor-Authentifizierung",
+      "enrollmentFailed": "Einrichtung fehlgeschlagen. Bitte erneut versuchen.",
+      "enabledToast": "Zwei-Faktor-Authentifizierung aktiviert.",
+      "invalidCode": "Ungültiger Code. Prüfe deine Authenticator-App und versuche es erneut.",
+      "disabledToast": "Zwei-Faktor-Authentifizierung deaktiviert.",
+      "incorrectPassword": "Falsches Passwort.",
+      "copiedToast": "{{label}} kopiert.",
+      "copyFailed": "Kopieren fehlgeschlagen — bitte manuell kopieren.",
+      "labels": {
+        "uri": "URI",
+        "secret": "Schlüssel",
+        "recoveryCodes": "Wiederherstellungscodes"
+      },
+      "idle": {
+        "intro": "Die Zwei-Faktor-Authentifizierung fügt eine zusätzliche Schutzebene hinzu. Nach der Aktivierung wirst du bei jeder Anmeldung nach einem Code aus deiner Authenticator-App gefragt.",
+        "settingUp": "Wird eingerichtet…",
+        "enable": "2FA aktivieren"
+      },
+      "confirming": {
+        "intro": "Scanne den Link unten mit deiner Authenticator-App (Google Authenticator, Authy, 1Password usw.) oder gib den geheimen Schlüssel manuell ein.",
+        "openInAuthenticator": "In Authenticator öffnen",
+        "openInAuthenticatorTitle": "In Authenticator-App öffnen",
+        "copyUriTitle": "otpauth-URI kopieren",
+        "manualSecret": "Oder gib diesen Schlüssel manuell ein",
+        "copySecretTitle": "Schlüssel kopieren",
+        "recoveryCodes": "Wiederherstellungscodes",
+        "recoveryCodesNote": "(jetzt speichern — nur einmal sichtbar)",
+        "copyRecoveryTitle": "Alle Wiederherstellungscodes kopieren",
+        "storeHint": "Speichere diese in einem Passwort-Manager. Jeder Code kann einmal verwendet werden, falls du keinen Zugriff auf deine Authenticator-App mehr hast.",
+        "codeLabel": "Gib den 6-stelligen Code aus deiner App ein, um zu aktivieren",
+        "activating": "Wird aktiviert…",
+        "activate": "2FA aktivieren",
+        "cancel": "Abbrechen"
+      },
+      "active": {
+        "status": "Zwei-Faktor-Authentifizierung ist aktiv",
+        "intro": "Dein Konto ist durch eine TOTP-Authenticator-App geschützt. Du wirst bei jeder Anmeldung nach einem Code gefragt.",
+        "disable": "2FA deaktivieren"
+      },
+      "disabling": {
+        "intro": "Bestätige dein Kontopasswort, um die Zwei-Faktor-Authentifizierung zu deaktivieren.",
+        "currentPassword": "Aktuelles Passwort",
+        "disabling": "Wird deaktiviert…",
+        "disable": "2FA deaktivieren",
+        "cancel": "Abbrechen"
+      }
+    },
     "storage": {
       "loadFailed": "Speicherinformationen konnten nicht geladen werden",
       "unableToFetch": "Speicherinformationen konnten nicht geladen werden.",

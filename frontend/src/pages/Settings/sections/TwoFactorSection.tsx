@@ -23,6 +23,7 @@
 
 import { useState } from 'react';
 import { Copy, ShieldCheck, ShieldOff, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -38,6 +39,7 @@ type Stage =
   | 'active';       // 2FA confirmed and active
 
 export function TwoFactorSection() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -59,7 +61,7 @@ export function TwoFactorSection() {
       setEnrollData(data);
       setStage('confirming');
     } catch (err) {
-      setError(formatError(err) || 'Enrolment failed. Try again.');
+      setError(formatError(err) || t('settings.twoFactor.enrollmentFailed'));
     } finally {
       setLoading(false);
     }
@@ -75,11 +77,11 @@ export function TwoFactorSection() {
       setStage('active');
       setEnrollData(null);
       setConfirmCode('');
-      toast.success('Two-factor authentication enabled.');
+      toast.success(t('settings.twoFactor.enabledToast'));
       // Refresh auth context so user.totp_enabled reflects the new state.
       window.dispatchEvent(new CustomEvent('auth:refresh'));
     } catch (err) {
-      setError(formatError(err) || 'Invalid code. Check your authenticator app and try again.');
+      setError(formatError(err) || t('settings.twoFactor.invalidCode'));
     } finally {
       setLoading(false);
     }
@@ -100,10 +102,10 @@ export function TwoFactorSection() {
       await authApi.disableTotp(disablePassword);
       setStage('idle');
       setDisablePassword('');
-      toast.success('Two-factor authentication disabled.');
+      toast.success(t('settings.twoFactor.disabledToast'));
       window.dispatchEvent(new CustomEvent('auth:refresh'));
     } catch (err) {
-      setError(formatError(err) || 'Incorrect password.');
+      setError(formatError(err) || t('settings.twoFactor.incorrectPassword'));
     } finally {
       setLoading(false);
     }
@@ -111,8 +113,8 @@ export function TwoFactorSection() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(
-      () => toast.success(`${label} copied.`),
-      () => toast.error('Copy failed — please copy manually.'),
+      () => toast.success(t('settings.twoFactor.copiedToast', { label })),
+      () => toast.error(t('settings.twoFactor.copyFailed')),
     );
   };
 
@@ -121,12 +123,11 @@ export function TwoFactorSection() {
   const renderIdle = () => (
     <div className="space-y-3">
       <p className="text-sm text-txt-secondary">
-        Two-factor authentication adds a second layer of protection. After enabling it,
-        you will be prompted for a code from your authenticator app each time you sign in.
+        {t('settings.twoFactor.idle.intro')}
       </p>
       {error && <ErrorBanner message={error} />}
       <Button onClick={startEnroll} disabled={loading} variant="primary" size="sm">
-        {loading ? 'Setting up…' : 'Enable 2FA'}
+        {loading ? t('settings.twoFactor.idle.settingUp') : t('settings.twoFactor.idle.enable')}
       </Button>
     </div>
   );
@@ -138,26 +139,25 @@ export function TwoFactorSection() {
     return (
       <form onSubmit={confirmEnroll} className="space-y-5">
         <p className="text-sm text-txt-secondary">
-          Scan the link below with your authenticator app (Google Authenticator, Authy, 1Password,
-          etc.), or manually enter the secret key.
+          {t('settings.twoFactor.confirming.intro')}
         </p>
 
         {/* otpauth URI — open in authenticator app */}
         <div className="space-y-1">
-          <p className="text-xs font-medium text-txt-secondary">Open in authenticator</p>
+          <p className="text-xs font-medium text-txt-secondary">{t('settings.twoFactor.confirming.openInAuthenticator')}</p>
           <div className="flex gap-2 items-center">
             <a
               href={otpauth_uri}
               className="text-accent text-xs underline underline-offset-2 break-all"
-              title="Open in authenticator app"
+              title={t('settings.twoFactor.confirming.openInAuthenticatorTitle')}
             >
               {otpauth_uri.slice(0, 60)}…
             </a>
             <button
               type="button"
-              onClick={() => copyToClipboard(otpauth_uri, 'URI')}
+              onClick={() => copyToClipboard(otpauth_uri, t('settings.twoFactor.labels.uri'))}
               className="shrink-0 text-txt-muted hover:text-txt-secondary"
-              title="Copy otpauth URI"
+              title={t('settings.twoFactor.confirming.copyUriTitle')}
             >
               <Copy size={14} />
             </button>
@@ -166,16 +166,16 @@ export function TwoFactorSection() {
 
         {/* Manual secret entry */}
         <div className="space-y-1">
-          <p className="text-xs font-medium text-txt-secondary">Or enter this secret manually</p>
+          <p className="text-xs font-medium text-txt-secondary">{t('settings.twoFactor.confirming.manualSecret')}</p>
           <div className="flex gap-2 items-center">
             <code className="text-xs font-mono bg-bg-base px-2 py-1 rounded border border-white/10 tracking-widest select-all">
               {secret_base32}
             </code>
             <button
               type="button"
-              onClick={() => copyToClipboard(secret_base32, 'Secret')}
+              onClick={() => copyToClipboard(secret_base32, t('settings.twoFactor.labels.secret'))}
               className="shrink-0 text-txt-muted hover:text-txt-secondary"
-              title="Copy secret"
+              title={t('settings.twoFactor.confirming.copySecretTitle')}
             >
               <Copy size={14} />
             </button>
@@ -186,14 +186,14 @@ export function TwoFactorSection() {
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium text-txt-secondary">
-              Recovery codes
-              <span className="ml-1 text-warning text-[10px]">(save these now — shown once)</span>
+              {t('settings.twoFactor.confirming.recoveryCodes')}
+              <span className="ml-1 text-warning text-[10px]">{t('settings.twoFactor.confirming.recoveryCodesNote')}</span>
             </p>
             <button
               type="button"
-              onClick={() => copyToClipboard(recovery_codes.join('\n'), 'Recovery codes')}
+              onClick={() => copyToClipboard(recovery_codes.join('\n'), t('settings.twoFactor.labels.recoveryCodes'))}
               className="text-txt-muted hover:text-txt-secondary"
-              title="Copy all recovery codes"
+              title={t('settings.twoFactor.confirming.copyRecoveryTitle')}
             >
               <Copy size={14} />
             </button>
@@ -206,15 +206,14 @@ export function TwoFactorSection() {
             ))}
           </div>
           <p className="text-[11px] text-txt-muted">
-            Store these in a password manager. Each code can be used once if you lose access to
-            your authenticator app.
+            {t('settings.twoFactor.confirming.storeHint')}
           </p>
         </div>
 
         {/* Confirm code */}
         <div className="space-y-2">
           <Input
-            label="Enter the 6-digit code from your app to activate"
+            label={t('settings.twoFactor.confirming.codeLabel')}
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -233,7 +232,7 @@ export function TwoFactorSection() {
             variant="primary"
             size="sm"
           >
-            {loading ? 'Activating…' : 'Activate 2FA'}
+            {loading ? t('settings.twoFactor.confirming.activating') : t('settings.twoFactor.confirming.activate')}
           </Button>
           <Button
             type="button"
@@ -241,7 +240,7 @@ export function TwoFactorSection() {
             size="sm"
             onClick={() => { setStage('idle'); setEnrollData(null); setError(null); }}
           >
-            Cancel
+            {t('settings.twoFactor.confirming.cancel')}
           </Button>
         </div>
       </form>
@@ -252,15 +251,14 @@ export function TwoFactorSection() {
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-success">
         <CheckCircle2 size={16} />
-        <span className="text-sm font-medium">Two-factor authentication is active</span>
+        <span className="text-sm font-medium">{t('settings.twoFactor.active.status')}</span>
       </div>
       <p className="text-sm text-txt-secondary">
-        Your account is protected by a TOTP authenticator app. You will be prompted for a code
-        on every sign-in.
+        {t('settings.twoFactor.active.intro')}
       </p>
       <Button onClick={startDisable} variant="ghost" size="sm">
         <ShieldOff size={14} className="mr-1.5" />
-        Disable 2FA
+        {t('settings.twoFactor.active.disable')}
       </Button>
     </div>
   );
@@ -268,10 +266,10 @@ export function TwoFactorSection() {
   const renderDisabling = () => (
     <form onSubmit={confirmDisable} className="space-y-4">
       <p className="text-sm text-txt-secondary">
-        To disable two-factor authentication, confirm your account password.
+        {t('settings.twoFactor.disabling.intro')}
       </p>
       <Input
-        label="Current password"
+        label={t('settings.twoFactor.disabling.currentPassword')}
         type="password"
         autoComplete="current-password"
         required
@@ -282,7 +280,7 @@ export function TwoFactorSection() {
       {error && <ErrorBanner message={error} />}
       <div className="flex gap-2">
         <Button type="submit" disabled={loading || !disablePassword} variant="destructive" size="sm">
-          {loading ? 'Disabling…' : 'Disable 2FA'}
+          {loading ? t('settings.twoFactor.disabling.disabling') : t('settings.twoFactor.disabling.disable')}
         </Button>
         <Button
           type="button"
@@ -290,7 +288,7 @@ export function TwoFactorSection() {
           size="sm"
           onClick={() => { setStage('active'); setError(null); }}
         >
-          Cancel
+          {t('settings.twoFactor.disabling.cancel')}
         </Button>
       </div>
     </form>
@@ -308,7 +306,7 @@ export function TwoFactorSection() {
     <Card>
       <div className="flex items-center gap-2 mb-4">
         {icon}
-        <h2 className="text-sm font-semibold text-txt-primary">Two-factor authentication</h2>
+        <h2 className="text-sm font-semibold text-txt-primary">{t('settings.twoFactor.heading')}</h2>
       </div>
 
       {stage === 'idle' && renderIdle()}
