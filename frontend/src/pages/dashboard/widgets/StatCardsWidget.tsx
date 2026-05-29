@@ -1,4 +1,5 @@
 import { Film, Zap, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { StatCard } from '@/components/ui/StatCard';
 
 // ---------------------------------------------------------------------------
@@ -18,28 +19,29 @@ export function StatCardsWidget({
   failedCount,
   totalSeries,
 }: StatCardsWidgetProps) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <StatCard
-        label="Total Episodes"
+        label={t('dashboard.widgets.statCards.totalEpisodes')}
         value={totalEpisodes}
         icon={<Film size={20} />}
         color="#EDEDEF"
       />
       <StatCard
-        label="Completed"
+        label={t('dashboard.widgets.statCards.completed')}
         value={completedCount}
         icon={<CheckCircle2 size={20} />}
         color="#34D399"
       />
       <StatCard
-        label="Failed"
+        label={t('dashboard.widgets.statCards.failed')}
         value={failedCount}
         icon={<AlertTriangle size={20} />}
         color="#F87171"
       />
       <StatCard
-        label="Total Series"
+        label={t('dashboard.widgets.statCards.totalSeries')}
         value={totalSeries}
         icon={<Zap size={20} />}
         color="#00D4AA"

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Film } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EpisodeCard } from '@/components/episodes/EpisodeCard';
@@ -18,31 +19,32 @@ export function RecentEpisodesWidget({
   episodes,
   latestByEpisode,
 }: RecentEpisodesWidgetProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-display font-semibold text-txt-primary tracking-tight">
-          Recent Episodes
+          {t('dashboard.widgets.recentEpisodes.heading')}
         </h2>
         <Button variant="ghost" size="sm" onClick={() => navigate('/episodes')}>
-          View All
+          {t('dashboard.widgets.recentEpisodes.viewAll')}
         </Button>
       </div>
 
       {episodes.length === 0 ? (
         <EmptyState
           icon={Film}
-          title="No episodes yet"
-          description="Create a series and generate your first episode."
+          title={t('dashboard.widgets.recentEpisodes.emptyTitle')}
+          description={t('dashboard.widgets.recentEpisodes.emptyDescription')}
           action={
             <div className="flex gap-2 justify-center">
               <Button size="sm" variant="primary" onClick={() => navigate('/series')}>
-                Create a series
+                {t('dashboard.widgets.recentEpisodes.createSeries')}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => navigate('/help')}>
-                Read the Help
+                {t('dashboard.widgets.recentEpisodes.readHelp')}
               </Button>
             </div>
           }

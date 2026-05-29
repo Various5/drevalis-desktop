@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { JobProgressBar } from '@/components/jobs/JobProgressBar';
@@ -18,6 +19,7 @@ export function ActiveJobsWidget({
   activeJobs,
   latestByEpisode,
 }: ActiveJobsWidgetProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   if (activeJobs.length === 0) {
@@ -25,8 +27,8 @@ export function ActiveJobsWidget({
       <Card padding="md" className="flex flex-col items-center justify-center">
         <div className="text-center py-6">
           <CheckCircle2 size={28} className="text-txt-tertiary mx-auto mb-2" />
-          <p className="text-sm font-display text-txt-secondary font-medium">All clear</p>
-          <p className="text-xs text-txt-tertiary mt-0.5">No active jobs running</p>
+          <p className="text-sm font-display text-txt-secondary font-medium">{t('dashboard.widgets.activeJobs.allClearTitle')}</p>
+          <p className="text-xs text-txt-tertiary mt-0.5">{t('dashboard.widgets.activeJobs.allClearDescription')}</p>
         </div>
       </Card>
     );
@@ -48,7 +50,7 @@ export function ActiveJobsWidget({
         <CardTitle>
           <span className="flex items-center gap-2 font-display">
             <Loader2 size={16} className="animate-spin text-accent" />
-            Active Jobs ({activeJobs.length})
+            {t('dashboard.widgets.activeJobs.heading', { count: activeJobs.length })}
           </span>
         </CardTitle>
       </CardHeader>
@@ -80,10 +82,10 @@ export function ActiveJobsWidget({
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-display font-medium text-txt-primary truncate">
-                    Episode {episodeId.slice(0, 8)}...
+                    {t('dashboard.widgets.activeJobs.episodePrefix', { id: episodeId.slice(0, 8) })}
                   </span>
                   <Badge variant="generating" dot>
-                    generating
+                    {t('dashboard.widgets.activeJobs.generatingBadge')}
                   </Badge>
                 </div>
                 <JobProgressBar

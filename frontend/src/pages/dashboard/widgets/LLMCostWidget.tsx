@@ -1,21 +1,12 @@
 import { useEffect, useState } from 'react';
 import { DollarSign } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 
 // ---------------------------------------------------------------------------
 // LLMCostWidget — estimated LLM spend over the last 30 days.
 // ---------------------------------------------------------------------------
-//
-// Reads ``GET /api/v1/cost/summary``. Numbers come from completed
-// ``generation_jobs.tokens_*`` columns × per-1k rates configured in
-// ``Settings`` (default close to GPT-4o-mini, override in Settings →
-// LLM → Pricing for your actual provider).
-//
-// Why a dollar figure and not "tokens used": tokens are an abstract
-// unit and the user notices spend at bill time. Surfacing the $-eq
-// directly turns "is the pipeline cheap or expensive" into a glance
-// rather than a calculator session.
 
 interface CostSummary {
   window_days: number;
@@ -41,6 +32,7 @@ function formatTokens(v: number): string {
 }
 
 export function LLMCostWidget() {
+  const { t } = useTranslation();
   const [data, setData] = useState<CostSummary | null>(null);
 
   useEffect(() => {
@@ -73,7 +65,7 @@ export function LLMCostWidget() {
     <Card padding="md">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em]">
-          LLM Spend (30d)
+          {t('dashboard.widgets.llmCost.heading')}
         </h2>
         <DollarSign size={14} className="text-txt-tertiary" aria-hidden="true" />
       </div>
@@ -87,14 +79,19 @@ export function LLMCostWidget() {
             <span className="text-2xl font-display font-bold text-txt-primary tabular-nums">
               {formatUsd(data.estimated_usd)}
             </span>
-            <span className="text-xs text-txt-tertiary">estimated</span>
+            <span className="text-xs text-txt-tertiary">{t('dashboard.widgets.llmCost.estimated')}</span>
           </div>
           <div className="text-xs text-txt-secondary tabular-nums">
-            {formatTokens(data.tokens_prompt)} in · {formatTokens(data.tokens_completion)} out
+            {t('dashboard.widgets.llmCost.inOutTokens', {
+              in: formatTokens(data.tokens_prompt),
+              out: formatTokens(data.tokens_completion),
+            })}
           </div>
           <div className="text-[10px] text-txt-tertiary leading-tight">
-            @ ${data.rate_per_1k_prompt.toFixed(5)}/${data.rate_per_1k_completion.toFixed(5)} per 1k
-            (in/out). Tune in Settings → LLM → Pricing.
+            {t('dashboard.widgets.llmCost.rateLine', {
+              prompt: data.rate_per_1k_prompt.toFixed(5),
+              completion: data.rate_per_1k_completion.toFixed(5),
+            })}
           </div>
         </div>
       )}

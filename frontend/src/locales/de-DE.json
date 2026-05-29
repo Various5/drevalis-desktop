@@ -57,6 +57,101 @@
       "llm-cost": "LLM-Ausgaben (30 Tage)",
       "recent-youtube": "Letzte YouTube-Videos"
     },
+    "widgets": {
+      "statCards": {
+        "totalEpisodes": "Episoden gesamt",
+        "completed": "Abgeschlossen",
+        "failed": "Fehlgeschlagen",
+        "totalSeries": "Serien gesamt"
+      },
+      "quickActions": {
+        "heading": "Schnellaktionen",
+        "newSeries": "Neue Serie",
+        "newSeriesHint": "Eine neue Serie erstellen",
+        "newSeriesAria": "Neue Serie erstellen",
+        "trendingTopics": "Trend-Themen",
+        "trendingTopicsHint": "Virale Ideen entdecken",
+        "trendingTopicsAria": "Trend-Themen generieren",
+        "calendar": "Kalender",
+        "calendarHint": "Inhalte planen",
+        "calendarAria": "Inhaltskalender öffnen",
+        "newFromVideo": "Neu aus Video",
+        "newFromVideoHint": "Hochladen → Clip wählen → bearbeiten",
+        "newFromVideoAria": "Short aus hochgeladenem Video erstellen"
+      },
+      "recentEpisodes": {
+        "heading": "Letzte Episoden",
+        "viewAll": "Alle ansehen",
+        "emptyTitle": "Noch keine Episoden",
+        "emptyDescription": "Erstelle eine Serie und generiere deine erste Episode.",
+        "createSeries": "Serie erstellen",
+        "readHelp": "Hilfe lesen"
+      },
+      "activeJobs": {
+        "allClearTitle": "Alles klar",
+        "allClearDescription": "Keine aktiven Aufträge laufen",
+        "heading": "Aktive Aufträge ({{count}})",
+        "episodePrefix": "Episode {{id}}…",
+        "generatingBadge": "wird generiert"
+      },
+      "activityTimeline": {
+        "heading": "Aktuelle Aktivität",
+        "emptyTitle": "Noch keine Episoden",
+        "emptyDescription": "Erstelle eine Serie und generiere deine erste Episode.",
+        "createSeries": "Serie erstellen",
+        "viewAria": "Episode ansehen: {{title}}",
+        "relative": {
+          "justNow": "gerade eben",
+          "minAgo": "vor {{count}} Min.",
+          "hAgo": "vor {{count}} Std.",
+          "dAgo": "vor {{count}} T."
+        }
+      },
+      "upcomingPosts": {
+        "heading": "Anstehende Posts",
+        "calendarLink": "Kalender",
+        "emptyPrefix": "Nichts in den nächsten 30 Tagen geplant.",
+        "schedulePost": "Post planen",
+        "todayPrefix": "Heute",
+        "tomorrowPrefix": "Morgen"
+      },
+      "topSeries": {
+        "heading": "Top-Serien",
+        "allSeries": "Alle Serien",
+        "emptyPrefix": "Noch keine Serien.",
+        "createFirst": "Erstelle deine erste",
+        "donePrefix": "{{completed}}/{{total}} fertig"
+      },
+      "quotaUsage": {
+        "heading": "Heutige Generierungen",
+        "unlimitedAria": "unbegrenzt",
+        "ofUnlimited": "von",
+        "ofUnlimitedSuffix": "heute",
+        "ofLimit": "/ {{limit}} heute",
+        "progressAria": "Tägliches Generierungskontingent"
+      },
+      "llmCost": {
+        "heading": "LLM-Ausgaben (30 Tage)",
+        "estimated": "geschätzt",
+        "inOutTokens": "{{in}} rein · {{out}} raus",
+        "rateLine": "@ ${{prompt}}/${{completion}} pro 1k (rein/raus). Anpassbar unter Einstellungen → LLM → Preise."
+      },
+      "recentYouTube": {
+        "heading": "Letzte YouTube-Videos",
+        "empty": "Noch keine Kanal-Videos synchronisiert. Verbinde einen YouTube-Kanal unter Einstellungen → YouTube, und Drevalis lädt die vorhandenen Videos.",
+        "shortBadge": "SHORT",
+        "uploadedAria": "Über Drevalis hochgeladen",
+        "viewsSuffix": "{{count}} Aufrufe",
+        "relative": {
+          "today": "heute",
+          "oneDayAgo": "vor 1 T.",
+          "daysAgo": "vor {{count}} T.",
+          "weeksAgo": "vor {{count}} Wo.",
+          "monthsAgo": "vor {{count}} Mon.",
+          "yearsAgo": "vor {{count}} J."
+        }
+      }
+    },
     "firstRun": {
       "title": "Starte hier",
       "body": "Drevalis verwandelt eine Serien-Idee in eine Warteschlange veröffentlichungsfertiger Videos. Erstelle deine erste Serie, um zu beginnen — oder forke ein Beispiel, um zu sehen, wie es funktioniert.",

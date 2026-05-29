@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Youtube, ExternalLink, Sparkles, Smartphone, Film } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 
 // ---------------------------------------------------------------------------
 // RecentYouTubeWidget — "your latest YouTube videos" tile.
 // ---------------------------------------------------------------------------
-//
-// Reads ``GET /api/v1/youtube/recent-videos?limit=5``. Mixes Drevalis-
-// uploaded and externally-uploaded videos in one list and badges the
-// Drevalis ones with a sparkle icon + deep-link to the episode detail
-// (cross-match feature). Hidden by default on the dashboard; toggle on
-// via Dashboard → Customize.
-//
-// Re-fetches on window focus so a fresh YouTube upload appears without
-// a manual refresh.
 
 interface RecentVideo {
   id: string;
@@ -33,17 +26,17 @@ interface RecentVideo {
   uploaded_via_drevalis: boolean;
 }
 
-function formatRelative(iso: string | null): string {
+function formatRelative(iso: string | null, t: TFunction): string {
   if (!iso) return '';
   const then = new Date(iso).getTime();
   const diff = Date.now() - then;
   const d = Math.floor(diff / (24 * 60 * 60 * 1000));
-  if (d <= 0) return 'today';
-  if (d === 1) return '1d ago';
-  if (d < 7) return `${d}d ago`;
-  if (d < 30) return `${Math.floor(d / 7)}w ago`;
-  if (d < 365) return `${Math.floor(d / 30)}mo ago`;
-  return `${Math.floor(d / 365)}y ago`;
+  if (d <= 0) return t('dashboard.widgets.recentYouTube.relative.today');
+  if (d === 1) return t('dashboard.widgets.recentYouTube.relative.oneDayAgo');
+  if (d < 7) return t('dashboard.widgets.recentYouTube.relative.daysAgo', { count: d });
+  if (d < 30) return t('dashboard.widgets.recentYouTube.relative.weeksAgo', { count: Math.floor(d / 7) });
+  if (d < 365) return t('dashboard.widgets.recentYouTube.relative.monthsAgo', { count: Math.floor(d / 30) });
+  return t('dashboard.widgets.recentYouTube.relative.yearsAgo', { count: Math.floor(d / 365) });
 }
 
 function formatViews(n: number): string {
@@ -53,6 +46,7 @@ function formatViews(n: number): string {
 }
 
 export function RecentYouTubeWidget() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [videos, setVideos] = useState<RecentVideo[] | null>(null);
 
@@ -86,7 +80,7 @@ export function RecentYouTubeWidget() {
     <Card padding="md">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em]">
-          Recent YouTube videos
+          {t('dashboard.widgets.recentYouTube.heading')}
         </h2>
         <Youtube size={14} className="text-red-500" aria-hidden="true" />
       </div>
@@ -97,8 +91,7 @@ export function RecentYouTubeWidget() {
         </div>
       ) : videos.length === 0 ? (
         <div className="text-xs text-txt-tertiary py-2">
-          No channel videos synced yet. Connect a YouTube channel in
-          Settings → YouTube and Drevalis will pull what's already on it.
+          {t('dashboard.widgets.recentYouTube.empty')}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -136,7 +129,7 @@ export function RecentYouTubeWidget() {
                   )}
                   {v.is_short && (
                     <span className="absolute top-0.5 right-0.5 text-[8px] bg-black/70 text-white px-1 rounded-sm">
-                      SHORT
+                      {t('dashboard.widgets.recentYouTube.shortBadge')}
                     </span>
                   )}
                 </div>
@@ -146,7 +139,7 @@ export function RecentYouTubeWidget() {
                       <Sparkles
                         size={10}
                         className="text-accent shrink-0"
-                        aria-label="Uploaded via Drevalis"
+                        aria-label={t('dashboard.widgets.recentYouTube.uploadedAria')}
                       />
                     )}
                     <span className="truncate">{v.title}</span>
@@ -154,9 +147,9 @@ export function RecentYouTubeWidget() {
                   <div className="text-[10px] text-txt-tertiary mt-0.5 flex items-center gap-1.5">
                     <span>{v.channel_name}</span>
                     <span>·</span>
-                    <span>{formatViews(v.view_count)} views</span>
+                    <span>{t('dashboard.widgets.recentYouTube.viewsSuffix', { count: formatViews(v.view_count) })}</span>
                     <span>·</span>
-                    <span>{formatRelative(v.published_at)}</span>
+                    <span>{formatRelative(v.published_at, t)}</span>
                     {!v.drevalis_episode_id && (
                       <ExternalLink
                         size={9}

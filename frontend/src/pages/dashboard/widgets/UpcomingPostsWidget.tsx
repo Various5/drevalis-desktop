@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Youtube, Music2, Instagram, Facebook, Twitter } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
@@ -9,11 +11,6 @@ import { schedule as scheduleApi } from '@/lib/api';
 // ---------------------------------------------------------------------------
 // UpcomingPostsWidget — the next 5 scheduled posts across every platform
 // ---------------------------------------------------------------------------
-//
-// Reads the calendar feed for a 30-day forward window and surfaces the
-// first 5 entries by ``scheduled_at``. Each row is clickable and deep-
-// links to ``/calendar?date=...``. Empty state shows a CTA to the
-// Calendar page.
 
 interface ScheduledPost {
   id: string;
@@ -31,7 +28,7 @@ const PLATFORM_ICON: Record<string, typeof Youtube> = {
   x: Twitter,
 };
 
-function fmt(iso: string): string {
+function fmt(iso: string, t: TFunction): string {
   const d = new Date(iso);
   const today = new Date();
   const tomorrow = new Date(today);
@@ -44,12 +41,13 @@ function fmt(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-  if (isSameDay(d, today)) return `Today · ${time}`;
-  if (isSameDay(d, tomorrow)) return `Tomorrow · ${time}`;
+  if (isSameDay(d, today)) return `${t('dashboard.widgets.upcomingPosts.todayPrefix')} · ${time}`;
+  if (isSameDay(d, tomorrow)) return `${t('dashboard.widgets.upcomingPosts.tomorrowPrefix')} · ${time}`;
   return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${time}`;
 }
 
 export function UpcomingPostsWidget() {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<ScheduledPost[] | null>(null);
 
   useEffect(() => {
@@ -86,14 +84,14 @@ export function UpcomingPostsWidget() {
     <Card padding="md">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em]">
-          Upcoming Posts
+          {t('dashboard.widgets.upcomingPosts.heading')}
         </h2>
         <Link
           to="/calendar"
           className="text-xs text-accent hover:underline inline-flex items-center gap-1"
         >
           <CalendarDays size={12} />
-          Calendar
+          {t('dashboard.widgets.upcomingPosts.calendarLink')}
         </Link>
       </div>
       {posts === null ? (
@@ -102,9 +100,9 @@ export function UpcomingPostsWidget() {
         </div>
       ) : posts.length === 0 ? (
         <p className="text-sm text-txt-tertiary py-3">
-          Nothing scheduled in the next 30 days.{' '}
+          {t('dashboard.widgets.upcomingPosts.emptyPrefix')}{' '}
           <Link to="/calendar" className="text-accent hover:underline">
-            Schedule a post
+            {t('dashboard.widgets.upcomingPosts.schedulePost')}
           </Link>
           .
         </p>
@@ -117,7 +115,7 @@ export function UpcomingPostsWidget() {
                 <Icon size={14} className="shrink-0 text-txt-tertiary" aria-hidden="true" />
                 <span className="flex-1 min-w-0 truncate text-txt-primary">{p.title}</span>
                 <Badge variant="default" className="shrink-0 text-[10px]">
-                  {fmt(p.scheduled_at)}
+                  {fmt(p.scheduled_at, t)}
                 </Badge>
               </li>
             );

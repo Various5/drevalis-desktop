@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Gauge, Infinity as InfinityIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { license as licenseApi } from '@/lib/api';
@@ -7,11 +8,6 @@ import { license as licenseApi } from '@/lib/api';
 // ---------------------------------------------------------------------------
 // QuotaUsageWidget — today's episode-generation usage vs daily cap
 // ---------------------------------------------------------------------------
-//
-// Reads ``GET /api/v1/license/quota`` (cheap, Redis-backed). Renders a
-// progress bar when the tier has a cap and the ∞ glyph for unlimited
-// tiers. Refreshes on focus so a long-running generate visible in
-// another tab updates this widget.
 
 interface QuotaShape {
   used: number;
@@ -19,6 +15,7 @@ interface QuotaShape {
 }
 
 export function QuotaUsageWidget() {
+  const { t } = useTranslation();
   const [data, setData] = useState<QuotaShape | null>(null);
 
   useEffect(() => {
@@ -44,7 +41,7 @@ export function QuotaUsageWidget() {
     <Card padding="md">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em]">
-          Today&rsquo;s Generations
+          {t('dashboard.widgets.quotaUsage.heading')}
         </h2>
         <Gauge size={14} className="text-txt-tertiary" aria-hidden="true" />
       </div>
@@ -58,7 +55,9 @@ export function QuotaUsageWidget() {
             {data.used}
           </span>
           <span className="text-sm text-txt-tertiary inline-flex items-center gap-1">
-            of <InfinityIcon size={14} aria-label="unlimited" /> today
+            {t('dashboard.widgets.quotaUsage.ofUnlimited')}{' '}
+            <InfinityIcon size={14} aria-label={t('dashboard.widgets.quotaUsage.unlimitedAria')} />{' '}
+            {t('dashboard.widgets.quotaUsage.ofUnlimitedSuffix')}
           </span>
         </div>
       ) : (
@@ -68,7 +67,7 @@ export function QuotaUsageWidget() {
               {data.used}
             </span>
             <span className="text-sm text-txt-tertiary tabular-nums">
-              / {data.limit} today
+              {t('dashboard.widgets.quotaUsage.ofLimit', { limit: data.limit })}
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-bg-elevated overflow-hidden">
@@ -88,7 +87,7 @@ export function QuotaUsageWidget() {
               aria-valuenow={data.used}
               aria-valuemin={0}
               aria-valuemax={data.limit}
-              aria-label="Daily generation quota"
+              aria-label={t('dashboard.widgets.quotaUsage.progressAria')}
             />
           </div>
         </>

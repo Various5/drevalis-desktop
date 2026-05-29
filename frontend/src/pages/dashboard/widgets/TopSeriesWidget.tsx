@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Layers, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { useEpisodes, useSeries } from '@/lib/queries';
 import type { EpisodeListItem, SeriesListItem } from '@/types';
@@ -43,6 +44,7 @@ function rank(
 }
 
 export function TopSeriesWidget() {
+  const { t } = useTranslation();
   const epsQ = useEpisodes();
   const seriesQ = useSeries();
 
@@ -55,21 +57,21 @@ export function TopSeriesWidget() {
     <Card padding="md">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em]">
-          Top Series
+          {t('dashboard.widgets.topSeries.heading')}
         </h2>
         <Link
           to="/series"
           className="text-xs text-accent hover:underline inline-flex items-center gap-1"
         >
           <Layers size={12} />
-          All series
+          {t('dashboard.widgets.topSeries.allSeries')}
         </Link>
       </div>
       {top.length === 0 ? (
         <p className="text-sm text-txt-tertiary py-3">
-          No series yet.{' '}
+          {t('dashboard.widgets.topSeries.emptyPrefix')}{' '}
           <Link to="/series" className="text-accent hover:underline">
-            Create your first
+            {t('dashboard.widgets.topSeries.createFirst')}
           </Link>
           .
         </p>
@@ -87,7 +89,7 @@ export function TopSeriesWidget() {
                 {s.name}
               </Link>
               <span className="shrink-0 text-xs text-txt-tertiary tabular-nums">
-                {s.completed}/{s.total} done
+                {t('dashboard.widgets.topSeries.donePrefix', { completed: s.completed, total: s.total })}
               </span>
               <ArrowRight size={12} className="shrink-0 text-txt-tertiary" aria-hidden="true" />
             </li>

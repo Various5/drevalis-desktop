@@ -57,6 +57,101 @@
       "llm-cost": "LLM Spend (30d)",
       "recent-youtube": "Recent YouTube Videos"
     },
+    "widgets": {
+      "statCards": {
+        "totalEpisodes": "Total Episodes",
+        "completed": "Completed",
+        "failed": "Failed",
+        "totalSeries": "Total Series"
+      },
+      "quickActions": {
+        "heading": "Quick Actions",
+        "newSeries": "New Series",
+        "newSeriesHint": "Create a new series",
+        "newSeriesAria": "Create New Series",
+        "trendingTopics": "Trending Topics",
+        "trendingTopicsHint": "Discover viral ideas",
+        "trendingTopicsAria": "Generate Trending Topics",
+        "calendar": "Calendar",
+        "calendarHint": "Schedule content",
+        "calendarAria": "View Content Calendar",
+        "newFromVideo": "New from video",
+        "newFromVideoHint": "Upload → pick clip → edit",
+        "newFromVideoAria": "Create Short from uploaded video"
+      },
+      "recentEpisodes": {
+        "heading": "Recent Episodes",
+        "viewAll": "View All",
+        "emptyTitle": "No episodes yet",
+        "emptyDescription": "Create a series and generate your first episode.",
+        "createSeries": "Create a series",
+        "readHelp": "Read the Help"
+      },
+      "activeJobs": {
+        "allClearTitle": "All clear",
+        "allClearDescription": "No active jobs running",
+        "heading": "Active Jobs ({{count}})",
+        "episodePrefix": "Episode {{id}}…",
+        "generatingBadge": "generating"
+      },
+      "activityTimeline": {
+        "heading": "Recent Activity",
+        "emptyTitle": "No episodes yet",
+        "emptyDescription": "Create a series and generate your first episode.",
+        "createSeries": "Create a series",
+        "viewAria": "View episode: {{title}}",
+        "relative": {
+          "justNow": "just now",
+          "minAgo": "{{count}}m ago",
+          "hAgo": "{{count}}h ago",
+          "dAgo": "{{count}}d ago"
+        }
+      },
+      "upcomingPosts": {
+        "heading": "Upcoming Posts",
+        "calendarLink": "Calendar",
+        "emptyPrefix": "Nothing scheduled in the next 30 days.",
+        "schedulePost": "Schedule a post",
+        "todayPrefix": "Today",
+        "tomorrowPrefix": "Tomorrow"
+      },
+      "topSeries": {
+        "heading": "Top Series",
+        "allSeries": "All series",
+        "emptyPrefix": "No series yet.",
+        "createFirst": "Create your first",
+        "donePrefix": "{{completed}}/{{total}} done"
+      },
+      "quotaUsage": {
+        "heading": "Today’s Generations",
+        "unlimitedAria": "unlimited",
+        "ofUnlimited": "of",
+        "ofUnlimitedSuffix": "today",
+        "ofLimit": "/ {{limit}} today",
+        "progressAria": "Daily generation quota"
+      },
+      "llmCost": {
+        "heading": "LLM Spend (30d)",
+        "estimated": "estimated",
+        "inOutTokens": "{{in}} in · {{out}} out",
+        "rateLine": "@ ${{prompt}}/${{completion}} per 1k (in/out). Tune in Settings → LLM → Pricing."
+      },
+      "recentYouTube": {
+        "heading": "Recent YouTube videos",
+        "empty": "No channel videos synced yet. Connect a YouTube channel in Settings → YouTube and Drevalis will pull what's already on it.",
+        "shortBadge": "SHORT",
+        "uploadedAria": "Uploaded via Drevalis",
+        "viewsSuffix": "{{count}} views",
+        "relative": {
+          "today": "today",
+          "oneDayAgo": "1d ago",
+          "daysAgo": "{{count}}d ago",
+          "weeksAgo": "{{count}}w ago",
+          "monthsAgo": "{{count}}mo ago",
+          "yearsAgo": "{{count}}y ago"
+        }
+      }
+    },
     "firstRun": {
       "title": "Start here",
       "body": "Drevalis turns a series idea into a queue of ready-to-publish videos. Create your first series to begin — or fork an example to see how it works.",

@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Film, LayoutList } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -10,12 +12,12 @@ import type { EpisodeListItem } from '@/types';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: TFunction): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 60) return t('dashboard.widgets.activityTimeline.relative.justNow');
+  if (seconds < 3600) return t('dashboard.widgets.activityTimeline.relative.minAgo', { count: Math.floor(seconds / 60) });
+  if (seconds < 86400) return t('dashboard.widgets.activityTimeline.relative.hAgo', { count: Math.floor(seconds / 3600) });
+  if (seconds < 604800) return t('dashboard.widgets.activityTimeline.relative.dAgo', { count: Math.floor(seconds / 86400) });
   return new Date(dateStr).toLocaleDateString();
 }
 
@@ -39,12 +41,13 @@ interface ActivityItemProps {
 }
 
 function ActivityItem({ episode, seriesName, onClick }: ActivityItemProps) {
+  const { t } = useTranslation();
   const dotColor = STATUS_COLOR[episode.status] ?? 'var(--color-txt-tertiary)';
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.03] transition-all duration-normal text-left"
-      aria-label={`View episode: ${episode.title}`}
+      aria-label={t('dashboard.widgets.activityTimeline.viewAria', { title: episode.title })}
     >
       <span
         className="w-2 h-2 rounded-full shrink-0"
@@ -63,7 +66,7 @@ function ActivityItem({ episode, seriesName, onClick }: ActivityItemProps) {
         {episode.status}
       </Badge>
       <span className="text-xs text-txt-tertiary shrink-0 w-20 text-right">
-        {timeAgo(episode.created_at)}
+        {timeAgo(episode.created_at, t)}
       </span>
     </button>
   );
@@ -82,6 +85,7 @@ export function ActivityTimelineWidget({
   episodes,
   seriesById,
 }: ActivityTimelineWidgetProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -90,7 +94,7 @@ export function ActivityTimelineWidget({
         <CardTitle>
           <span className="flex items-center gap-2 font-display">
             <LayoutList size={16} className="text-txt-secondary" />
-            Recent Activity
+            {t('dashboard.widgets.activityTimeline.heading')}
           </span>
         </CardTitle>
       </CardHeader>
@@ -98,11 +102,11 @@ export function ActivityTimelineWidget({
         {episodes.length === 0 ? (
           <EmptyState
             icon={Film}
-            title="No episodes yet"
-            description="Create a series and generate your first episode."
+            title={t('dashboard.widgets.activityTimeline.emptyTitle')}
+            description={t('dashboard.widgets.activityTimeline.emptyDescription')}
             action={
               <Button size="sm" variant="primary" onClick={() => navigate('/series')}>
-                Create a series
+                {t('dashboard.widgets.activityTimeline.createSeries')}
               </Button>
             }
           />

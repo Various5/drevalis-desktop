@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Plus, TrendingUp, CalendarDays, Clapperboard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { QuickActionTile } from '@/components/ui/QuickActionTile';
 
 // ---------------------------------------------------------------------------
@@ -11,26 +12,27 @@ interface QuickActionsWidgetProps {
 }
 
 export function QuickActionsWidget({ seriesList }: QuickActionsWidgetProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <div>
       <h2 className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em] mb-3">
-        Quick Actions
+        {t('dashboard.widgets.quickActions.heading')}
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <QuickActionTile
           icon={<Plus size={18} />}
-          label="New Series"
-          hint="Create a new series"
+          label={t('dashboard.widgets.quickActions.newSeries')}
+          hint={t('dashboard.widgets.quickActions.newSeriesHint')}
           accent="accent"
           onClick={() => navigate('/series')}
-          ariaLabel="Create New Series"
+          ariaLabel={t('dashboard.widgets.quickActions.newSeriesAria')}
         />
         <QuickActionTile
           icon={<TrendingUp size={18} />}
-          label="Trending Topics"
-          hint="Discover viral ideas"
+          label={t('dashboard.widgets.quickActions.trendingTopics')}
+          hint={t('dashboard.widgets.quickActions.trendingTopicsHint')}
           accent="success"
           onClick={() => {
             const firstSeries = seriesList[0];
@@ -40,23 +42,23 @@ export function QuickActionsWidget({ seriesList }: QuickActionsWidgetProps) {
               navigate('/series');
             }
           }}
-          ariaLabel="Generate Trending Topics"
+          ariaLabel={t('dashboard.widgets.quickActions.trendingTopicsAria')}
         />
         <QuickActionTile
           icon={<CalendarDays size={18} />}
-          label="Calendar"
-          hint="Schedule content"
+          label={t('dashboard.widgets.quickActions.calendar')}
+          hint={t('dashboard.widgets.quickActions.calendarHint')}
           accent="info"
           onClick={() => navigate('/calendar')}
-          ariaLabel="View Content Calendar"
+          ariaLabel={t('dashboard.widgets.quickActions.calendarAria')}
         />
         <QuickActionTile
           icon={<Clapperboard size={18} />}
-          label="New from video"
-          hint="Upload → pick clip → edit"
+          label={t('dashboard.widgets.quickActions.newFromVideo')}
+          hint={t('dashboard.widgets.quickActions.newFromVideoHint')}
           accent="warning"
           onClick={() => navigate('/assets?ingest=1')}
-          ariaLabel="Create Short from uploaded video"
+          ariaLabel={t('dashboard.widgets.quickActions.newFromVideoAria')}
         />
       </div>
     </div>
