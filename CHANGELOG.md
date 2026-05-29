@@ -11,6 +11,135 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
+(Phase 6 work in progress: 1.0-rc.1 prep — CHANGELOG, README refresh,
+release checklist, rc updater channel, Sentry release tagging audit.)
+
+---
+
+## [v0.1.0-alpha.100] — 2026-05-29
+
+**Milestone**: 100th alpha. Closes Phase 5.
+
+- Localise the final Dashboard widgets (StatCards, QuickActions,
+  RecentEpisodes, ActiveJobs, ActivityTimeline, UpcomingPosts,
+  TopSeries, QuotaUsage, LLMCost, RecentYouTube).
+- Localise the remaining shell aria-labels (MobileNav,
+  ActiveJobsPopover, ActivityMonitor expand/collapse/summary).
+- New top-level `activeJobs.*` and `activityMonitor.*` namespaces.
+
+## [v0.1.0-alpha.81 → v0.1.0-alpha.99] — Phase 5: i18n, a11y, performance
+
+A 20-alpha sprint that made the entire app bilingual (en-US / de-DE
+in lockstep, key-parity test gating divergence) and tightened the
+accessibility + performance baseline.
+
+### Internationalisation
+- React-i18next foundation, locale switcher, document title + route
+  metadata localised (alpha.71–.78).
+- Navigation chrome translated end-to-end: sidebar, header, command
+  palette, Channels page, Settings page shell, Appearance section
+  (alpha.73–.79).
+- Every Settings panel translated, in order: Privacy & Health,
+  FFmpeg, Storage, Diagnostics + Danger zone, Network, Login history,
+  Two-factor, Team, License, API Keys, LLM, ComfyUI, Updates (Tauri
+  + Docker legacy), Social + PlatformCard, YouTube, Voice, Backup
+  (+ 4 sub-panels), Templates (alpha.84–.96).
+- Non-Settings page bodies translated: Logs, Jobs, EpisodesList,
+  Dashboard shell + all 10 widgets (alpha.97–.100).
+- Critical i18n config fix: removed `nonExplicitSupportedLngs: true`
+  which silently broke every `t()` call app-wide; replaced with
+  `convertDetectedLanguage` mapping (alpha.73).
+
+### Accessibility
+- WCAG AA contrast pass on light-mode tokens + axe-core audit
+  harness covering shared UI primitives and the app shell + Channels
+  page (alpha.72).
+- Skip-to-content link, `<main id="main-content">`, semantic
+  `<aside>` / `<header>` / `<nav>` landmarks present from earlier
+  phases; shell aria-labels localised (alpha.100).
+- Shared `useDialogFocus` hook applied to Dialog primitive, command
+  palette, and shortcut overlay (alpha.82).
+
+### Performance
+- Vendor chunk split to drop the bundle-size warning (alpha.71).
+- Settings sections lazy-loaded via `React.lazy` (alpha.81).
+- Bundle audit + lazy OnboardingWizard (alpha.83).
+- Aggressive React Query caching, reduced-motion preferences (early
+  Phase 5).
+
+---
+
+## [v0.1.0-alpha.68 → v0.1.0-alpha.80] — Phase 4: desktop hardening + danger zone
+
+- LAN API exposure: bind to 0.0.0.0 with bearer-token auth, separate
+  loopback exemption scope, ignore virtual / link-local adapters
+  (alpha.68–.70).
+- Typed-confirmation dialog primitive applied to Delete Series, then
+  to Disconnect channel (Social), Wipe storage, Reset database, and
+  Delete account (alpha.79–.80).
+- In-app **Restart backend** action: Tauri command + Settings →
+  Network banner button (alpha.79).
+- `chore(release): v0.1.0-alpha.80 — Phase 4 complete`.
+
+---
+
+## [v0.1.0-alpha.65 → v0.1.0-alpha.70] — Phase 2: NLE editor cutover
+
+Complete rebuild of the episode editor as a client-side
+non-linear editor (ADR-002).
+
+- Timeline data model + store + undo/redo (PR 1).
+- Compositing + playback engine, useEditorStore React bridge
+  (PRs 2–3).
+- Timeline UI behind a flagged route; tools: drag-move, trim
+  handles, snapping, blade, roll/slip/slide, J/K/L shuttle,
+  markers, minimap (PRs 3–5c).
+- Per-clip transform + colour filters, fade transitions, speed
+  remap (PRs 6a–6c).
+- Inline captions + scenes panel, render presets + queue,
+  history panel with jump-to-revision (PRs 7–9a).
+- Snapshots + crash recovery, transform keyframes (PRs 9b–9c).
+- Real backend FFmpeg render, real decoded frames in preview,
+  backend timeline bridge with real load/save (Cutover C1–C3).
+- Cutover C4: the rebuilt NLE replaces the legacy editor.
+- Tabbed inspector + keyboard help (PR 10).
+
+---
+
+## [v0.1.0-alpha.67 → v0.1.0-alpha.72] — Phase 3: UX polish + global undo
+
+- First-run dashboard card + empty-state polish (PR 1).
+- Loading skeletons on async routes (PR 2).
+- Command-palette actions + single-source keyboard shortcuts
+  (PR 3).
+- Header notification centre + one-H1-per-page audit.
+- "Later today" reschedule for missed uploads.
+- Soft-delete + undo for episodes, then a dedicated trash view with
+  auto-purge.
+
+---
+
+## [v0.1.0-alpha.58 → v0.1.0-alpha.67] — Phase 1: information architecture refactor
+
+- Sidebar regrouping + renames (Create / Publish / Monitor /
+  Maintenance).
+- Channels hub replaces the conditional per-platform sidebar items.
+- Templates promoted out of Settings to a top-level Create page.
+- Maintenance group deep-links into Settings.
+- Mobile bottom-nav with 4 group tabs and slide-up sheets.
+- Schema + scripts work: scheduled_post.privacy public default,
+  Playwright e2e smoke scaffold, Tauri external-link bridge fixes,
+  backend test-suite stabilisation (36 failures fixed).
+
+---
+
+## [v0.1.0-alpha.57] — start of the desktop-port era
+
+The Phase 0 spike that wrapped the existing FastAPI + React app in
+a Tauri shell with a bundled Python backend, OS keychain, SQLite,
+and an installer. The entries below predate the formal Phase 0–6
+plan and were tracked under "Unreleased" in this file at the time.
+
 ### Fixed (alpha.57 — Auto-schedule no longer dies on a stale channel id)
 - **Auto-schedule a series now falls back to any connected channel**
   instead of hard-failing with "YouTubeChannel ID not found". The
