@@ -16,6 +16,51 @@
       "unreachable": "Nicht erreichbar"
     }
   },
+  "jobs": {
+    "subtitle": "Alle Generierungs-Aufgaben überwachen und steuern.",
+    "stopAll": "Alle stoppen",
+    "loadFailed": "Aufträge konnten nicht geladen werden",
+    "cancelledToast": "Auftrag abgebrochen",
+    "cancelFailed": "Auftrag konnte nicht abgebrochen werden",
+    "allCancelledToast": "Alle aktiven Aufträge abgebrochen",
+    "cancelAllFailed": "Aufträge konnten nicht alle abgebrochen werden",
+    "filters": {
+      "all": "Alle",
+      "running": "Laufend",
+      "queued": "In Warteschlange",
+      "done": "Fertig",
+      "failed": "Fehlgeschlagen"
+    },
+    "table": {
+      "episode": "Episode",
+      "stepStatus": "Schritt / Status",
+      "progress": "Fortschritt",
+      "timing": "Zeit",
+      "error": "Fehler",
+      "actions": "Aktionen"
+    },
+    "empty": {
+      "allTitle": "Noch keine Generierungs-Aufträge",
+      "filteredTitle": "Keine {{filter}} Aufträge",
+      "allDescription": "Generierungs-Aufträge erscheinen hier, sobald du eine Episode startest.",
+      "filteredDescription": "Probiere einen anderen Filter — es gibt möglicherweise Aufträge in anderen Zuständen."
+    },
+    "cancelTitle": "Diesen Auftrag abbrechen",
+    "cancelAria": "{{step}}-Auftrag für {{episode}} abbrechen",
+    "episodeFallback": "Episode",
+    "footerCount": "Zeige {{shown}} von {{total}} Aufträgen insgesamt",
+    "footerActive": "· {{running}} laufen, {{queued}} in Warteschlange",
+    "elapsed": {
+      "startedAt": "gestartet {{time}}",
+      "secondsOnly": "{{seconds}}s",
+      "minutesSeconds": "{{minutes}}m {{seconds}}s"
+    },
+    "timestamp": {
+      "justNow": "gerade eben",
+      "minAgo": "vor {{count}}m",
+      "hAgo": "vor {{count}}h"
+    }
+  },
   "logs": {
     "subtitle": "Aktuelle Pipeline-Ausführungs-Ereignisse.",
     "autoRefresh": "Auto-Aktualisierung",

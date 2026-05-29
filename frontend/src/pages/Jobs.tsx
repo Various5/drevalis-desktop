@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/Toast';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   ListChecks,
   Square,
@@ -29,12 +31,12 @@ import { STEP_BG, isKnownStep } from '@/lib/stepColors';
 
 type FilterStatus = 'all' | 'running' | 'queued' | 'done' | 'failed';
 
-const FILTER_OPTIONS: { key: FilterStatus; label: string; icon: typeof ListChecks }[] = [
-  { key: 'all', label: 'All', icon: ListChecks },
-  { key: 'running', label: 'Running', icon: Loader2 },
-  { key: 'queued', label: 'Queued', icon: Clock },
-  { key: 'done', label: 'Done', icon: CheckCircle2 },
-  { key: 'failed', label: 'Failed', icon: XCircle },
+const FILTER_KEYS: { key: FilterStatus; icon: typeof ListChecks }[] = [
+  { key: 'all', icon: ListChecks },
+  { key: 'running', icon: Loader2 },
+  { key: 'queued', icon: Clock },
+  { key: 'done', icon: CheckCircle2 },
+  { key: 'failed', icon: XCircle },
 ];
 
 // Step colour palette is owned by ``lib/stepColors.ts``. We import
@@ -50,16 +52,16 @@ function stepBg(step: string): string {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatTimestamp(ts: string | null): string {
+function formatTimestamp(ts: string | null, t: TFunction): string {
   if (!ts) return '-';
   const d = new Date(ts);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return t('jobs.timestamp.justNow');
+  if (diffMin < 60) return t('jobs.timestamp.minAgo', { count: diffMin });
   const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffHrs < 24) return t('jobs.timestamp.hAgo', { count: diffHrs });
   return d.toLocaleDateString();
 }
 
@@ -69,23 +71,25 @@ function formatTimestamp(ts: string | null): string {
 // values like ``2017m 47s``.
 const ELAPSED_DISPLAY_CAP_S = 60 * 60; // 1h
 
-function getElapsedStr(startedAt: string | null, completedAt: string | null): string {
+function getElapsedStr(startedAt: string | null, completedAt: string | null, t: TFunction): string {
   if (!startedAt) return '';
   const start = new Date(startedAt).getTime();
   const end = completedAt ? new Date(completedAt).getTime() : Date.now();
   const elapsed = Math.max(0, Math.floor((end - start) / 1000));
   if (elapsed > ELAPSED_DISPLAY_CAP_S) {
-    // Fall back to a short absolute timestamp ("started 14:32") so the
-    // operator can compare with logs / `docker logs` timestamps.
-    return `started ${new Date(startedAt).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`;
+    // Fall back to a short absolute timestamp so the operator can
+    // compare with logs / worker timestamps.
+    return t('jobs.elapsed.startedAt', {
+      time: new Date(startedAt).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    });
   }
   const min = Math.floor(elapsed / 60);
   const sec = elapsed % 60;
-  if (min === 0) return `${sec}s`;
-  return `${min}m ${sec.toString().padStart(2, '0')}s`;
+  if (min === 0) return t('jobs.elapsed.secondsOnly', { seconds: sec });
+  return t('jobs.elapsed.minutesSeconds', { minutes: min, seconds: sec.toString().padStart(2, '0') });
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +97,7 @@ function getElapsedStr(startedAt: string | null, completedAt: string | null): st
 // ---------------------------------------------------------------------------
 
 function Jobs() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -114,9 +119,9 @@ function Jobs() {
 
   useEffect(() => {
     if (allJobsQ.error) {
-      toast.error('Failed to load jobs', { description: String(allJobsQ.error) });
+      toast.error(t('jobs.loadFailed'), { description: String(allJobsQ.error) });
     }
-  }, [allJobsQ.error, toast]);
+  }, [allJobsQ.error, toast, t]);
 
   const refetchJobs = () => {
     void qc.invalidateQueries({ queryKey: queryKeys.jobs.all });
@@ -126,7 +131,7 @@ function Jobs() {
   useEffect(() => {
     const hasRunning = allJobs.some((j) => j.status === 'running');
     if (!hasRunning) return;
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    const interval = setInterval(() => setTick((tk) => tk + 1), 1000);
     return () => clearInterval(interval);
   }, [allJobs]);
 
@@ -148,10 +153,10 @@ function Jobs() {
     setCancelling((prev) => new Set(prev).add(jobId));
     try {
       await jobsApi.cancelJob(jobId);
-      toast.success('Job cancelled');
+      toast.success(t('jobs.cancelledToast'));
       refetchJobs();
     } catch (err) {
-      toast.error('Failed to cancel job', { description: String(err) });
+      toast.error(t('jobs.cancelFailed'), { description: String(err) });
     } finally {
       setCancelling((prev) => {
         const next = new Set(prev);
@@ -165,10 +170,10 @@ function Jobs() {
     setCancellingAll(true);
     try {
       await jobsApi.cancelAll();
-      toast.success('All active jobs cancelled');
+      toast.success(t('jobs.allCancelledToast'));
       refetchJobs();
     } catch (err) {
-      toast.error('Failed to cancel all jobs', { description: String(err) });
+      toast.error(t('jobs.cancelAllFailed'), { description: String(err) });
     } finally {
       setCancellingAll(false);
     }
@@ -191,7 +196,7 @@ function Jobs() {
           row for the page-level subtitle and the destructive action. */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-txt-secondary">
-          Monitor and control all generation tasks.
+          {t('jobs.subtitle')}
         </p>
         <div className="flex gap-2">
           {hasActiveJobs && (
@@ -202,7 +207,7 @@ function Jobs() {
               onClick={() => void handleCancelAll()}
               loading={cancellingAll}
             >
-              <Square size={14} /> Stop All
+              <Square size={14} /> {t('jobs.stopAll')}
             </Button>
           )}
         </div>
@@ -210,7 +215,7 @@ function Jobs() {
 
       {/* Stats / filter bar */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        {FILTER_OPTIONS.map(({ key, label, icon: Icon }) => (
+        {FILTER_KEYS.map(({ key, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
@@ -239,11 +244,11 @@ function Jobs() {
             </div>
             <div
               className={[
-                'text-xs capitalize',
+                'text-xs',
                 filter === key ? 'text-accent' : 'text-txt-tertiary',
               ].join(' ')}
             >
-              {label}
+              {t(`jobs.filters.${key}`)}
             </div>
           </button>
         ))}
@@ -256,13 +261,13 @@ function Jobs() {
             icon={AlertTriangle}
             title={
               filter === 'all'
-                ? 'No generation jobs yet'
-                : `No ${filter} jobs`
+                ? t('jobs.empty.allTitle')
+                : t('jobs.empty.filteredTitle', { filter: t(`jobs.filters.${filter}`) })
             }
             description={
               filter === 'all'
-                ? 'Generation jobs will appear here once you start an episode.'
-                : 'Try a different filter — there may be jobs in other states.'
+                ? t('jobs.empty.allDescription')
+                : t('jobs.empty.filteredDescription')
             }
           />
         ) : (
@@ -271,22 +276,22 @@ function Jobs() {
               <thead>
                 <tr className="border-b border-border bg-bg-elevated">
                   <th className="text-left px-4 py-2.5 text-txt-tertiary font-medium text-xs uppercase tracking-wider">
-                    Episode
+                    {t('jobs.table.episode')}
                   </th>
                   <th className="text-left px-4 py-2.5 text-txt-tertiary font-medium text-xs uppercase tracking-wider">
-                    Step / Status
+                    {t('jobs.table.stepStatus')}
                   </th>
                   <th className="text-left px-4 py-2.5 text-txt-tertiary font-medium text-xs uppercase tracking-wider">
-                    Progress
+                    {t('jobs.table.progress')}
                   </th>
                   <th className="text-left px-4 py-2.5 text-txt-tertiary font-medium text-xs uppercase tracking-wider">
-                    Timing
+                    {t('jobs.table.timing')}
                   </th>
                   <th className="text-left px-4 py-2.5 text-txt-tertiary font-medium text-xs uppercase tracking-wider">
-                    Error
+                    {t('jobs.table.error')}
                   </th>
                   <th className="text-right px-4 py-2.5 text-txt-tertiary font-medium text-xs uppercase tracking-wider">
-                    Actions
+                    {t('jobs.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -356,17 +361,15 @@ function Jobs() {
                       )}
                     </td>
 
-                    {/* Timing — duration on top, created relative below.
-                        Created moves into this cell instead of taking
-                        its own column. */}
+                    {/* Timing — duration on top, created relative below. */}
                     <td className="px-4 py-2.5 align-top">
                       <span className="text-xs text-txt-secondary block tabular-nums">
                         {job.started_at
-                          ? getElapsedStr(job.started_at, job.completed_at)
+                          ? getElapsedStr(job.started_at, job.completed_at, t)
                           : '-'}
                       </span>
                       <span className="text-[11px] text-txt-tertiary">
-                        {formatTimestamp(job.created_at)}
+                        {formatTimestamp(job.created_at, t)}
                       </span>
                     </td>
 
@@ -396,8 +399,11 @@ function Jobs() {
                           className="text-error hover:text-error/80"
                           onClick={() => void handleCancelJob(job.id)}
                           disabled={cancelling.has(job.id)}
-                          title="Cancel this job"
-                          aria-label={`Cancel ${job.step} job for ${job.episode_title || 'episode'}`}
+                          title={t('jobs.cancelTitle')}
+                          aria-label={t('jobs.cancelAria', {
+                            step: job.step,
+                            episode: job.episode_title || t('jobs.episodeFallback'),
+                          })}
                         >
                           {cancelling.has(job.id) ? (
                             <RefreshCw
@@ -421,11 +427,11 @@ function Jobs() {
       {/* Summary footer */}
       {allJobs.length > 0 && (
         <div className="mt-4 text-xs text-txt-tertiary text-center">
-          Showing {filteredJobs.length} of {allJobs.length} total jobs
+          {t('jobs.footerCount', { shown: filteredJobs.length, total: allJobs.length })}
           {hasActiveJobs && (
             <span>
               {' '}
-              &middot; {counts.running} running, {counts.queued} queued
+              {t('jobs.footerActive', { running: counts.running, queued: counts.queued })}
             </span>
           )}
         </div>

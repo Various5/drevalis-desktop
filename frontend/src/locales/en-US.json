@@ -16,6 +16,51 @@
       "unreachable": "Unreachable"
     }
   },
+  "jobs": {
+    "subtitle": "Monitor and control all generation tasks.",
+    "stopAll": "Stop All",
+    "loadFailed": "Failed to load jobs",
+    "cancelledToast": "Job cancelled",
+    "cancelFailed": "Failed to cancel job",
+    "allCancelledToast": "All active jobs cancelled",
+    "cancelAllFailed": "Failed to cancel all jobs",
+    "filters": {
+      "all": "All",
+      "running": "Running",
+      "queued": "Queued",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "table": {
+      "episode": "Episode",
+      "stepStatus": "Step / Status",
+      "progress": "Progress",
+      "timing": "Timing",
+      "error": "Error",
+      "actions": "Actions"
+    },
+    "empty": {
+      "allTitle": "No generation jobs yet",
+      "filteredTitle": "No {{filter}} jobs",
+      "allDescription": "Generation jobs will appear here once you start an episode.",
+      "filteredDescription": "Try a different filter — there may be jobs in other states."
+    },
+    "cancelTitle": "Cancel this job",
+    "cancelAria": "Cancel {{step}} job for {{episode}}",
+    "episodeFallback": "episode",
+    "footerCount": "Showing {{shown}} of {{total}} total jobs",
+    "footerActive": "· {{running}} running, {{queued}} queued",
+    "elapsed": {
+      "startedAt": "started {{time}}",
+      "secondsOnly": "{{seconds}}s",
+      "minutesSeconds": "{{minutes}}m {{seconds}}s"
+    },
+    "timestamp": {
+      "justNow": "just now",
+      "minAgo": "{{count}}m ago",
+      "hAgo": "{{count}}h ago"
+    }
+  },
   "logs": {
     "subtitle": "Recent pipeline execution events.",
     "autoRefresh": "Auto-refresh",
