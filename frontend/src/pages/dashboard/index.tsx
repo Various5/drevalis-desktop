@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from 'react';
 import { Settings2, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SetupChecklist } from '@/components/SetupChecklist';
 import { SystemHealthCard } from '@/components/SystemHealthCard';
 import { Button } from '@/components/ui/Button';
@@ -29,7 +30,7 @@ import { TopSeriesWidget } from './widgets/TopSeriesWidget';
 import { QuotaUsageWidget } from './widgets/QuotaUsageWidget';
 import { LLMCostWidget } from './widgets/LLMCostWidget';
 import { RecentYouTubeWidget } from './widgets/RecentYouTubeWidget';
-import { WIDGET_LABELS, type WidgetId } from './types';
+import { type WidgetId } from './types';
 
 // =============================================================================
 // Dashboard Page — customizable widget layout with drag-drop reorder + show/hide
@@ -90,6 +91,7 @@ const WIDGET_REGISTRY: Record<WidgetId, WidgetRenderer> = {
 // ---------------------------------------------------------------------------
 
 function Dashboard() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   // --- WebSocket progress ---
@@ -129,7 +131,7 @@ function Dashboard() {
     }
     if (err instanceof ApiError && err.status === 402) return;
     if (!lastErrShown.current) {
-      toast.error('Failed to load dashboard data', { description: formatError(err) });
+      toast.error(t('dashboard.loadFailed'), { description: formatError(err) });
       lastErrShown.current = true;
     }
   }, [
@@ -139,6 +141,7 @@ function Dashboard() {
     allEpsQ.error,
     activeJobsQ.error,
     toast,
+    t,
   ]);
 
   // --- Stats (memoised — WS messages re-render at pipeline-progress cadence) ---
@@ -267,20 +270,20 @@ function Dashboard() {
                 setEditMode(true);
               }
             }}
-            aria-label="Customize dashboard layout"
+            aria-label={t('dashboard.customizeAria')}
           >
             <Settings2 size={14} />
-            Customize
+            {t('dashboard.customize')}
           </Button>
         ) : (
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setEditMode(false)}
-            aria-label="Exit customize mode"
+            aria-label={t('dashboard.doneAria')}
           >
             <Check size={14} />
-            Done
+            {t('dashboard.done')}
           </Button>
         )}
       </div>
@@ -315,37 +318,38 @@ function Dashboard() {
       {hiddenWidgets.length > 0 && (
         <div
           className="border border-dashed border-white/15 rounded-xl p-4 bg-bg-elevated/30"
-          aria-label="Hidden widgets"
+          aria-label={t('dashboard.hidden.regionAria')}
         >
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-display font-semibold text-txt-secondary uppercase tracking-[0.15em]">
-              Hidden widgets ({hiddenWidgets.length})
+              {t('dashboard.hidden.title', { count: hiddenWidgets.length })}
             </p>
             {!editMode && (
               <span className="text-[11px] text-txt-tertiary">
-                Click a tile to bring it back
+                {t('dashboard.hidden.clickToBringBack')}
               </span>
             )}
           </div>
           <div className="space-y-2">
-            {hiddenWidgets.map((id) => (
-              <div
-                key={id}
-                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-bg-elevated/40"
-              >
-                <span className="text-sm text-txt-secondary font-display">
-                  {WIDGET_LABELS[id]}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => showWidget(id)}
-                  aria-label={`Add ${WIDGET_LABELS[id]} to dashboard`}
+            {hiddenWidgets.map((id) => {
+              const name = t(`dashboard.widgetLabels.${id}`);
+              return (
+                <div
+                  key={id}
+                  className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-bg-elevated/40"
                 >
-                  Add to dashboard
-                </Button>
-              </div>
-            ))}
+                  <span className="text-sm text-txt-secondary font-display">{name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => showWidget(id)}
+                    aria-label={t('dashboard.hidden.addAria', { name })}
+                  >
+                    {t('dashboard.hidden.addToDashboard')}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

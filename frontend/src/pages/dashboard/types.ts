@@ -39,6 +39,14 @@ export const ALL_WIDGET_IDS: readonly WidgetId[] = [
   'recent-youtube',
 ] as const;
 
+/**
+ * Widget display labels — looked up via i18n at render time.
+ *
+ * Use ``useWidgetLabel`` (or ``t('dashboard.widgetLabels.<id>')`` directly)
+ * inside components. The map below is kept ONLY as a fallback for legacy
+ * call sites and tests that don't have a TFunction at hand; for new code
+ * prefer the hook.
+ */
 export const WIDGET_LABELS: Record<WidgetId, string> = {
   'setup-checklist': 'Setup Checklist',
   'system-health': 'System Health',

@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import { GripVertical, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { WidgetId } from './types';
 
 // =============================================================================
@@ -34,7 +35,9 @@ export function WidgetWrapper({
   onDragEnd,
   children,
 }: WidgetWrapperProps) {
+  const { t } = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const name = t(`dashboard.widgetLabels.${id}`);
 
   if (!editMode) {
     // Outside edit mode: render with a stable key (provided by parent via key prop)
@@ -85,13 +88,13 @@ export function WidgetWrapper({
           : 'ring-white/[0.06]',
         'transition-all duration-150',
       ].join(' ')}
-      aria-label={`Widget: ${id}, draggable`}
+      aria-label={t('dashboard.wrapper.draggableAria', { name })}
     >
       {/* Drag handle — hidden below md (touch users use the dialog instead) */}
       <button
         type="button"
         className="hidden md:flex absolute left-2 top-2 z-10 p-1 rounded text-txt-tertiary hover:text-txt-primary hover:bg-bg-hover/60 transition-colors cursor-grab active:cursor-grabbing"
-        aria-label={`Drag to reorder widget: ${id}`}
+        aria-label={t('dashboard.wrapper.dragHandleAria', { name })}
         // The button itself doesn't initiate drag — the wrapper div does.
         // Clicking it would bubble to the wrapper's dragstart which only
         // fires on pointer-drag. This button is purely a visual affordance.
@@ -105,7 +108,7 @@ export function WidgetWrapper({
         type="button"
         onClick={() => onHide(id)}
         className="absolute right-2 top-2 z-10 p-1 rounded text-txt-tertiary hover:text-error hover:bg-error/10 transition-colors"
-        aria-label={`Hide widget: ${id}`}
+        aria-label={t('dashboard.wrapper.hideAria', { name })}
         tabIndex={0}
       >
         <EyeOff size={14} />

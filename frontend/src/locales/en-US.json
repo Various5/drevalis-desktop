@@ -16,6 +16,60 @@
       "unreachable": "Unreachable"
     }
   },
+  "dashboard": {
+    "loadFailed": "Failed to load dashboard data",
+    "customize": "Customize",
+    "customizeAria": "Customize dashboard layout",
+    "done": "Done",
+    "doneAria": "Exit customize mode",
+    "hidden": {
+      "regionAria": "Hidden widgets",
+      "title": "Hidden widgets ({{count}})",
+      "clickToBringBack": "Click a tile to bring it back",
+      "addToDashboard": "Add to dashboard",
+      "addAria": "Add {{name}} to dashboard"
+    },
+    "wrapper": {
+      "draggableAria": "Widget: {{name}}, draggable",
+      "dragHandleAria": "Drag to reorder widget: {{name}}",
+      "hideAria": "Hide widget: {{name}}"
+    },
+    "customizeDialog": {
+      "title": "Customize Dashboard",
+      "description": "Choose which widgets to show and their order.",
+      "hideAria": "Hide {{name}}",
+      "showAria": "Show {{name}}",
+      "moveUpAria": "Move {{name}} up",
+      "moveDownAria": "Move {{name}} down",
+      "done": "Done"
+    },
+    "widgetLabels": {
+      "setup-checklist": "Setup Checklist",
+      "system-health": "System Health",
+      "stat-cards": "Statistics",
+      "quick-actions": "Quick Actions",
+      "recent-episodes": "Recent Episodes",
+      "activity-timeline": "Activity Timeline",
+      "active-jobs": "Active Jobs",
+      "upcoming-posts": "Upcoming Posts",
+      "top-series": "Top Series",
+      "quota-usage": "Today’s Generations",
+      "llm-cost": "LLM Spend (30d)",
+      "recent-youtube": "Recent YouTube Videos"
+    },
+    "firstRun": {
+      "title": "Start here",
+      "body": "Drevalis turns a series idea into a queue of ready-to-publish videos. Create your first series to begin — or fork an example to see how it works.",
+      "createFirstSeries": "Create your first series",
+      "generateWithAi": "Generate with AI",
+      "exampleIdeasLabel": "Example ideas",
+      "examples": [
+        "Daily 60-second history mysteries",
+        "Weekly explainers on space science",
+        "Bite-size personal-finance tips"
+      ]
+    }
+  },
   "episodes": {
     "subtitle": "Browse and manage all episodes across your series.",
     "loadFailed": "Failed to load episodes",

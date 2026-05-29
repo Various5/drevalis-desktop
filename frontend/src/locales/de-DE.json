@@ -16,6 +16,60 @@
       "unreachable": "Nicht erreichbar"
     }
   },
+  "dashboard": {
+    "loadFailed": "Dashboard-Daten konnten nicht geladen werden",
+    "customize": "Anpassen",
+    "customizeAria": "Dashboard-Layout anpassen",
+    "done": "Fertig",
+    "doneAria": "Anpassungs-Modus verlassen",
+    "hidden": {
+      "regionAria": "Ausgeblendete Widgets",
+      "title": "Ausgeblendete Widgets ({{count}})",
+      "clickToBringBack": "Klicke auf eine Kachel, um sie wieder einzublenden",
+      "addToDashboard": "Zum Dashboard hinzufügen",
+      "addAria": "{{name}} zum Dashboard hinzufügen"
+    },
+    "wrapper": {
+      "draggableAria": "Widget: {{name}}, ziehbar",
+      "dragHandleAria": "Ziehen, um Widget umzusortieren: {{name}}",
+      "hideAria": "Widget ausblenden: {{name}}"
+    },
+    "customizeDialog": {
+      "title": "Dashboard anpassen",
+      "description": "Wähle, welche Widgets angezeigt werden sollen, und ihre Reihenfolge.",
+      "hideAria": "{{name}} ausblenden",
+      "showAria": "{{name}} anzeigen",
+      "moveUpAria": "{{name}} nach oben verschieben",
+      "moveDownAria": "{{name}} nach unten verschieben",
+      "done": "Fertig"
+    },
+    "widgetLabels": {
+      "setup-checklist": "Einrichtungs-Checkliste",
+      "system-health": "Systemzustand",
+      "stat-cards": "Statistiken",
+      "quick-actions": "Schnellaktionen",
+      "recent-episodes": "Letzte Episoden",
+      "activity-timeline": "Aktivitäts-Zeitleiste",
+      "active-jobs": "Aktive Aufträge",
+      "upcoming-posts": "Anstehende Posts",
+      "top-series": "Top-Serien",
+      "quota-usage": "Heutige Generierungen",
+      "llm-cost": "LLM-Ausgaben (30 Tage)",
+      "recent-youtube": "Letzte YouTube-Videos"
+    },
+    "firstRun": {
+      "title": "Starte hier",
+      "body": "Drevalis verwandelt eine Serien-Idee in eine Warteschlange veröffentlichungsfertiger Videos. Erstelle deine erste Serie, um zu beginnen — oder forke ein Beispiel, um zu sehen, wie es funktioniert.",
+      "createFirstSeries": "Erstelle deine erste Serie",
+      "generateWithAi": "Mit KI generieren",
+      "exampleIdeasLabel": "Beispiel-Ideen",
+      "examples": [
+        "Tägliche 60-Sekunden-Geschichts-Rätsel",
+        "Wöchentliche Erklärer zur Weltraumwissenschaft",
+        "Kurze Tipps zur persönlichen Finanzplanung"
+      ]
+    }
+  },
   "episodes": {
     "subtitle": "Alle Episoden über deine Serien hinweg durchsuchen und verwalten.",
     "loadFailed": "Episoden konnten nicht geladen werden",

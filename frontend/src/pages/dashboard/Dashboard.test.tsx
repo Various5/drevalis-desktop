@@ -280,8 +280,8 @@ describe('Dashboard — hide widget interaction', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /customize dashboard/i }));
 
-    // Click hide on stat-cards
-    const hideStatCards = screen.getByRole('button', { name: /hide widget: stat-cards/i });
+    // Click hide on stat-cards (aria-label uses the translated widget name "Statistics")
+    const hideStatCards = screen.getByRole('button', { name: /hide widget: statistics/i });
     await userEvent.click(hideStatCards);
 
     // update should have been called with stat-cards removed from widgets

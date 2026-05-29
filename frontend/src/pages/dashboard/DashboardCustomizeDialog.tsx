@@ -1,7 +1,8 @@
 import { Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { ALL_WIDGET_IDS, WIDGET_LABELS, type WidgetId } from './types';
+import { ALL_WIDGET_IDS, type WidgetId } from './types';
 import type { DashboardLayoutActions } from './useDashboardLayout';
 
 // =============================================================================
@@ -28,18 +29,20 @@ export function DashboardCustomizeDialog({
   hideWidget,
   moveWidgetByDelta,
 }: DashboardCustomizeDialogProps) {
+  const { t } = useTranslation();
   const visibleSet = new Set(layout.widgets);
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Customize Dashboard"
-      description="Choose which widgets to show and their order."
+      title={t('dashboard.customizeDialog.title')}
+      description={t('dashboard.customizeDialog.description')}
       maxWidth="sm"
     >
       <div className="space-y-1 py-2">
         {ALL_WIDGET_IDS.map((id: WidgetId) => {
+          const name = t(`dashboard.widgetLabels.${id}`);
           const isVisible = visibleSet.has(id);
           const idx = layout.widgets.indexOf(id);
           const canMoveUp = isVisible && idx > 0;
@@ -62,7 +65,9 @@ export function DashboardCustomizeDialog({
                     ? 'text-accent hover:text-accent/80 hover:bg-accent/10'
                     : 'text-txt-tertiary hover:text-txt-primary hover:bg-bg-hover/60',
                 ].join(' ')}
-                aria-label={isVisible ? `Hide ${WIDGET_LABELS[id]}` : `Show ${WIDGET_LABELS[id]}`}
+                aria-label={isVisible
+                  ? t('dashboard.customizeDialog.hideAria', { name })
+                  : t('dashboard.customizeDialog.showAria', { name })}
                 aria-pressed={isVisible}
               >
                 {isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -75,7 +80,7 @@ export function DashboardCustomizeDialog({
                   isVisible ? 'text-txt-primary' : 'text-txt-tertiary',
                 ].join(' ')}
               >
-                {WIDGET_LABELS[id]}
+                {name}
               </span>
 
               {/* Up / Down arrows — only meaningful when visible */}
@@ -86,7 +91,7 @@ export function DashboardCustomizeDialog({
                     onClick={() => moveWidgetByDelta(id, -1)}
                     disabled={!canMoveUp}
                     className="p-1 rounded text-txt-tertiary hover:text-txt-primary hover:bg-bg-hover/60 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    aria-label={`Move ${WIDGET_LABELS[id]} up`}
+                    aria-label={t('dashboard.customizeDialog.moveUpAria', { name })}
                   >
                     <ChevronUp size={14} />
                   </button>
@@ -95,7 +100,7 @@ export function DashboardCustomizeDialog({
                     onClick={() => moveWidgetByDelta(id, 1)}
                     disabled={!canMoveDown}
                     className="p-1 rounded text-txt-tertiary hover:text-txt-primary hover:bg-bg-hover/60 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    aria-label={`Move ${WIDGET_LABELS[id]} down`}
+                    aria-label={t('dashboard.customizeDialog.moveDownAria', { name })}
                   >
                     <ChevronDown size={14} />
                   </button>
@@ -108,7 +113,7 @@ export function DashboardCustomizeDialog({
 
       <DialogFooter>
         <Button variant="primary" size="sm" onClick={onClose}>
-          Done
+          {t('dashboard.customizeDialog.done')}
         </Button>
       </DialogFooter>
     </Dialog>
