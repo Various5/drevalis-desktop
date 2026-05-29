@@ -157,3 +157,36 @@ jobs:
           includeUpdaterJson: true
           # Generate latest.json with the right structure -- tauri-action
           # reads it from tauri.conf.json's plugins.updater config.
+
+      # ── Mirror latest.json → latest-rc.json (Phase 6 rc channel) ────
+      # The Tauri shell's in-app updater hits one of two manifest URLs
+      # depending on the user-selected channel (Settings → Maintenance
+      # → Updates):
+      #   stable: releases/latest/download/latest.json
+      #   rc:     releases/latest/download/latest-rc.json
+      #
+      # Until 1.0.0 ships, every release populates BOTH manifests with
+      # identical content -- the alpha era is effectively single-channel
+      # and "rc" is just a future-proofing knob. After 1.0.0 cuts, this
+      # step needs to grow conditional logic that skips the latest.json
+      # update on prerelease tags (so stable installs stop seeing the
+      # rc track). Until then, the two channels diverge only in URL.
+      - name: Mirror latest.json → latest-rc.json
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        shell: pwsh
+        run: |
+          $tag = $env:TAG
+          Write-Host "[rc-channel] Mirroring latest.json -> latest-rc.json on release $tag"
+          # Download the just-uploaded manifest from the release.
+          gh release download $tag --pattern 'latest.json' --output latest.json --clobber
+          if (-not (Test-Path latest.json)) {
+            throw "[rc-channel] latest.json missing from release $tag -- tauri-action upload may have failed"
+          }
+          # Re-upload as latest-rc.json. --clobber overwrites if a
+          # previous attempt left a stale file (e.g., workflow re-run).
+          Copy-Item latest.json latest-rc.json
+          gh release upload $tag latest-rc.json --clobber
+          Write-Host "[rc-channel] latest-rc.json published for $tag"

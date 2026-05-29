@@ -1056,7 +1056,12 @@
           "downloadingOf": "{{downloaded}} MB von {{total}} MB werden heruntergeladen",
           "installing": "Wird installiert…"
         },
-        "trustNote": "Die Integrität des Updates wird gegen einen eingebetteten öffentlichen Schlüssel verifiziert. Releases müssen mit dem passenden privaten Schlüssel (gehalten vom Maintainer / CI) signiert sein, damit die Installation fortgesetzt wird."
+        "trustNote": "Die Integrität des Updates wird gegen einen eingebetteten öffentlichen Schlüssel verifiziert. Releases müssen mit dem passenden privaten Schlüssel (gehalten vom Maintainer / CI) signiert sein, damit die Installation fortgesetzt wird.",
+        "channelLabel": "Update-Kanal",
+        "channelHint": "„Stable“ erhält nur finale Releases. „Release Candidate“ erhält zusätzlich Vorabversionen (1.0.0-rc.X, Alphas vor 1.0). Jederzeit zurück auf Stable umschaltbar. (Vor 1.0: beide Kanäle führen denselben Inhalt.)",
+        "channelStable": "Stable",
+        "channelRc": "Release Candidate",
+        "channelSaveFailed": "Update-Kanal konnte nicht gespeichert werden"
       },
       "legacy": {
         "checkingForUpdates": "Suche nach Updates...",

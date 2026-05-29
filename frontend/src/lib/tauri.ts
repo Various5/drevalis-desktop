@@ -100,8 +100,25 @@ async function _getRunningAppVersion(): Promise<string | undefined> {
  * the installed version. Without this, the plugin's ``null`` return
  * (no update available) leaves the UI with "-" for the installed
  * version even though the app obviously has one.
+ *
+ * ``channel`` (Phase 6): captured for telemetry + future Rust-side
+ * routing. The Tauri 2 plugin-updater locks endpoints at compile
+ * time in tauri.conf.json's ``plugins.updater.endpoints`` array, so
+ * runtime URL switching needs a custom ``tauri::command`` that
+ * rebuilds the updater with channel-specific URLs (tracked as a
+ * follow-up before rc.1 cuts). For now the parameter is accepted +
+ * persisted by the UI so the picker is real and the preference
+ * survives restarts; the actual fetch still hits the static
+ * endpoint (latest.json), which is fine for the alpha era where
+ * stable and rc carry identical content (the workflow publishes
+ * latest-rc.json as a copy of latest.json).
  */
-export async function checkTauriUpdate(): Promise<TauriUpdateInfo> {
+export type UpdaterChannel = 'stable' | 'rc';
+
+export async function checkTauriUpdate(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _channel: UpdaterChannel = 'stable',
+): Promise<TauriUpdateInfo> {
   if (!isTauri()) return { available: false };
   const { check } = await import('@tauri-apps/plugin-updater');
   const [update, runningVersion] = await Promise.all([
@@ -136,10 +153,15 @@ export interface TauriUpdateProgress {
 /**
  * Download the available update, install it in place, and restart the
  * app. Caller should make sure ``checkTauriUpdate()`` returned
- * ``{available: true}`` first.
+ * ``{available: true}`` first. ``channel`` MUST match the channel
+ * used in the corresponding ``checkTauriUpdate`` call — otherwise
+ * the install resolves a different manifest than the one the user
+ * just confirmed.
  */
 export async function installTauriUpdate(
   onProgress?: (p: TauriUpdateProgress) => void,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _channel: UpdaterChannel = 'stable',
 ): Promise<void> {
   if (!isTauri()) {
     throw new Error('installTauriUpdate is only available inside the Tauri app.');

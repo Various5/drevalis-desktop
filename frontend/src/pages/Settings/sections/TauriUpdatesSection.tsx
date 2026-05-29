@@ -16,7 +16,9 @@ import {
   installTauriUpdate,
   type TauriUpdateInfo,
   type TauriUpdateProgress,
+  type UpdaterChannel,
 } from '@/lib/tauri';
+import { formatError } from '@/lib/api';
 
 /**
  * Desktop ("Tauri") update flow. Talks to the Tauri auto-updater plugin
@@ -38,12 +40,71 @@ export function TauriUpdatesSection() {
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState<TauriUpdateProgress | null>(null);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  // Phase 6 — update channel preference. Defaults to 'stable' per the
+  // release plan; loaded from /auth/preferences once on mount. Until
+  // the user touches the picker, ``null`` means "preference not yet
+  // fetched" — we still use 'stable' as the effective default so the
+  // first check on app launch doesn't sit idle.
+  const [channel, setChannel] = useState<UpdaterChannel>('stable');
+  const [channelLoaded, setChannelLoaded] = useState(false);
+  const [savingChannel, setSavingChannel] = useState(false);
+
+  // Load update_channel preference once on mount. Backend stores
+  // arbitrary keys on the auth/preferences endpoint; missing key
+  // means "stable" (the default).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/v1/auth/preferences', { credentials: 'include' });
+        if (!res.ok) {
+          if (!cancelled) setChannelLoaded(true);
+          return;
+        }
+        const prefs = (await res.json()) as { update_channel?: string };
+        if (!cancelled) {
+          if (prefs.update_channel === 'rc') setChannel('rc');
+          setChannelLoaded(true);
+        }
+      } catch {
+        if (!cancelled) setChannelLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const onChangeChannel = async (next: UpdaterChannel) => {
+    setSavingChannel(true);
+    const previous = channel;
+    setChannel(next);
+    try {
+      const res = await fetch('/api/v1/auth/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        // Persist 'rc' explicitly; 'stable' (the default) is stored
+        // as null so the JSON column doesn't carry redundant keys.
+        body: JSON.stringify({ update_channel: next === 'rc' ? 'rc' : null }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      // Roll back the optimistic toggle if the persist failed —
+      // otherwise the user sees "rc" selected but the next check
+      // still hits stable.
+      setChannel(previous);
+      toast.error(t('settings.updates.tauri.channelSaveFailed'), { description: formatError(err) });
+    } finally {
+      setSavingChannel(false);
+    }
+  };
 
   const refresh = useCallback(
     async (surfaceResult: boolean) => {
       setRefreshing(true);
       try {
-        const result = await checkTauriUpdate();
+        const result = await checkTauriUpdate(channel);
         setInfo(result);
         setLastChecked(new Date());
         if (surfaceResult) {
@@ -65,13 +126,17 @@ export function TauriUpdatesSection() {
         setRefreshing(false);
       }
     },
-    [toast, t],
+    [toast, t, channel],
   );
 
-  // Initial fetch (no toast).
+  // Initial fetch (no toast). Hold off until the channel preference
+  // has loaded — otherwise the first check could hit the wrong
+  // manifest, briefly show "no update available" for an rc-channel
+  // user, then re-check on the second render.
   useEffect(() => {
+    if (!channelLoaded) return;
     void refresh(false);
-  }, [refresh]);
+  }, [refresh, channelLoaded]);
 
   const onInstall = async () => {
     if (!confirm(t('settings.updates.tauri.confirmInstall'))) {
@@ -80,7 +145,7 @@ export function TauriUpdatesSection() {
     setInstalling(true);
     setProgress({ phase: 'started' });
     try {
-      await installTauriUpdate((p) => setProgress(p));
+      await installTauriUpdate((p) => setProgress(p), channel);
       // If we get here without restart, surface a final toast.
       toast.success(t('settings.updates.tauri.installedToast'), {
         description: t('settings.updates.tauri.installedToastDesc'),
@@ -202,6 +267,46 @@ export function TauriUpdatesSection() {
           >
             {installing ? t('settings.updates.installing') : t('settings.updates.updateNow')}
           </Button>
+        </div>
+
+        {/* Channel picker — Stable (default) vs Release candidate. */}
+        <div className="pt-3 border-t border-white/[0.06] space-y-2">
+          <div className="text-xs font-medium text-txt-secondary">
+            {t('settings.updates.tauri.channelLabel')}
+          </div>
+          <fieldset className="flex gap-2" disabled={savingChannel || installing}>
+            <legend className="sr-only">{t('settings.updates.tauri.channelLabel')}</legend>
+            {(['stable', 'rc'] as const).map((c) => {
+              const active = channel === c;
+              return (
+                <label
+                  key={c}
+                  className={[
+                    'flex-1 cursor-pointer rounded-md border px-3 py-2 text-xs text-center transition-colors',
+                    active
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border bg-bg-elevated text-txt-secondary hover:bg-bg-hover hover:text-txt-primary',
+                    (savingChannel || installing) && 'opacity-60 cursor-not-allowed',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <input
+                    type="radio"
+                    name="update-channel"
+                    value={c}
+                    checked={active}
+                    onChange={() => void onChangeChannel(c)}
+                    className="sr-only"
+                  />
+                  {c === 'stable'
+                    ? t('settings.updates.tauri.channelStable')
+                    : t('settings.updates.tauri.channelRc')}
+                </label>
+              );
+            })}
+          </fieldset>
+          <p className="text-[11px] text-txt-tertiary leading-relaxed">
+            {t('settings.updates.tauri.channelHint')}
+          </p>
         </div>
       </Card>
 
