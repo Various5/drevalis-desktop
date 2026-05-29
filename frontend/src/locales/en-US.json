@@ -170,6 +170,60 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "youtube": {
+      "heading": "YouTube Channels",
+      "setupWizard": "Setup wizard",
+      "connectChannel": "Connect channel",
+      "loadFailed": "Failed to load YouTube channels",
+      "disconnectedToast": "YouTube channel disconnected",
+      "disconnectFailed": "Failed to disconnect YouTube channel",
+      "removedToast": "Removed {{name}}",
+      "removeFailed": "Failed to remove YouTube channel",
+      "removeConfirm": "Remove \"{{name}}\" completely?\n\nThis deletes the channel AND its upload history from this workspace. It does NOT touch the videos on YouTube itself.",
+      "scheduleUpdateFailed": "Failed to update upload schedule",
+      "emptyIntro": "No YouTube channels connected. First time? Use <1>Setup wizard</1> to get your Google OAuth credentials and authorize a channel in one flow. Already have credentials? Click <2>Connect Channel</2>.",
+      "channel": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "reconnect": "Reconnect",
+        "reconnectTitle": "Re-authorize this channel with Google (refreshes OAuth token)",
+        "disconnect": "Disconnect",
+        "disconnectTitle": "Wipe OAuth tokens but keep upload history",
+        "removeTitle": "Permanently remove this channel and its upload history",
+        "uploadDays": "Upload Days",
+        "uploadTime": "Upload Time",
+        "days": {
+          "mon": "MON",
+          "tue": "TUE",
+          "wed": "WED",
+          "thu": "THU",
+          "fri": "FRI",
+          "sat": "SAT",
+          "sun": "SUN"
+        }
+      },
+      "videos": {
+        "loading": "Loading channel stats…",
+        "longForm": "{{count}} long-form",
+        "shorts": "{{count}} shorts",
+        "totalSuffix": "· total {{count}}",
+        "syncedEmpty": "✓ Synced — this channel has no videos on YouTube yet.",
+        "neverSynced": "No channel videos synced yet. Click Resync to pull what's on YouTube.",
+        "lastSync": "Last sync {{when}}",
+        "resync": "Resync",
+        "syncing": "Syncing…",
+        "resyncTitle": "Re-enumerate this channel's videos from YouTube",
+        "syncStarted": "Sync started — checking back in a few seconds",
+        "resyncFailed": "Resync failed"
+      },
+      "sync": {
+        "syncQueued": "Sync queued — refresh in a few seconds",
+        "syncFailed": "Sync failed",
+        "label": "Sync",
+        "syncing": "Syncing…",
+        "title": "Pull the latest video list + stats from YouTube"
+      }
+    },
     "social": {
       "heading": "Social Media Accounts",
       "intro": "Connect your social media accounts to post content across platforms.",

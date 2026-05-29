@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Youtube, Trash2, RefreshCw, Film, Smartphone } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -16,6 +17,7 @@ interface ChannelVideoStats {
 }
 
 function ChannelVideoSummary({ channelId }: { channelId: string }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [stats, setStats] = useState<ChannelVideoStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
         { method: 'POST', credentials: 'include' },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      toast.success('Sync started — checking back in a few seconds');
+      toast.success(t('settings.youtube.videos.syncStarted'));
       // Background-poll for ~30s. The worker usually finishes in <10s
       // for channels under 500 videos; we poll every 3s and stop on
       // either a stat change or the timeout.
@@ -61,7 +63,7 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
         if (stats?.last_synced_at && stats.last_synced_at !== before) break;
       }
     } catch (err) {
-      toast.error('Resync failed', { description: String(err) });
+      toast.error(t('settings.youtube.videos.resyncFailed'), { description: String(err) });
     } finally {
       setResyncing(false);
     }
@@ -69,7 +71,7 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
 
   if (loading) {
     return (
-      <div className="mt-2 text-xs text-txt-tertiary">Loading channel stats…</div>
+      <div className="mt-2 text-xs text-txt-tertiary">{t('settings.youtube.videos.loading')}</div>
     );
   }
 
@@ -91,23 +93,23 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
             <>
               <span className="inline-flex items-center gap-1">
                 <Film size={12} className="text-txt-tertiary" />
-                {stats?.longform_total ?? 0} long-form
+                {t('settings.youtube.videos.longForm', { count: stats?.longform_total ?? 0 })}
               </span>
               <span className="inline-flex items-center gap-1">
                 <Smartphone size={12} className="text-txt-tertiary" />
-                {stats?.shorts_total ?? 0} shorts
+                {t('settings.youtube.videos.shorts', { count: stats?.shorts_total ?? 0 })}
               </span>
               <span className="text-txt-tertiary">
-                · total {stats?.total ?? 0}
+                {t('settings.youtube.videos.totalSuffix', { count: stats?.total ?? 0 })}
               </span>
             </>
           ) : hasSynced ? (
             <span className="text-txt-tertiary italic">
-              ✓ Synced — this channel has no videos on YouTube yet.
+              {t('settings.youtube.videos.syncedEmpty')}
             </span>
           ) : (
             <span className="text-txt-tertiary italic">
-              No channel videos synced yet. Click Resync to pull what's on YouTube.
+              {t('settings.youtube.videos.neverSynced')}
             </span>
           )}
         </div>
@@ -116,15 +118,15 @@ function ChannelVideoSummary({ channelId }: { channelId: string }) {
           size="sm"
           onClick={() => void resync()}
           disabled={resyncing}
-          title="Re-enumerate this channel's videos from YouTube"
+          title={t('settings.youtube.videos.resyncTitle')}
         >
           <RefreshCw size={12} className={resyncing ? 'animate-spin' : ''} />
-          <span className="ml-1">{resyncing ? 'Syncing…' : 'Resync'}</span>
+          <span className="ml-1">{resyncing ? t('settings.youtube.videos.syncing') : t('settings.youtube.videos.resync')}</span>
         </Button>
       </div>
       {hasSynced && stats?.last_synced_at && (
         <div className="text-[10px] text-txt-tertiary mt-1">
-          Last sync {new Date(stats.last_synced_at).toLocaleString()}
+          {t('settings.youtube.videos.lastSync', { when: new Date(stats.last_synced_at).toLocaleString() })}
         </div>
       )}
     </div>
@@ -143,6 +145,7 @@ interface YouTubeChannel {
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 export function YouTubeSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,7 +156,7 @@ export function YouTubeSection() {
       const chs = await youtube.listChannels();
       setChannels(chs);
     } catch (err) {
-      toast.error('Failed to load YouTube channels', { description: String(err) });
+      toast.error(t('settings.youtube.loadFailed'), { description: String(err) });
       setChannels([]);
     } finally {
       setLoading(false);
@@ -176,10 +179,10 @@ export function YouTubeSection() {
   const handleDisconnect = async (channelId: string) => {
     try {
       await youtube.disconnect(channelId);
-      toast.success('YouTube channel disconnected');
+      toast.success(t('settings.youtube.disconnectedToast'));
       setChannels((prev) => prev.filter((c) => c.id !== channelId));
     } catch (err) {
-      toast.error('Failed to disconnect YouTube channel', { description: String(err) });
+      toast.error(t('settings.youtube.disconnectFailed'), { description: String(err) });
     }
   };
 
@@ -195,18 +198,14 @@ export function YouTubeSection() {
   };
 
   const handleRemove = async (channelId: string, name: string) => {
-    const ok = window.confirm(
-      `Remove "${name}" completely?\n\nThis deletes the channel AND its upload history from this workspace. It does NOT touch the videos on YouTube itself.`,
-    );
+    const ok = window.confirm(t('settings.youtube.removeConfirm', { name }));
     if (!ok) return;
     try {
       await youtube.deleteChannel(channelId);
-      toast.success(`Removed ${name}`);
+      toast.success(t('settings.youtube.removedToast', { name }));
       setChannels((prev) => prev.filter((c) => c.id !== channelId));
     } catch (err) {
-      toast.error('Failed to remove YouTube channel', {
-        description: String(err),
-      });
+      toast.error(t('settings.youtube.removeFailed'), { description: String(err) });
     }
   };
 
@@ -224,7 +223,7 @@ export function YouTubeSection() {
         prev.map((c) => (c.id === channelId ? { ...c, ...updated } : c)),
       );
     } catch (err) {
-      toast.error('Failed to update upload schedule', { description: String(err) });
+      toast.error(t('settings.youtube.scheduleUpdateFailed'), { description: String(err) });
     }
   };
 
@@ -233,13 +232,13 @@ export function YouTubeSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-lg font-semibold text-txt-primary">YouTube Channels</h3>
+        <h3 className="text-lg font-semibold text-txt-primary">{t('settings.youtube.heading')}</h3>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => setWizardOpen(true)}>
-            Setup wizard
+            {t('settings.youtube.setupWizard')}
           </Button>
           <Button variant="primary" size="sm" onClick={handleConnect}>
-            <Youtube size={14} /> Connect channel
+            <Youtube size={14} /> {t('settings.youtube.connectChannel')}
           </Button>
         </div>
       </div>
@@ -247,16 +246,19 @@ export function YouTubeSection() {
       {channels.length === 0 ? (
         <Card padding="md">
           <p className="text-sm text-txt-secondary">
-            No YouTube channels connected. First time? Use{' '}
-            <button
-              type="button"
-              onClick={() => setWizardOpen(true)}
-              className="text-accent hover:underline"
-            >
-              Setup wizard
-            </button>{' '}
-            to get your Google OAuth credentials and authorize a channel in
-            one flow. Already have credentials? Click <strong>Connect Channel</strong>.
+            <Trans
+              i18nKey="settings.youtube.emptyIntro"
+              components={{
+                1: (
+                  <button
+                    type="button"
+                    onClick={() => setWizardOpen(true)}
+                    className="text-accent hover:underline"
+                  />
+                ),
+                2: <strong />,
+              }}
+            />
           </p>
         </Card>
       ) : (
@@ -269,9 +271,9 @@ export function YouTubeSection() {
                   {ch.channel_name}
                 </span>
                 {ch.is_active ? (
-                  <Badge variant="success" className="text-[10px]">Connected</Badge>
+                  <Badge variant="success" className="text-[10px]">{t('settings.youtube.channel.connected')}</Badge>
                 ) : (
-                  <Badge variant="warning" className="text-[10px]">Disconnected</Badge>
+                  <Badge variant="warning" className="text-[10px]">{t('settings.youtube.channel.disconnected')}</Badge>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -281,9 +283,9 @@ export function YouTubeSection() {
                   size="sm"
                   onClick={() => void handleReconnect(ch.id)}
                   className="text-txt-secondary hover:text-accent"
-                  title="Re-authorize this channel with Google (refreshes OAuth token)"
+                  title={t('settings.youtube.channel.reconnectTitle')}
                 >
-                  Reconnect
+                  {t('settings.youtube.channel.reconnect')}
                 </Button>
                 {ch.is_active && (
                   <Button
@@ -291,9 +293,9 @@ export function YouTubeSection() {
                     size="sm"
                     onClick={() => void handleDisconnect(ch.id)}
                     className="text-txt-tertiary hover:text-warning"
-                    title="Wipe OAuth tokens but keep upload history"
+                    title={t('settings.youtube.channel.disconnectTitle')}
                   >
-                    Disconnect
+                    {t('settings.youtube.channel.disconnect')}
                   </Button>
                 )}
                 <Button
@@ -301,7 +303,7 @@ export function YouTubeSection() {
                   size="sm"
                   onClick={() => void handleRemove(ch.id, ch.channel_name)}
                   className="text-txt-tertiary hover:text-error"
-                  title="Permanently remove this channel and its upload history"
+                  title={t('settings.youtube.channel.removeTitle')}
                 >
                   <Trash2 size={13} />
                 </Button>
@@ -310,7 +312,7 @@ export function YouTubeSection() {
 
             {/* Upload schedule */}
             <div className="space-y-2 mt-2">
-              <label className="text-xs font-medium text-txt-secondary">Upload Days</label>
+              <label className="text-xs font-medium text-txt-secondary">{t('settings.youtube.channel.uploadDays')}</label>
               <div className="flex gap-1.5">
                 {DAYS.map((day) => {
                   const active = (ch.upload_days ?? []).includes(day);
@@ -331,13 +333,13 @@ export function YouTubeSection() {
                           : 'bg-bg-elevated text-txt-tertiary border border-border hover:border-border-hover',
                       ].join(' ')}
                     >
-                      {day}
+                      {t(`settings.youtube.channel.days.${day}`)}
                     </button>
                   );
                 })}
               </div>
 
-              <label className="text-xs font-medium text-txt-secondary">Upload Time</label>
+              <label className="text-xs font-medium text-txt-secondary">{t('settings.youtube.channel.uploadTime')}</label>
               <input
                 type="time"
                 value={ch.upload_time ?? ''}
@@ -376,6 +378,7 @@ export function YouTubeSection() {
 // most channel-actiony place in the UI, regardless of how the
 // ``ChannelVideoSummary`` widget below is rendering.
 function SyncChannelButton({ channelId }: { channelId: string }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [syncing, setSyncing] = useState(false);
   const trigger = async () => {
@@ -386,9 +389,9 @@ function SyncChannelButton({ channelId }: { channelId: string }) {
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      toast.success('Sync queued — refresh in a few seconds');
+      toast.success(t('settings.youtube.sync.syncQueued'));
     } catch (err) {
-      toast.error('Sync failed', { description: String(err) });
+      toast.error(t('settings.youtube.sync.syncFailed'), { description: String(err) });
     } finally {
       setSyncing(false);
     }
@@ -400,10 +403,10 @@ function SyncChannelButton({ channelId }: { channelId: string }) {
       onClick={() => void trigger()}
       disabled={syncing}
       className="text-txt-secondary hover:text-accent"
-      title="Pull the latest video list + stats from YouTube"
+      title={t('settings.youtube.sync.title')}
     >
       <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-      <span className="ml-1">{syncing ? 'Syncing…' : 'Sync'}</span>
+      <span className="ml-1">{syncing ? t('settings.youtube.sync.syncing') : t('settings.youtube.sync.label')}</span>
     </Button>
   );
 }

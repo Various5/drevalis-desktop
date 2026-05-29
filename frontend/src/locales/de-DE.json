@@ -170,6 +170,60 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "youtube": {
+      "heading": "YouTube-Kanäle",
+      "setupWizard": "Einrichtungsassistent",
+      "connectChannel": "Kanal verbinden",
+      "loadFailed": "YouTube-Kanäle konnten nicht geladen werden",
+      "disconnectedToast": "YouTube-Kanal getrennt",
+      "disconnectFailed": "YouTube-Kanal konnte nicht getrennt werden",
+      "removedToast": "{{name}} entfernt",
+      "removeFailed": "YouTube-Kanal konnte nicht entfernt werden",
+      "removeConfirm": "„{{name}}“ vollständig entfernen?\n\nDies löscht den Kanal UND seine Upload-Historie aus diesem Workspace. Die Videos auf YouTube selbst werden NICHT angerührt.",
+      "scheduleUpdateFailed": "Upload-Zeitplan konnte nicht aktualisiert werden",
+      "emptyIntro": "Keine YouTube-Kanäle verbunden. Erstes Mal? Verwende den <1>Einrichtungsassistenten</1>, um deine Google-OAuth-Zugangsdaten zu erhalten und einen Kanal in einem Schritt zu autorisieren. Hast du bereits Zugangsdaten? Klicke auf <2>Kanal verbinden</2>.",
+      "channel": {
+        "connected": "Verbunden",
+        "disconnected": "Getrennt",
+        "reconnect": "Erneut verbinden",
+        "reconnectTitle": "Diesen Kanal erneut bei Google autorisieren (erneuert OAuth-Token)",
+        "disconnect": "Trennen",
+        "disconnectTitle": "OAuth-Token löschen, Upload-Historie behalten",
+        "removeTitle": "Diesen Kanal und seine Upload-Historie dauerhaft entfernen",
+        "uploadDays": "Upload-Tage",
+        "uploadTime": "Upload-Zeit",
+        "days": {
+          "mon": "MO",
+          "tue": "DI",
+          "wed": "MI",
+          "thu": "DO",
+          "fri": "FR",
+          "sat": "SA",
+          "sun": "SO"
+        }
+      },
+      "videos": {
+        "loading": "Kanalstatistiken werden geladen…",
+        "longForm": "{{count}} Lang-Videos",
+        "shorts": "{{count}} Shorts",
+        "totalSuffix": "· insgesamt {{count}}",
+        "syncedEmpty": "✓ Synchronisiert — dieser Kanal hat noch keine Videos auf YouTube.",
+        "neverSynced": "Noch keine Kanal-Videos synchronisiert. Klicke auf Erneut synchronisieren, um die auf YouTube vorhandenen abzurufen.",
+        "lastSync": "Letzte Synchronisierung {{when}}",
+        "resync": "Erneut synchronisieren",
+        "syncing": "Wird synchronisiert…",
+        "resyncTitle": "Die Videos dieses Kanals erneut von YouTube auflisten",
+        "syncStarted": "Synchronisierung gestartet — Status wird in Kürze geprüft",
+        "resyncFailed": "Erneute Synchronisierung fehlgeschlagen"
+      },
+      "sync": {
+        "syncQueued": "Synchronisierung eingereiht — in Kürze aktualisieren",
+        "syncFailed": "Synchronisierung fehlgeschlagen",
+        "label": "Synchronisieren",
+        "syncing": "Wird synchronisiert…",
+        "title": "Aktuelle Videoliste + Statistiken von YouTube abrufen"
+      }
+    },
     "social": {
       "heading": "Social-Media-Konten",
       "intro": "Verbinde deine Social-Media-Konten, um Inhalte plattformübergreifend zu veröffentlichen.",
