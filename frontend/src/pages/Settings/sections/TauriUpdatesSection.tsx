@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +31,7 @@ import {
  * lives in UpdatesSection.tsx for the (deprecated) server install.
  */
 export function TauriUpdatesSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [info, setInfo] = useState<TauriUpdateInfo | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,24 +48,24 @@ export function TauriUpdatesSection() {
         setLastChecked(new Date());
         if (surfaceResult) {
           if (result.available) {
-            toast.success(`Update available: v${result.version}`);
+            toast.success(t('settings.updates.tauri.newVersionToast', { version: result.version }));
           } else {
-            toast.success("You're on the latest version", {
+            toast.success(t('settings.updates.tauri.onLatestToast'), {
               description: result.currentVersion
-                ? `Installed: v${result.currentVersion}`
+                ? t('settings.updates.tauri.onLatestToastDesc', { version: result.currentVersion })
                 : undefined,
             });
           }
         }
       } catch (e) {
-        toast.error('Update check failed', {
+        toast.error(t('settings.updates.tauri.checkFailed'), {
           description: e instanceof Error ? e.message : String(e),
         });
       } finally {
         setRefreshing(false);
       }
     },
-    [toast],
+    [toast, t],
   );
 
   // Initial fetch (no toast).
@@ -72,11 +74,7 @@ export function TauriUpdatesSection() {
   }, [refresh]);
 
   const onInstall = async () => {
-    if (
-      !confirm(
-        'Download and install the update? The app will close, run the installer, and re-launch automatically.',
-      )
-    ) {
+    if (!confirm(t('settings.updates.tauri.confirmInstall'))) {
       return;
     }
     setInstalling(true);
@@ -84,11 +82,11 @@ export function TauriUpdatesSection() {
     try {
       await installTauriUpdate((p) => setProgress(p));
       // If we get here without restart, surface a final toast.
-      toast.success('Update installed', {
-        description: 'Restart the app to use the new version.',
+      toast.success(t('settings.updates.tauri.installedToast'), {
+        description: t('settings.updates.tauri.installedToastDesc'),
       });
     } catch (e) {
-      toast.error('Install failed', {
+      toast.error(t('settings.updates.tauri.installFailed'), {
         description: e instanceof Error ? e.message : String(e),
       });
     } finally {
@@ -108,15 +106,14 @@ export function TauriUpdatesSection() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="text-lg font-semibold text-txt-primary flex items-center gap-2">
-            <ArrowUpCircle size={18} /> Updates
+            <ArrowUpCircle size={18} /> {t('settings.updates.heading')}
           </h3>
           <p className="text-xs text-txt-secondary mt-1">
-            Auto-update via the Drevalis GitHub Releases feed. The desktop
-            app downloads, verifies, and installs in place.
+            {t('settings.updates.tauri.intro')}
           </p>
           {lastChecked && (
             <p className="text-[11px] text-txt-muted mt-1">
-              Last checked: {lastChecked.toLocaleTimeString()}
+              {t('settings.updates.tauri.lastCheckedTime', { time: lastChecked.toLocaleTimeString() })}
             </p>
           )}
         </div>
@@ -128,20 +125,20 @@ export function TauriUpdatesSection() {
           className="shrink-0"
         >
           <Search size={15} className={refreshing ? 'animate-pulse' : ''} />
-          {refreshing ? 'Checking...' : 'Check for updates'}
+          {refreshing ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
         </Button>
       </div>
 
       <Card className="p-5 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs text-txt-secondary mb-1">Installed</div>
+            <div className="text-xs text-txt-secondary mb-1">{t('settings.updates.labels.installed')}</div>
             <div className="text-lg font-semibold text-txt-primary">
               {info?.currentVersion ? `v${info.currentVersion}` : '-'}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs text-txt-secondary mb-1">Latest</div>
+            <div className="text-xs text-txt-secondary mb-1">{t('settings.updates.labels.latest')}</div>
             <div className="text-lg font-semibold text-txt-primary">
               {info?.available && info.version
                 ? `v${info.version}`
@@ -154,13 +151,13 @@ export function TauriUpdatesSection() {
 
         {info == null ? (
           <div className="p-3 rounded border border-white/10 bg-white/5 text-xs text-txt-secondary">
-            Click "Check for updates" to query the release feed.
+            {t('settings.updates.tauri.noChecksYet')}
           </div>
         ) : info.available ? (
           <div className="p-3 rounded border border-accent/30 bg-accent/10 text-xs text-accent flex items-start gap-2">
             <ArrowUpCircle size={14} className="mt-0.5 shrink-0" />
             <div>
-              <div className="font-semibold">Update available: v{info.version}</div>
+              <div className="font-semibold">{t('settings.updates.tauri.updateAvailable', { version: info.version })}</div>
               {info.body && (
                 <pre className="mt-2 whitespace-pre-wrap font-sans text-[11px] text-accent/80 max-h-40 overflow-auto">
                   {info.body}
@@ -171,20 +168,19 @@ export function TauriUpdatesSection() {
         ) : (
           <div className="p-3 rounded border border-success/30 bg-success/10 text-xs text-success flex items-center gap-2">
             <CheckCircle2 size={14} />
-            You&apos;re on the latest version.
+            {t('settings.updates.tauri.onLatest')}
           </div>
         )}
 
         {installing && progress && (
           <div className="p-3 rounded border border-accent/30 bg-accent/10 text-xs text-accent">
-            {progress.phase === 'started' && 'Starting download…'}
+            {progress.phase === 'started' && t('settings.updates.tauri.progress.starting')}
             {progress.phase === 'progress' && (
-              <>
-                Downloading {downloadedMB ?? '?'} MB
-                {totalMB ? ` of ${totalMB} MB` : ''}
-              </>
+              totalMB
+                ? t('settings.updates.tauri.progress.downloadingOf', { downloaded: downloadedMB ?? '?', total: totalMB })
+                : t('settings.updates.tauri.progress.downloading', { downloaded: downloadedMB ?? '?' })
             )}
-            {progress.phase === 'finished' && 'Installing…'}
+            {progress.phase === 'finished' && t('settings.updates.tauri.progress.installing')}
           </div>
         )}
 
@@ -196,7 +192,7 @@ export function TauriUpdatesSection() {
             disabled={refreshing || installing}
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Check again
+            {t('settings.updates.checkAgain')}
           </Button>
           <Button
             variant="primary"
@@ -204,18 +200,14 @@ export function TauriUpdatesSection() {
             onClick={onInstall}
             disabled={installing || !info?.available}
           >
-            {installing ? 'Installing...' : 'Update now'}
+            {installing ? t('settings.updates.installing') : t('settings.updates.updateNow')}
           </Button>
         </div>
       </Card>
 
       <div className="text-[11px] text-txt-muted flex items-start gap-2">
         <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-        <span>
-          Update integrity is verified against an embedded public key. Releases
-          must be signed with the matching private key (held by the maintainer
-          / CI) for installation to proceed.
-        </span>
+        <span>{t('settings.updates.tauri.trustNote')}</span>
       </div>
     </div>
   );

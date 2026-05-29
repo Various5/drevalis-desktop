@@ -170,6 +170,102 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "updates": {
+      "heading": "Updates",
+      "lastChecked": "Last checked: {{when}}",
+      "checking": "Checking...",
+      "checkForUpdates": "Check for updates",
+      "checkAgain": "Check again",
+      "updateNow": "Update now",
+      "queueing": "Queueing...",
+      "installing": "Installing...",
+      "labels": {
+        "installed": "Installed",
+        "latestStable": "Latest stable",
+        "latest": "Latest"
+      },
+      "relativeTime": {
+        "justNow": "just now",
+        "secAgo": "{{count}}s ago",
+        "minAgo_one": "{{count}} minute ago",
+        "minAgo_other": "{{count}} minutes ago",
+        "hAgo_one": "{{count}} hour ago",
+        "hAgo_other": "{{count}} hours ago",
+        "dAgo_one": "{{count}} day ago",
+        "dAgo_other": "{{count}} days ago"
+      },
+      "tauri": {
+        "intro": "Auto-update via the Drevalis GitHub Releases feed. The desktop app downloads, verifies, and installs in place.",
+        "lastCheckedTime": "Last checked: {{time}}",
+        "noChecksYet": "Click \"Check for updates\" to query the release feed.",
+        "updateAvailable": "Update available: v{{version}}",
+        "available": "Update available",
+        "onLatest": "You're on the latest version.",
+        "onLatestToast": "You're on the latest version",
+        "onLatestToastDesc": "Installed: v{{version}}",
+        "newVersionToast": "Update available: v{{version}}",
+        "checkFailed": "Update check failed",
+        "confirmInstall": "Download and install the update? The app will close, run the installer, and re-launch automatically.",
+        "installedToast": "Update installed",
+        "installedToastDesc": "Restart the app to use the new version.",
+        "installFailed": "Install failed",
+        "progress": {
+          "starting": "Starting download…",
+          "downloading": "Downloading {{downloaded}} MB",
+          "downloadingOf": "Downloading {{downloaded}} MB of {{total}} MB",
+          "installing": "Installing…"
+        },
+        "trustNote": "Update integrity is verified against an embedded public key. Releases must be signed with the matching private key (held by the maintainer / CI) for installation to proceed."
+      },
+      "legacy": {
+        "checkingForUpdates": "Checking for updates...",
+        "noInfo": "No update information available.",
+        "intro": "New releases from the Drevalis team. Updates require an active license.",
+        "forceCheckTitle": "Force a fresh check against the update server (bypasses the 6h cache)",
+        "alsoTriggers": "Also triggers the check above",
+        "unavailableTitle": "Update information unavailable",
+        "reasons": {
+          "license_required": "No active license - activate to receive updates.",
+          "license_revoked": "License revoked - renew to receive updates.",
+          "license_expired": "License expired - renew to receive updates.",
+          "license_server_not_configured": "Offline-only install - updates must be installed manually.",
+          "network_error": "Could not reach the update server. Retry in a moment.",
+          "fallback": "Reason: {{reason}}",
+          "unknown": "unknown"
+        },
+        "updateAvailable": "Update available",
+        "updateAvailableSecurity": "Update available (security)",
+        "viewChangelog": "View changelog",
+        "onLatest": "You're on the latest version.",
+        "imageTagsTitle": "Image tags for this release",
+        "confirmApply": "Pull the new images and restart the stack? The app will be unavailable for ~60 seconds. A live progress overlay will show you each phase.",
+        "queueFailed": "Could not queue update",
+        "toasts": {
+          "noDataTitle": "Update check returned no data",
+          "noDataDescFallback": "See the card below for details.",
+          "updateAvailableTitlePrefix": "Update available: {{version}}",
+          "newVersionFallback": "new version",
+          "securityUpdateDesc": "This is a security update.",
+          "clickUpdateDesc": "Click Update now to apply.",
+          "onLatestTitle": "You're on the latest version",
+          "onLatestDesc": "Installed: {{version}}",
+          "checkFailed": "Update check failed"
+        },
+        "changelog": {
+          "heading": "What's new",
+          "intro": "Recent releases from the project's GitHub repo.",
+          "cached": "(cached, refreshes hourly)",
+          "refreshTitle": "Re-fetch release notes from GitHub",
+          "refresh": "Refresh",
+          "loading": "Loading release notes…",
+          "empty": "No releases yet.",
+          "preRelease": "pre-release",
+          "installedBadge": "Installed",
+          "openOnGitHub": "Open on GitHub",
+          "noNotes": "(no release notes provided)"
+        }
+      }
+    },
     "license": {
       "loading": "Loading license…",
       "heading": "License",

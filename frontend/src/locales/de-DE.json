@@ -170,6 +170,102 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "updates": {
+      "heading": "Updates",
+      "lastChecked": "Zuletzt geprüft: {{when}}",
+      "checking": "Wird geprüft...",
+      "checkForUpdates": "Nach Updates suchen",
+      "checkAgain": "Erneut prüfen",
+      "updateNow": "Jetzt aktualisieren",
+      "queueing": "Wird eingereiht...",
+      "installing": "Wird installiert...",
+      "labels": {
+        "installed": "Installiert",
+        "latestStable": "Neueste stabile Version",
+        "latest": "Neueste"
+      },
+      "relativeTime": {
+        "justNow": "gerade eben",
+        "secAgo": "vor {{count}} Sek.",
+        "minAgo_one": "vor {{count}} Minute",
+        "minAgo_other": "vor {{count}} Minuten",
+        "hAgo_one": "vor {{count}} Stunde",
+        "hAgo_other": "vor {{count}} Stunden",
+        "dAgo_one": "vor {{count}} Tag",
+        "dAgo_other": "vor {{count}} Tagen"
+      },
+      "tauri": {
+        "intro": "Automatische Aktualisierung über den Drevalis-GitHub-Releases-Feed. Die Desktop-App lädt, verifiziert und installiert direkt vor Ort.",
+        "lastCheckedTime": "Zuletzt geprüft: {{time}}",
+        "noChecksYet": "Klicke auf „Nach Updates suchen“, um den Release-Feed abzufragen.",
+        "updateAvailable": "Update verfügbar: v{{version}}",
+        "available": "Update verfügbar",
+        "onLatest": "Du verwendest die neueste Version.",
+        "onLatestToast": "Du verwendest die neueste Version",
+        "onLatestToastDesc": "Installiert: v{{version}}",
+        "newVersionToast": "Update verfügbar: v{{version}}",
+        "checkFailed": "Update-Prüfung fehlgeschlagen",
+        "confirmInstall": "Update herunterladen und installieren? Die App wird beendet, der Installer ausgeführt und die App automatisch neu gestartet.",
+        "installedToast": "Update installiert",
+        "installedToastDesc": "Starte die App neu, um die neue Version zu nutzen.",
+        "installFailed": "Installation fehlgeschlagen",
+        "progress": {
+          "starting": "Download wird gestartet…",
+          "downloading": "{{downloaded}} MB werden heruntergeladen",
+          "downloadingOf": "{{downloaded}} MB von {{total}} MB werden heruntergeladen",
+          "installing": "Wird installiert…"
+        },
+        "trustNote": "Die Integrität des Updates wird gegen einen eingebetteten öffentlichen Schlüssel verifiziert. Releases müssen mit dem passenden privaten Schlüssel (gehalten vom Maintainer / CI) signiert sein, damit die Installation fortgesetzt wird."
+      },
+      "legacy": {
+        "checkingForUpdates": "Suche nach Updates...",
+        "noInfo": "Keine Update-Informationen verfügbar.",
+        "intro": "Neue Releases vom Drevalis-Team. Updates erfordern eine aktive Lizenz.",
+        "forceCheckTitle": "Erzwingt eine neue Prüfung gegen den Update-Server (umgeht den 6-Stunden-Cache)",
+        "alsoTriggers": "Löst auch die obige Prüfung aus",
+        "unavailableTitle": "Update-Informationen nicht verfügbar",
+        "reasons": {
+          "license_required": "Keine aktive Lizenz - aktiviere sie, um Updates zu erhalten.",
+          "license_revoked": "Lizenz widerrufen - erneuere sie, um Updates zu erhalten.",
+          "license_expired": "Lizenz abgelaufen - erneuere sie, um Updates zu erhalten.",
+          "license_server_not_configured": "Offline-Installation - Updates müssen manuell installiert werden.",
+          "network_error": "Update-Server konnte nicht erreicht werden. Versuche es gleich erneut.",
+          "fallback": "Grund: {{reason}}",
+          "unknown": "unbekannt"
+        },
+        "updateAvailable": "Update verfügbar",
+        "updateAvailableSecurity": "Update verfügbar (Sicherheit)",
+        "viewChangelog": "Änderungsprotokoll ansehen",
+        "onLatest": "Du verwendest die neueste Version.",
+        "imageTagsTitle": "Image-Tags für dieses Release",
+        "confirmApply": "Neue Images abrufen und den Stack neu starten? Die App ist für ~60 Sekunden nicht verfügbar. Eine Live-Fortschrittsanzeige zeigt jede Phase.",
+        "queueFailed": "Update konnte nicht eingereiht werden",
+        "toasts": {
+          "noDataTitle": "Update-Prüfung lieferte keine Daten",
+          "noDataDescFallback": "Details findest du in der Karte unten.",
+          "updateAvailableTitlePrefix": "Update verfügbar: {{version}}",
+          "newVersionFallback": "neue Version",
+          "securityUpdateDesc": "Dies ist ein Sicherheitsupdate.",
+          "clickUpdateDesc": "Klicke auf „Jetzt aktualisieren“, um anzuwenden.",
+          "onLatestTitle": "Du verwendest die neueste Version",
+          "onLatestDesc": "Installiert: {{version}}",
+          "checkFailed": "Update-Prüfung fehlgeschlagen"
+        },
+        "changelog": {
+          "heading": "Neuigkeiten",
+          "intro": "Aktuelle Releases aus dem GitHub-Repository des Projekts.",
+          "cached": "(zwischengespeichert, stündlich aktualisiert)",
+          "refreshTitle": "Release-Notes von GitHub neu laden",
+          "refresh": "Aktualisieren",
+          "loading": "Release-Notes werden geladen…",
+          "empty": "Noch keine Releases.",
+          "preRelease": "Vorabversion",
+          "installedBadge": "Installiert",
+          "openOnGitHub": "Auf GitHub öffnen",
+          "noNotes": "(keine Release-Notes vorhanden)"
+        }
+      }
+    },
     "license": {
       "loading": "Lizenz wird geladen…",
       "heading": "Lizenz",
