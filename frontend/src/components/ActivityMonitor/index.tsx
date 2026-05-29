@@ -19,6 +19,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, ChevronUp, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { jobs as jobsApi, episodes as episodesApi } from '@/lib/api';
@@ -60,6 +61,7 @@ const PRIORITY_STORAGE_KEY = 'sf_job_priority';
 // ---------------------------------------------------------------------------
 
 export function ActivityMonitor() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { activityDock } = useTheme();
@@ -249,7 +251,7 @@ export function ActivityMonitor() {
           <button
             onClick={() => setExpanded(true)}
             className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity focus-visible:outline-2 focus-visible:outline-accent rounded-sm p-1"
-            aria-label="Expand activity monitor"
+            aria-label={t('activityMonitor.expandAria')}
           >
             <Activity size={18} className="text-accent" />
             {totalActive > 0 && (
@@ -362,7 +364,7 @@ export function ActivityMonitor() {
           <button
             onClick={() => setExpanded(false)}
             className="flex items-center justify-center w-full h-8 border-t border-white/[0.05] text-txt-tertiary hover:text-txt-secondary hover:bg-white/[0.03] transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-            aria-label="Collapse activity monitor"
+            aria-label={t('activityMonitor.collapseAria')}
           >
             <ChevronDown size={12} />
           </button>
@@ -395,6 +397,7 @@ function MobilePill({
   totalActive: number;
   navigate: ReturnType<typeof useNavigate>;
 }) {
+  const { t } = useTranslation();
   if (totalActive === 0) return null;
   return (
     <button
@@ -408,10 +411,10 @@ function MobilePill({
         'transition-colors duration-fast hover:bg-white/[0.04]',
         'focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
       ].join(' ')}
-      aria-label={`${totalActive} active job${totalActive > 1 ? 's' : ''} — tap to view`}
+      aria-label={t('activityMonitor.summaryAria', { count: totalActive })}
     >
       <Spinner size="sm" />
-      <span>{totalActive} active</span>
+      <span>{t('activityMonitor.activeShort', { count: totalActive })}</span>
     </button>
   );
 }

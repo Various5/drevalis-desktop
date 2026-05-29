@@ -200,7 +200,7 @@ function MobileNav() {
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-[99] bg-bg-surface/80 backdrop-blur-xl border-t border-white/[0.06]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        aria-label="Mobile navigation"
+        aria-label={t('nav.mobileNavigationAria')}
       >
         <div className="flex h-[60px]">
           {GROUPS.map((group) => {

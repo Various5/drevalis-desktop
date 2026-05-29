@@ -1495,7 +1495,27 @@
     "menuFor": "{{group}} menu",
     "groupNavigation": "{{group}} navigation",
     "generatingCount_one": "{{count}} episode generating",
-    "generatingCount_other": "{{count}} episodes generating"
+    "generatingCount_other": "{{count}} episodes generating",
+    "mobileNavigationAria": "Mobile navigation"
+  },
+  "activeJobs": {
+    "buttonTitle": "What's running",
+    "popoverAria": "Active generation jobs",
+    "runningNow": "Running now ({{count}})",
+    "viewAll": "View all",
+    "noActive": "No active jobs",
+    "episodePrefix": "Episode {{id}}…",
+    "stepCount_one": "{{count}} step",
+    "stepCount_other": "{{count}} steps",
+    "jobSingular": "job",
+    "jobPlural": "jobs"
+  },
+  "activityMonitor": {
+    "expandAria": "Expand activity monitor",
+    "collapseAria": "Collapse activity monitor",
+    "summaryAria_one": "{{count}} active job — tap to view",
+    "summaryAria_other": "{{count}} active jobs — tap to view",
+    "activeShort": "{{count}} active"
   },
   "titles": {
     "seriesDetail": "Series Detail",

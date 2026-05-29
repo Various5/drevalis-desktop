@@ -1495,7 +1495,27 @@
     "menuFor": "Menü {{group}}",
     "groupNavigation": "Navigation {{group}}",
     "generatingCount_one": "{{count}} Episode wird generiert",
-    "generatingCount_other": "{{count}} Episoden werden generiert"
+    "generatingCount_other": "{{count}} Episoden werden generiert",
+    "mobileNavigationAria": "Mobile Navigation"
+  },
+  "activeJobs": {
+    "buttonTitle": "Was läuft gerade",
+    "popoverAria": "Aktive Generierungsaufträge",
+    "runningNow": "Läuft jetzt ({{count}})",
+    "viewAll": "Alle anzeigen",
+    "noActive": "Keine aktiven Aufträge",
+    "episodePrefix": "Episode {{id}}…",
+    "stepCount_one": "{{count}} Schritt",
+    "stepCount_other": "{{count}} Schritte",
+    "jobSingular": "Auftrag",
+    "jobPlural": "Aufträge"
+  },
+  "activityMonitor": {
+    "expandAria": "Aktivitätsmonitor ausklappen",
+    "collapseAria": "Aktivitätsmonitor einklappen",
+    "summaryAria_one": "{{count}} aktiver Auftrag — antippen, um anzuzeigen",
+    "summaryAria_other": "{{count}} aktive Aufträge — antippen, um anzuzeigen",
+    "activeShort": "{{count}} aktiv"
   },
   "titles": {
     "seriesDetail": "Seriendetails",

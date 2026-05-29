@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useActiveJobs } from '@/lib/queries/jobs';
 import { useActiveJobsProgress } from '@/lib/websocket';
 import { JobProgressBar } from '@/components/jobs/JobProgressBar';
@@ -35,6 +36,7 @@ function mergeProgress(
 }
 
 export function ActiveJobsPopover() {
+  const { t } = useTranslation();
   const { latestByEpisode } = useActiveJobsProgress();
   const hasActive = Object.keys(latestByEpisode).length > 0;
   const { data: activeJobs = [] } = useActiveJobs({ hasActive });
@@ -82,36 +84,36 @@ export function ActiveJobsPopover() {
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-accent bg-accent/[0.08] border border-accent/20 hover:bg-accent/[0.12] transition-all duration-normal"
         aria-haspopup="dialog"
         aria-expanded={open}
-        title="What's running"
+        title={t('activeJobs.buttonTitle')}
       >
         <Activity size={14} className="animate-pulse" />
         <span className="text-xs font-medium">{count}</span>
-        <span className="text-xs text-accent/70">{count === 1 ? 'job' : 'jobs'}</span>
+        <span className="text-xs text-accent/70">{count === 1 ? t('activeJobs.jobSingular') : t('activeJobs.jobPlural')}</span>
       </button>
 
       {open && (
         <div
           role="dialog"
-          aria-label="Active generation jobs"
+          aria-label={t('activeJobs.popoverAria')}
           className="absolute right-0 top-full mt-1.5 w-[min(420px,90vw)] rounded-md border border-white/[0.06] bg-bg-elevated shadow-xl z-dropdown overflow-hidden"
         >
           <header className="flex items-center justify-between px-3 py-2 border-b border-white/[0.04]">
             <span className="text-xs font-display font-semibold text-txt-tertiary uppercase tracking-[0.15em]">
-              Running now ({count})
+              {t('activeJobs.runningNow', { count })}
             </span>
             <Link
               to="/"
               onClick={() => setOpen(false)}
               className="text-xs text-accent hover:underline inline-flex items-center gap-0.5"
             >
-              View all <ChevronRight size={12} />
+              {t('activeJobs.viewAll')} <ChevronRight size={12} />
             </Link>
           </header>
           <div className="max-h-[60vh] overflow-y-auto divide-y divide-white/[0.04]">
             {Object.keys(jobsByEpisode).length === 0 ? (
               <div className="px-4 py-6 text-center">
                 <CheckCircle2 size={20} className="text-txt-tertiary mx-auto mb-1.5" />
-                <p className="text-xs text-txt-secondary">No active jobs</p>
+                <p className="text-xs text-txt-secondary">{t('activeJobs.noActive')}</p>
               </div>
             ) : (
               Object.entries(jobsByEpisode).map(([episodeId, epJobs]) => {
@@ -125,10 +127,10 @@ export function ActiveJobsPopover() {
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-medium text-txt-primary truncate">
-                        Episode {episodeId.slice(0, 8)}…
+                        {t('activeJobs.episodePrefix', { id: episodeId.slice(0, 8) })}
                       </span>
                       <span className="text-[10px] text-txt-tertiary">
-                        {epJobs.length} step{epJobs.length === 1 ? '' : 's'}
+                        {t('activeJobs.stepCount', { count: epJobs.length })}
                       </span>
                     </div>
                     <JobProgressBar stepProgress={merged} compact />
