@@ -7,6 +7,7 @@ import {
   Play,
   Pause,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
@@ -26,14 +27,8 @@ import type { VoiceProfile } from '@/types';
 type ProviderFilter = 'all' | 'edge' | 'piper' | 'kokoro' | 'elevenlabs' | 'comfyui_elevenlabs';
 type ProviderOption = 'piper' | 'elevenlabs' | 'kokoro' | 'edge' | 'comfyui_elevenlabs';
 
-const PROVIDER_OPTIONS: Array<{ value: ProviderOption; label: string }> = [
-  { value: 'edge', label: 'Edge TTS (Free)' },
-  { value: 'piper', label: 'Piper (Local)' },
-  { value: 'kokoro', label: 'Kokoro (Local)' },
-  { value: 'elevenlabs', label: 'ElevenLabs (Cloud)' },
-  { value: 'comfyui_elevenlabs', label: 'ElevenLabs via ComfyUI' },
-];
-
+// ComfyUI ElevenLabs preset voices — names stay English (these are the
+// upstream voice display names as ElevenLabs ships them).
 const COMFYUI_ELEVENLABS_VOICES: Array<{ value: string; label: string }> = [
   { value: 'Roger (male, american)', label: 'Roger (male, american)' },
   { value: 'Sarah (female, american)', label: 'Sarah (female, american)' },
@@ -58,27 +53,19 @@ const COMFYUI_ELEVENLABS_VOICES: Array<{ value: string; label: string }> = [
   { value: 'Bill (male, american)', label: 'Bill (male, american)' },
 ];
 
-const FILTER_TABS: Array<{ value: ProviderFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'edge', label: 'Edge' },
-  { value: 'piper', label: 'Piper' },
-  { value: 'kokoro', label: 'Kokoro' },
-  { value: 'elevenlabs', label: 'ElevenLabs' },
-  { value: 'comfyui_elevenlabs', label: 'ComfyUI 11L' },
-];
-
 // ---------------------------------------------------------------------------
 // RecordingTimer
 // ---------------------------------------------------------------------------
 
 function RecordingTimer({ startedAt }: { startedAt: number }) {
+  const { t } = useTranslation();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
   }, []);
   const s = Math.floor((now - startedAt) / 1000);
-  return <span className="text-xs font-mono text-error">● {s}s</span>;
+  return <span className="text-xs font-mono text-error">● {t('settings.voice.clone.secondsSuffix', { count: s })}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +79,7 @@ function VoiceCloneDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [assets, setAssetsList] = useState<Array<{ id: string; filename: string; duration_seconds: number | null }>>([]);
   const [displayName, setDisplayName] = useState('');
@@ -137,15 +125,15 @@ function VoiceCloneDialog({
         const blob = new Blob(mediaChunksRef.current, { type: 'audio/webm' });
         setRecordedBlob(blob);
         setPreviewUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((tr) => tr.stop());
       };
       mr.start();
       mediaRecorderRef.current = mr;
       setRecording(true);
       setRecStart(Date.now());
     } catch {
-      toast.error('Mic access denied', {
-        description: 'Fall back to picking an existing audio asset.',
+      toast.error(t('settings.voice.clone.micDenied'), {
+        description: t('settings.voice.clone.micDeniedDesc'),
       });
     }
   };
@@ -165,14 +153,14 @@ function VoiceCloneDialog({
       const a = await apiAssets.upload(file, { tags: ['voice-sample'] });
       return a.id;
     } catch (err) {
-      toast.error('Sample upload failed', { description: String(err) });
+      toast.error(t('settings.voice.clone.uploadFailed'), { description: String(err) });
       return null;
     }
   };
 
   const submit = async () => {
     if (!displayName.trim()) {
-      toast.error('Give the voice a name');
+      toast.error(t('settings.voice.clone.nameRequired'));
       return;
     }
     let assetId = selectedAssetId;
@@ -182,7 +170,7 @@ function VoiceCloneDialog({
       assetId = id;
     }
     if (!assetId) {
-      toast.error('Pick an existing audio asset or record a sample');
+      toast.error(t('settings.voice.clone.samplePickRequired'));
       return;
     }
     setBusy(true);
@@ -192,30 +180,28 @@ function VoiceCloneDialog({
         display_name: displayName.trim(),
         provider,
       });
-      toast.success('Voice profile created', {
+      toast.success(t('settings.voice.clone.createdToast'), {
         description: res.note,
       });
       onDone();
     } catch (err) {
-      toast.error('Clone failed', { description: String(err) });
+      toast.error(t('settings.voice.clone.cloneFailed'), { description: String(err) });
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Dialog open onClose={onClose} title="Clone voice from sample">
+    <Dialog open onClose={onClose} title={t('settings.voice.clone.title')}>
       <div className="space-y-3">
         <p className="text-xs text-txt-secondary">
-          Record a 30-60 second clean take right here, OR pick an existing
-          audio asset. ElevenLabs IVC uploads on the first voice test;
-          Piper / Kokoro clones require offline fine-tuning.
+          {t('settings.voice.clone.intro')}
         </p>
 
         {/* Mic capture */}
         <div className="p-3 rounded border border-white/[0.06] bg-bg-elevated space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-medium text-txt-primary">Browser mic</div>
+            <div className="text-xs font-medium text-txt-primary">{t('settings.voice.clone.browserMic')}</div>
             {recording && recStart && (
               <RecordingTimer startedAt={recStart} />
             )}
@@ -228,11 +214,11 @@ function VoiceCloneDialog({
                 onClick={() => void startRecording()}
                 disabled={!!recordedBlob}
               >
-                {recordedBlob ? 'Recorded' : 'Record'}
+                {recordedBlob ? t('settings.voice.clone.recorded') : t('settings.voice.clone.record')}
               </Button>
             ) : (
               <Button variant="ghost" size="sm" onClick={stopRecording}>
-                Stop
+                {t('settings.voice.clone.stop')}
               </Button>
             )}
             {recordedBlob && (
@@ -245,7 +231,7 @@ function VoiceCloneDialog({
                   setPreviewUrl(null);
                 }}
               >
-                Discard
+                {t('settings.voice.clone.discard')}
               </Button>
             )}
           </div>
@@ -253,53 +239,55 @@ function VoiceCloneDialog({
             <audio src={previewUrl} controls className="w-full h-8" />
           )}
           <div className="text-[10px] text-txt-muted">
-            Tip: speak at conversational volume, no background music, 30s+.
+            {t('settings.voice.clone.tip')}
           </div>
         </div>
-        <div className="text-[11px] text-txt-muted text-center">— or —</div>
+        <div className="text-[11px] text-txt-muted text-center">{t('settings.voice.clone.or')}</div>
         <label className="block text-xs">
-          <span className="text-txt-secondary mb-1 block">Display name</span>
+          <span className="text-txt-secondary mb-1 block">{t('settings.voice.clone.displayName')}</span>
           <Input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="My narrator voice"
+            placeholder={t('settings.voice.clone.displayNamePlaceholder')}
           />
         </label>
         <label className="block text-xs">
-          <span className="text-txt-secondary mb-1 block">Sample (audio asset)</span>
+          <span className="text-txt-secondary mb-1 block">{t('settings.voice.clone.sampleLabel')}</span>
           <select
             value={selectedAssetId}
             onChange={(e) => setSelectedAssetId(e.target.value)}
             className="w-full px-3 py-2 bg-bg-base border border-white/[0.08] rounded-md text-sm text-txt-primary"
           >
-            <option value="">— select an audio asset —</option>
+            <option value="">{t('settings.voice.clone.selectAssetPlaceholder')}</option>
             {assets.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.filename}
-                {a.duration_seconds ? ` (${Math.round(a.duration_seconds)}s)` : ''}
+                {a.duration_seconds
+                  ? ' ' + t('settings.voice.clone.assetDurationSuffix', { seconds: Math.round(a.duration_seconds) })
+                  : ''}
               </option>
             ))}
           </select>
         </label>
         <label className="block text-xs">
-          <span className="text-txt-secondary mb-1 block">Provider</span>
+          <span className="text-txt-secondary mb-1 block">{t('settings.voice.clone.providerLabel')}</span>
           <select
             value={provider}
             onChange={(e) => setProvider(e.target.value as 'elevenlabs' | 'piper' | 'kokoro')}
             className="w-full px-3 py-2 bg-bg-base border border-white/[0.08] rounded-md text-sm text-txt-primary"
           >
-            <option value="elevenlabs">ElevenLabs (Instant Voice Cloning)</option>
-            <option value="piper">Piper (local, needs offline training)</option>
-            <option value="kokoro">Kokoro (local, needs offline training)</option>
+            <option value="elevenlabs">{t('settings.voice.clone.providerOptions.elevenlabs')}</option>
+            <option value="piper">{t('settings.voice.clone.providerOptions.piper')}</option>
+            <option value="kokoro">{t('settings.voice.clone.providerOptions.kokoro')}</option>
           </select>
         </label>
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {t('settings.voice.clone.cancel')}
         </Button>
         <Button variant="primary" onClick={() => void submit()} disabled={busy}>
-          {busy ? 'Cloning…' : 'Create voice profile'}
+          {busy ? t('settings.voice.clone.cloning') : t('settings.voice.clone.submit')}
         </Button>
       </DialogFooter>
     </Dialog>
@@ -311,6 +299,7 @@ function VoiceCloneDialog({
 // ---------------------------------------------------------------------------
 
 export function VoiceSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -331,16 +320,34 @@ export function VoiceSection() {
   const [formEdgeVoiceId, setFormEdgeVoiceId] = useState('');
   const [formSpeed, setFormSpeed] = useState('1.0');
 
+  const providerOptions: Array<{ value: ProviderOption; label: string }> = [
+    { value: 'edge', label: t('settings.voice.providerOptions.edge') },
+    { value: 'piper', label: t('settings.voice.providerOptions.piper') },
+    { value: 'kokoro', label: t('settings.voice.providerOptions.kokoro') },
+    { value: 'elevenlabs', label: t('settings.voice.providerOptions.elevenlabs') },
+    { value: 'comfyui_elevenlabs', label: t('settings.voice.providerOptions.comfyui_elevenlabs') },
+  ];
+
+  // Filter tabs — brand names stay constant; only "All" is translated.
+  const filterTabs: Array<{ value: ProviderFilter; label: string }> = [
+    { value: 'all', label: t('settings.voice.filters.all') },
+    { value: 'edge', label: 'Edge' },
+    { value: 'piper', label: 'Piper' },
+    { value: 'kokoro', label: 'Kokoro' },
+    { value: 'elevenlabs', label: 'ElevenLabs' },
+    { value: 'comfyui_elevenlabs', label: 'ComfyUI 11L' },
+  ];
+
   const fetchProfiles = useCallback(async () => {
     try {
       const res = await voiceProfiles.list();
       setProfiles(res);
     } catch (err) {
-      toast.error('Failed to load voice profiles', { description: String(err) });
+      toast.error(t('settings.voice.loadFailed'), { description: String(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void fetchProfiles();
@@ -367,12 +374,12 @@ export function VoiceSection() {
         edge_voice_id: formProvider === 'edge' ? formEdgeVoiceId.trim() || undefined : undefined,
         gender,
       });
-      toast.success('Voice profile added');
+      toast.success(t('settings.voice.addedToast'));
       setDialogOpen(false);
       resetForm();
       void fetchProfiles();
     } catch (err) {
-      toast.error('Failed to add voice profile', { description: String(err) });
+      toast.error(t('settings.voice.addFailed'), { description: String(err) });
     } finally {
       setCreating(false);
     }
@@ -394,7 +401,7 @@ export function VoiceSection() {
     try {
       const result = await voiceProfiles.test(id);
       if (result.audio_path) {
-        toast.success('Voice sample generated — playing');
+        toast.success(t('settings.voice.sampleGenerated'));
         void fetchProfiles();
         let src = result.audio_path;
         const idx = src.indexOf('storage/');
@@ -406,7 +413,7 @@ export function VoiceSection() {
         });
       }
     } catch (err) {
-      toast.error('Failed to generate voice sample', { description: String(err) });
+      toast.error(t('settings.voice.testFailed'), { description: String(err) });
     } finally {
       setTesting(null);
     }
@@ -415,10 +422,10 @@ export function VoiceSection() {
   const handleDelete = async (id: string) => {
     try {
       await voiceProfiles.delete(id);
-      toast.success('Voice profile deleted');
+      toast.success(t('settings.voice.deletedToast'));
       void fetchProfiles();
     } catch (err) {
-      toast.error('Failed to delete voice profile', { description: String(err) });
+      toast.error(t('settings.voice.deleteFailed'), { description: String(err) });
     }
   };
 
@@ -467,23 +474,23 @@ export function VoiceSection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-txt-primary">
-          Voice Profiles
+          {t('settings.voice.heading')}
         </h3>
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={() => setCloneOpen(true)}>
             <Mic2 size={14} />
-            Clone voice
+            {t('settings.voice.cloneVoice')}
           </Button>
           <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)}>
             <Plus size={14} />
-            Add Profile
+            {t('settings.voice.addProfile')}
           </Button>
         </div>
       </div>
 
       {/* Provider filter tabs */}
       <div className="flex items-center gap-1 p-1 bg-bg-elevated rounded-md w-fit">
-        {FILTER_TABS.map((tab) => (
+        {filterTabs.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setFilter(tab.value)}
@@ -509,8 +516,8 @@ export function VoiceSection() {
           icon={Mic2}
           title={
             filter === 'all'
-              ? 'No voice profiles configured'
-              : `No ${filter} voice profiles`
+              ? t('settings.voice.emptyAll')
+              : t('settings.voice.emptyFiltered', { provider: filter })
           }
         />
       ) : (
@@ -527,11 +534,11 @@ export function VoiceSection() {
                       {p.provider}
                     </Badge>
                     <span className="text-[10px] text-txt-tertiary">
-                      {p.speed}x speed
+                      {t('settings.voice.speedSuffix', { speed: p.speed })}
                     </span>
                     {p.sample_audio_path && p.provider === 'elevenlabs' && !p.elevenlabs_voice_id && (
                       <Badge variant="neutral" className="text-[10px]">
-                        clone · pending training
+                        {t('settings.voice.clonePendingBadge')}
                       </Badge>
                     )}
                   </div>
@@ -547,11 +554,11 @@ export function VoiceSection() {
               </div>
 
               <p className="text-[11px] text-txt-tertiary mt-2 truncate">
-                {p.piper_model_path && `Model: ${p.piper_model_path}`}
-                {p.elevenlabs_voice_id && `Voice: ${p.elevenlabs_voice_id}`}
-                {p.kokoro_voice_name && `Voice: ${p.kokoro_voice_name}`}
-                {p.edge_voice_id && `Voice: ${p.edge_voice_id}`}
-                {!p.piper_model_path && !p.elevenlabs_voice_id && !p.kokoro_voice_name && !p.edge_voice_id && 'Default configuration'}
+                {p.piper_model_path && t('settings.voice.modelLabel', { path: p.piper_model_path })}
+                {p.elevenlabs_voice_id && t('settings.voice.voiceLabel', { value: p.elevenlabs_voice_id })}
+                {p.kokoro_voice_name && t('settings.voice.voiceLabel', { value: p.kokoro_voice_name })}
+                {p.edge_voice_id && t('settings.voice.voiceLabel', { value: p.edge_voice_id })}
+                {!p.piper_model_path && !p.elevenlabs_voice_id && !p.kokoro_voice_name && !p.edge_voice_id && t('settings.voice.defaultConfig')}
               </p>
 
               <div className="mt-auto pt-3 flex items-center gap-2">
@@ -567,7 +574,7 @@ export function VoiceSection() {
                       ].join(' ')}
                     >
                       {playingId === p.id ? <Pause size={12} /> : <Play size={12} />}
-                      {playingId === p.id ? 'Pause' : 'Preview'}
+                      {playingId === p.id ? t('settings.voice.pauseButton') : t('settings.voice.previewButton')}
                     </button>
                     <audio
                       id={`audio-${p.id}`}
@@ -583,7 +590,7 @@ export function VoiceSection() {
                     onClick={() => void handleTest(p.id)}
                   >
                     <Volume2 size={12} />
-                    Generate Sample
+                    {t('settings.voice.generateSample')}
                   </Button>
                 )}
               </div>
@@ -595,69 +602,69 @@ export function VoiceSection() {
       <Dialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); resetForm(); }}
-        title="Add Voice Profile"
+        title={t('settings.voice.dialog.title')}
       >
         <div className="space-y-4">
           <Input
-            label="Name"
+            label={t('settings.voice.dialog.nameLabel')}
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
-            placeholder="e.g., Narrator Voice"
+            placeholder={t('settings.voice.dialog.namePlaceholder')}
           />
           <Select
-            label="Provider"
+            label={t('settings.voice.dialog.providerLabel')}
             value={formProvider}
             onChange={(e) =>
               setFormProvider(e.target.value as ProviderOption)
             }
-            options={PROVIDER_OPTIONS}
+            options={providerOptions}
           />
           {formProvider === 'edge' && (
             <Input
-              label="Edge Voice ID"
+              label={t('settings.voice.dialog.edgeVoiceIdLabel')}
               value={formEdgeVoiceId}
               onChange={(e) => setFormEdgeVoiceId(e.target.value)}
-              placeholder="e.g., en-US-AriaNeural"
-              hint="Microsoft Edge neural voice name. Leave empty for default."
+              placeholder={t('settings.voice.dialog.edgeVoiceIdPlaceholder')}
+              hint={t('settings.voice.dialog.edgeVoiceIdHint')}
             />
           )}
           {formProvider === 'piper' && (
             <Input
-              label="Piper Model Path"
+              label={t('settings.voice.dialog.piperModelLabel')}
               value={formPiperModel}
               onChange={(e) => setFormPiperModel(e.target.value)}
-              placeholder="Path to .onnx model file"
+              placeholder={t('settings.voice.dialog.piperModelPlaceholder')}
             />
           )}
           {formProvider === 'kokoro' && (
             <>
               <Input
-                label="Kokoro Voice Name"
+                label={t('settings.voice.dialog.kokoroVoiceLabel')}
                 value={formKokoroVoiceName}
                 onChange={(e) => setFormKokoroVoiceName(e.target.value)}
-                placeholder="e.g., af_bella"
+                placeholder={t('settings.voice.dialog.kokoroVoicePlaceholder')}
               />
               <Input
-                label="Kokoro Model Path (optional)"
+                label={t('settings.voice.dialog.kokoroModelLabel')}
                 value={formKokoroModelPath}
                 onChange={(e) => setFormKokoroModelPath(e.target.value)}
-                placeholder="Path to Kokoro model file"
+                placeholder={t('settings.voice.dialog.kokoroModelPlaceholder')}
               />
             </>
           )}
           {formProvider === 'elevenlabs' && (
             <Input
-              label="ElevenLabs Voice ID"
+              label={t('settings.voice.dialog.elevenlabsVoiceIdLabel')}
               value={formElevenLabsId}
               onChange={(e) => setFormElevenLabsId(e.target.value)}
-              placeholder="Voice ID from ElevenLabs"
+              placeholder={t('settings.voice.dialog.elevenlabsVoiceIdPlaceholder')}
             />
           )}
           {formProvider === 'comfyui_elevenlabs' && (
             <Select
-              label="ElevenLabs Voice"
+              label={t('settings.voice.dialog.elevenlabsSelectLabel')}
               value={formElevenLabsId}
-              placeholder="Select a voice..."
+              placeholder={t('settings.voice.dialog.elevenlabsSelectPlaceholder')}
               onChange={(e) => {
                 setFormElevenLabsId(e.target.value);
                 if (!formName.trim() || formName.startsWith('ElevenLabs ')) {
@@ -669,16 +676,16 @@ export function VoiceSection() {
             />
           )}
           <Input
-            label="Speed"
+            label={t('settings.voice.dialog.speedLabel')}
             type="number"
             value={formSpeed}
             onChange={(e) => setFormSpeed(e.target.value)}
-            hint="1.0 = normal speed. Range: 0.5 - 2.0"
+            hint={t('settings.voice.dialog.speedHint')}
           />
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }}>
-            Cancel
+            {t('settings.voice.dialog.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -686,7 +693,7 @@ export function VoiceSection() {
             disabled={!formName.trim()}
             onClick={() => void handleCreate()}
           >
-            Add Profile
+            {t('settings.voice.dialog.submit')}
           </Button>
         </DialogFooter>
       </Dialog>
