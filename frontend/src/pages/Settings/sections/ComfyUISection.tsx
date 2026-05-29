@@ -8,6 +8,7 @@ import {
   XCircle,
   Edit3,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +21,7 @@ import { comfyuiServers } from '@/lib/api';
 import type { ComfyUIServer } from '@/types';
 
 export function ComfyUISection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [servers, setServers] = useState<ComfyUIServer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,11 +51,11 @@ export function ComfyUISection() {
       const res = await comfyuiServers.list();
       setServers(res);
     } catch (err) {
-      toast.error('Failed to load ComfyUI servers', { description: String(err) });
+      toast.error(t('settings.comfyui.loadFailed'), { description: String(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void fetchServers();
@@ -94,12 +96,12 @@ export function ComfyUISection() {
           max_concurrent: Number(formMaxConcurrent),
         });
       }
-      toast.success(editingServer ? 'Server updated' : 'Server added');
+      toast.success(editingServer ? t('settings.comfyui.updatedToast') : t('settings.comfyui.addedToast'));
       setDialogOpen(false);
       resetForm();
       void fetchServers();
     } catch (err) {
-      toast.error(editingServer ? 'Failed to update server' : 'Failed to add server', { description: String(err) });
+      toast.error(editingServer ? t('settings.comfyui.updateFailed') : t('settings.comfyui.addFailed'), { description: String(err) });
     } finally {
       setCreating(false);
     }
@@ -111,7 +113,7 @@ export function ComfyUISection() {
       await comfyuiServers.update(srv.id, { is_active: !srv.is_active });
       void fetchServers();
     } catch (err) {
-      toast.error('Failed to update server status', { description: String(err) });
+      toast.error(t('settings.comfyui.statusUpdateFailed'), { description: String(err) });
     } finally {
       setToggling(null);
     }
@@ -129,7 +131,7 @@ export function ComfyUISection() {
     } catch {
       setTestResults((prev) => ({
         ...prev,
-        [id]: { success: false, message: 'Test request failed' },
+        [id]: { success: false, message: t('settings.comfyui.testFailedFallback') },
       }));
     } finally {
       setTesting(null);
@@ -139,10 +141,10 @@ export function ComfyUISection() {
   const handleDelete = async (id: string) => {
     try {
       await comfyuiServers.delete(id);
-      toast.success('Server removed');
+      toast.success(t('settings.comfyui.removedToast'));
       void fetchServers();
     } catch (err) {
-      toast.error('Failed to remove server', { description: String(err) });
+      toast.error(t('settings.comfyui.removeFailed'), { description: String(err) });
     }
   };
 
@@ -152,19 +154,19 @@ export function ComfyUISection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-txt-primary">
-          ComfyUI Servers
+          {t('settings.comfyui.heading')}
         </h3>
         <Button variant="primary" size="sm" onClick={openCreateDialog}>
           <Plus size={14} />
-          Add Server
+          {t('settings.comfyui.addServer')}
         </Button>
       </div>
 
       {servers.length === 0 ? (
         <EmptyState
           icon={Server}
-          title="No ComfyUI servers configured"
-          description="Add a server above to start generating scenes."
+          title={t('settings.comfyui.emptyTitle')}
+          description={t('settings.comfyui.emptyDescription')}
         />
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -181,7 +183,7 @@ export function ComfyUISection() {
                           'w-2.5 h-2.5 rounded-full shrink-0',
                           srv.is_active ? 'bg-success' : 'bg-txt-tertiary/40',
                         ].join(' ')}
-                        title={srv.is_active ? 'Active' : 'Inactive'}
+                        title={srv.is_active ? t('settings.comfyui.active') : t('settings.comfyui.inactive')}
                       />
                       <h4 className="text-sm font-semibold text-txt-primary truncate">
                         {srv.name}
@@ -196,7 +198,7 @@ export function ComfyUISection() {
                     onClick={() => void handleToggleActive(srv)}
                     disabled={toggling === srv.id}
                     className="shrink-0"
-                    title={srv.is_active ? 'Disable server' : 'Enable server'}
+                    title={srv.is_active ? t('settings.comfyui.disableServer') : t('settings.comfyui.enableServer')}
                   >
                     <div className={[
                       'w-9 h-5 rounded-full transition-colors duration-fast relative',
@@ -213,10 +215,10 @@ export function ComfyUISection() {
                 {/* Info row */}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <Badge variant="neutral" className="text-[10px]">
-                    Max: {srv.max_concurrent}
+                    {t('settings.comfyui.maxBadge', { value: srv.max_concurrent })}
                   </Badge>
                   {srv.has_api_key && (
-                    <Badge variant="accent" className="text-[10px]">API key set</Badge>
+                    <Badge variant="accent" className="text-[10px]">{t('settings.comfyui.apiKeyBadge')}</Badge>
                   )}
                   {srv.last_test_status && (
                     <Badge
@@ -231,7 +233,7 @@ export function ComfyUISection() {
                 {/* Last tested timestamp */}
                 {srv.last_tested_at && (
                   <p className="text-[10px] text-txt-tertiary mt-1">
-                    Tested: {new Date(srv.last_tested_at).toLocaleString()}
+                    {t('settings.comfyui.testedAt', { date: new Date(srv.last_tested_at).toLocaleString() })}
                   </p>
                 )}
 
@@ -260,7 +262,7 @@ export function ComfyUISection() {
                     onClick={() => void handleTest(srv.id)}
                   >
                     <TestTube2 size={12} />
-                    Test
+                    {t('settings.comfyui.test')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -268,7 +270,7 @@ export function ComfyUISection() {
                     onClick={() => openEditDialog(srv)}
                   >
                     <Edit3 size={12} />
-                    Edit
+                    {t('settings.comfyui.edit')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -288,30 +290,30 @@ export function ComfyUISection() {
       <Dialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); resetForm(); }}
-        title={editingServer ? 'Edit ComfyUI Server' : 'Add ComfyUI Server'}
+        title={editingServer ? t('settings.comfyui.dialog.editTitle') : t('settings.comfyui.dialog.addTitle')}
       >
         <div className="space-y-4">
           <Input
-            label="Name"
+            label={t('settings.comfyui.dialog.nameLabel')}
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
-            placeholder="My ComfyUI Server"
+            placeholder={t('settings.comfyui.dialog.namePlaceholder')}
           />
           <Input
-            label="URL"
+            label={t('settings.comfyui.dialog.urlLabel')}
             value={formUrl}
             onChange={(e) => setFormUrl(e.target.value)}
-            placeholder="http://localhost:8188"
+            placeholder={t('settings.comfyui.dialog.urlPlaceholder')}
           />
           <Input
-            label={editingServer ? 'API Key (leave blank to keep current)' : 'API Key (optional)'}
+            label={editingServer ? t('settings.comfyui.dialog.apiKeyLabelEdit') : t('settings.comfyui.dialog.apiKeyLabelCreate')}
             type="password"
             value={formApiKey}
             onChange={(e) => setFormApiKey(e.target.value)}
-            placeholder="Optional API key..."
+            placeholder={t('settings.comfyui.dialog.apiKeyPlaceholder')}
           />
           <Input
-            label="Max Concurrent Jobs"
+            label={t('settings.comfyui.dialog.maxConcurrentLabel')}
             type="number"
             value={formMaxConcurrent}
             onChange={(e) => setFormMaxConcurrent(e.target.value)}
@@ -319,7 +321,7 @@ export function ComfyUISection() {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }}>
-            Cancel
+            {t('settings.comfyui.dialog.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -327,7 +329,7 @@ export function ComfyUISection() {
             disabled={!formName.trim() || !formUrl.trim()}
             onClick={() => void handleSave()}
           >
-            {editingServer ? 'Save Changes' : 'Add Server'}
+            {editingServer ? t('settings.comfyui.dialog.saveChanges') : t('settings.comfyui.dialog.addButton')}
           </Button>
         </DialogFooter>
       </Dialog>

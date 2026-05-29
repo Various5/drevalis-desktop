@@ -8,6 +8,7 @@ import {
   XCircle,
   Edit3,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +21,7 @@ import { llmConfigs } from '@/lib/api';
 import type { LLMConfig } from '@/types';
 
 export function LLMSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [configs, setConfigs] = useState<LLMConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,11 +54,11 @@ export function LLMSection() {
       const res = await llmConfigs.list();
       setConfigs(res);
     } catch (err) {
-      toast.error('Failed to load LLM configurations', { description: String(err) });
+      toast.error(t('settings.llm.loadFailed'), { description: String(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void fetchConfigs();
@@ -102,12 +104,12 @@ export function LLMSection() {
           temperature: Number(formTemperature),
         });
       }
-      toast.success(editingConfig ? 'LLM config updated' : 'LLM config added');
+      toast.success(editingConfig ? t('settings.llm.updatedToast') : t('settings.llm.addedToast'));
       setDialogOpen(false);
       resetForm();
       void fetchConfigs();
     } catch (err) {
-      toast.error(editingConfig ? 'Failed to update LLM config' : 'Failed to add LLM config', { description: String(err) });
+      toast.error(editingConfig ? t('settings.llm.updateFailed') : t('settings.llm.addFailed'), { description: String(err) });
     } finally {
       setCreating(false);
     }
@@ -126,10 +128,10 @@ export function LLMSection() {
         },
       }));
     } catch (err) {
-      toast.error('LLM test request failed', { description: String(err) });
+      toast.error(t('settings.llm.testRequestFailed'), { description: String(err) });
       setTestResults((prev) => ({
         ...prev,
-        [id]: { success: false, message: 'Test request failed' },
+        [id]: { success: false, message: t('settings.llm.testFailedFallback') },
       }));
     } finally {
       setTesting(null);
@@ -139,10 +141,10 @@ export function LLMSection() {
   const handleDelete = async (id: string) => {
     try {
       await llmConfigs.delete(id);
-      toast.success('LLM config deleted');
+      toast.success(t('settings.llm.deletedToast'));
       void fetchConfigs();
     } catch (err) {
-      toast.error('Failed to delete LLM config', { description: String(err) });
+      toast.error(t('settings.llm.deleteFailed'), { description: String(err) });
     }
   };
 
@@ -152,19 +154,19 @@ export function LLMSection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-txt-primary">
-          LLM Configurations
+          {t('settings.llm.heading')}
         </h3>
         <Button variant="primary" size="sm" onClick={openCreateDialog}>
           <Plus size={14} />
-          Add Config
+          {t('settings.llm.addConfig')}
         </Button>
       </div>
 
       {configs.length === 0 ? (
         <EmptyState
           icon={Brain}
-          title="No LLM configurations yet"
-          description="Add an endpoint above (LM Studio, Ollama, OpenAI, or Anthropic) to power scripts."
+          title={t('settings.llm.emptyTitle')}
+          description={t('settings.llm.emptyDescription')}
         />
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -181,7 +183,7 @@ export function LLMSection() {
                     <div className="flex items-center gap-1.5 mt-1">
                       <Badge variant="accent" className="text-[10px]">{c.model_name}</Badge>
                       {c.has_api_key && (
-                        <Badge variant="info" className="text-[10px]">API key</Badge>
+                        <Badge variant="info" className="text-[10px]">{t('settings.llm.apiKeyBadge')}</Badge>
                       )}
                     </div>
                   </div>
@@ -200,7 +202,7 @@ export function LLMSection() {
                   {c.base_url}
                 </p>
                 <p className="text-[10px] text-txt-tertiary mt-1">
-                  Max tokens: {c.max_tokens} | Temp: {c.temperature}
+                  {t('settings.llm.maxTokensLabel', { value: c.max_tokens, temp: c.temperature })}
                 </p>
 
                 {/* Inline test result */}
@@ -232,7 +234,7 @@ export function LLMSection() {
                     onClick={() => void handleTest(c.id)}
                   >
                     <TestTube2 size={12} />
-                    Test
+                    {t('settings.llm.test')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -240,7 +242,7 @@ export function LLMSection() {
                     onClick={() => openEditDialog(c)}
                   >
                     <Edit3 size={12} />
-                    Edit
+                    {t('settings.llm.edit')}
                   </Button>
                 </div>
               </Card>
@@ -252,53 +254,53 @@ export function LLMSection() {
       <Dialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); resetForm(); }}
-        title={editingConfig ? 'Edit LLM Configuration' : 'Add LLM Configuration'}
+        title={editingConfig ? t('settings.llm.dialog.editTitle') : t('settings.llm.dialog.addTitle')}
       >
         <div className="space-y-4">
           <Input
-            label="Name"
+            label={t('settings.llm.dialog.nameLabel')}
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
-            placeholder="e.g., GPT-4 Local"
+            placeholder={t('settings.llm.dialog.namePlaceholder')}
           />
           <Input
-            label="Base URL"
+            label={t('settings.llm.dialog.baseUrlLabel')}
             value={formBaseUrl}
             onChange={(e) => setFormBaseUrl(e.target.value)}
-            placeholder="http://localhost:11434/v1"
+            placeholder={t('settings.llm.dialog.baseUrlPlaceholder')}
           />
           <Input
-            label="Model Name"
+            label={t('settings.llm.dialog.modelLabel')}
             value={formModel}
             onChange={(e) => setFormModel(e.target.value)}
-            placeholder="e.g., llama3, gpt-4"
+            placeholder={t('settings.llm.dialog.modelPlaceholder')}
           />
           <Input
-            label={editingConfig ? 'API Key (leave blank to keep current)' : 'API Key (optional)'}
+            label={editingConfig ? t('settings.llm.dialog.apiKeyLabelEdit') : t('settings.llm.dialog.apiKeyLabelCreate')}
             type="password"
             value={formApiKey}
             onChange={(e) => setFormApiKey(e.target.value)}
-            placeholder="Optional API key..."
+            placeholder={t('settings.llm.dialog.apiKeyPlaceholder')}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Max Tokens"
+              label={t('settings.llm.dialog.maxTokensLabel')}
               type="number"
               value={formMaxTokens}
               onChange={(e) => setFormMaxTokens(e.target.value)}
             />
             <Input
-              label="Temperature"
+              label={t('settings.llm.dialog.temperatureLabel')}
               type="number"
               value={formTemperature}
               onChange={(e) => setFormTemperature(e.target.value)}
-              hint="0.0 = deterministic, 1.0 = creative"
+              hint={t('settings.llm.dialog.temperatureHint')}
             />
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }}>
-            Cancel
+            {t('settings.llm.dialog.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -308,7 +310,7 @@ export function LLMSection() {
             }
             onClick={() => void handleSave()}
           >
-            {editingConfig ? 'Save Changes' : 'Add Config'}
+            {editingConfig ? t('settings.llm.dialog.saveChanges') : t('settings.llm.dialog.addButton')}
           </Button>
         </DialogFooter>
       </Dialog>
