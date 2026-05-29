@@ -170,6 +170,168 @@
       ],
       "exposeConfirmLabel": "LAN-Zugriff aktivieren"
     },
+    "license": {
+      "loading": "Lizenz wird geladen…",
+      "heading": "Lizenz",
+      "intro": "Deine Abonnement-Berechtigungen und Sitzplatzinformationen.",
+      "stateBadges": {
+        "active": "Aktiv",
+        "grace": "Kulanzzeitraum",
+        "expired": "Abgelaufen",
+        "invalid": "Ungültig",
+        "unactivated": "Nicht aktiviert"
+      },
+      "labels": {
+        "status": "Status",
+        "tier": "Stufe",
+        "paidThrough": "Bezahlt bis",
+        "licenseExpiry": "Lizenz",
+        "hardExpiry": "Endgültiges Ablaufdatum (+ 7 Tage Kulanz)",
+        "updatesIncludedUntil": "Updates inklusive bis",
+        "neverExpires": "Läuft nie ab",
+        "seatCap": "Sitzplatz-Limit",
+        "machineSingular": "Gerät",
+        "machinePlural": "Geräte",
+        "features": "Funktionen",
+        "thisMachine": "Dieses Gerät",
+        "activatedAt": "Aktiviert {{date}}"
+      },
+      "lifetimeUpdatesUntil": "Updates inklusive bis {{date}}",
+      "tierLifetime": "Lifetime (Pro)",
+      "expiresToday": "Läuft heute ab",
+      "daysLeft_one": "Noch {{count}} Tag",
+      "daysLeft_other": "Noch {{count}} Tage",
+      "expiredBadge": "Abgelaufen",
+      "manage": {
+        "title": "Abonnement verwalten",
+        "intro": "Upgrade, Downgrade, Zahlungsmethode ändern, Rechnungen einsehen oder kündigen — über das Abrechnungsportal von Stripe.",
+        "opening": "Wird geöffnet…",
+        "openPortal": "Portal öffnen",
+        "errorTitle": "Abrechnungsportal nicht verfügbar",
+        "errorDefault": "Abrechnungsportal konnte nicht geöffnet werden"
+      },
+      "lifetime": {
+        "title": "Lifetime (Pro) — danke.",
+        "introWithDate": "Deine Lizenz ist dauerhaft. Es gibt kein Abrechnungsportal und nichts zu verlängern. Updates sind bis {{date}} enthalten; danach funktioniert die App weiter und du kannst die Updates jederzeit über dein Konto verlängern.",
+        "introNoDate": "Deine Lizenz ist dauerhaft. Es gibt kein Abrechnungsportal und nichts zu verlängern. Updates sind im enthaltenen Zeitraum gebündelt; danach funktioniert die App weiter und du kannst die Updates jederzeit über dein Konto verlängern."
+      },
+      "upgrade": {
+        "title": "Upgrade auf Lifetime (Pro)",
+        "intro": "Einmalig CHF 899. Behält den Pro-Funktionsumfang, verlängert sich nie. 3 Jahre Updates inklusive. Begrenzt auf die ersten 100 Plätze.",
+        "button": "Upgraden"
+      },
+      "replace": {
+        "title": "Lizenzschlüssel ersetzen",
+        "intro": "Füge einen neuen JWT ein, um die Stufe zu wechseln oder das Abonnement zu verlängern.",
+        "placeholder": "eyJhbGciOiJFZERTQSI...",
+        "activating": "Wird aktiviert…",
+        "replace": "Ersetzen",
+        "successToast": "Lizenz ersetzt",
+        "errorTitle": "Aktivierung fehlgeschlagen",
+        "errorDefault": "Aktivierung fehlgeschlagen"
+      },
+      "machines": {
+        "title": "Aktivierte Geräte",
+        "introUsage": "{{used}} von {{cap}} Plätzen auf deiner {{tier}}-Stufe belegt.",
+        "introFallback": "Aktuell von diesem Lizenzschlüssel belegte Plätze.",
+        "refreshTitle": "Sitzplatzliste neu prüfen",
+        "loading": "Wird geladen...",
+        "unavailable": "Sitzplatzliste nicht verfügbar.",
+        "empty": "Aktuell keine Geräte registriert.",
+        "thisMachineBadge": "Dieses Gerät",
+        "versionPrefix": "v",
+        "firstSeen": "Erstmals gesehen {{when}}",
+        "lastHeartbeat": "Letztes Signal {{when}}",
+        "deactivateSelfTitle": "Dieses Gerät deaktivieren (App wird gesperrt)",
+        "deactivateRemoteTitle": "Den Platz dieses Remote-Geräts freigeben",
+        "deactivateButton": "Deaktivieren",
+        "deactivatingButton": "Wird ausgeführt...",
+        "confirmDeactivateSelf": "Den Platz DIESES Geräts deaktivieren? Die App wird gesperrt, bis du eine neue Lizenz einfügst.",
+        "confirmDeactivateRemote": "Den vom Gerät {{machine}}… belegten Platz freigeben? Die andere Installation wird beim nächsten Signal gesperrt.",
+        "selfDeactivatedToast": "Dieses Gerät deaktiviert",
+        "seatReleasedToast": "Platz freigegeben",
+        "deactivationFailedToast": "Deaktivierung fehlgeschlagen"
+      },
+      "seatList": {
+        "warningTitle": "Sitzplatzliste nicht verfügbar",
+        "warningBody": "Der Lizenzserver hat einen Fehler zurückgegeben. Dies ist typischerweise eine veraltete Lizenzserver-Bereitstellung — deine Lizenz funktioniert weiterhin. Verwende die Aktualisierungs-Schaltfläche oben, um es erneut zu versuchen."
+      },
+      "deactivate": {
+        "title": "Dieses Gerät deaktivieren",
+        "intro": "Löscht die gespeicherte Lizenz. Die App wird gesperrt, bis ein neuer Schlüssel eingefügt wird. Entspricht dem Klick auf „Deaktivieren“ neben der hervorgehobenen Zeile oben.",
+        "button": "Deaktivieren",
+        "working": "Wird ausgeführt...",
+        "confirm": "Lizenz auf diesem Gerät deaktivieren? Die App wird gesperrt, bis du erneut aktivierst.",
+        "successToast": "Lizenz deaktiviert",
+        "failedToast": "Deaktivierung fehlgeschlagen"
+      },
+      "machineIdCopiedToast": "Geräte-ID kopiert",
+      "copyFailedToast": "Kopieren fehlgeschlagen",
+      "relativeTime": {
+        "justNow": "gerade eben",
+        "minAgo_one": "vor {{count}} Min.",
+        "minAgo_other": "vor {{count}} Min.",
+        "hAgo": "vor {{count}} Std.",
+        "dAgo": "vor {{count}} T.",
+        "dash": "-"
+      }
+    },
+    "apiKeys": {
+      "heading": "API-Schlüssel",
+      "intro": "Verschlüsselte API-Schlüssel für Drittanbieter-Dienste verwalten. Schlüssel werden verschlüsselt gespeichert.",
+      "dismissError": "Fehler ausblenden",
+      "integration": {
+        "title": "Integrationsstatus",
+        "configured": "Konfiguriert",
+        "notConfigured": "Nicht konfiguriert",
+        "items": {
+          "runpod": "Cloud-GPU-Pods — verwalten unter /cloud-gpu",
+          "vast_ai": "Spot-Market-GPU-Pods — verwalten unter /cloud-gpu",
+          "lambda_labs": "On-Demand A100/H100 — verwalten unter /cloud-gpu",
+          "elevenlabs": "Premium-Text-zu-Sprache-Stimmen",
+          "anthropic": "Claude-LLM für Skript-Generierung",
+          "youtube": "Direkter Video-Upload via OAuth"
+        },
+        "ariaConfigured": "Konfiguriert",
+        "ariaNotConfigured": "Nicht konfiguriert"
+      },
+      "sources": {
+        "db": "Datenbank",
+        "env": "Umgebung"
+      },
+      "stored": {
+        "title": "Gespeicherte Schlüssel",
+        "refresh": "Aktualisieren",
+        "empty": "Keine API-Schlüssel in der Datenbank gespeichert.",
+        "emptyHint": "Schlüssel, die über Umgebungsvariablen gesetzt sind, werden oben unter Integrationsstatus angezeigt.",
+        "configuredBadge": "Konfiguriert",
+        "added": "Hinzugefügt {{date}}",
+        "updated": "Aktualisiert {{date}}",
+        "deleteAria": "{{key}}-API-Schlüssel löschen"
+      },
+      "add": {
+        "title": "Neuen Schlüssel hinzufügen",
+        "service": "Dienst",
+        "apiKey": "API-Schlüssel",
+        "placeholder": "Füge deinen API-Schlüssel hier ein...",
+        "showAria": "API-Schlüssel anzeigen",
+        "hideAria": "API-Schlüssel ausblenden",
+        "hint": "Dein Schlüssel wird vor dem Speichern in der Datenbank verschlüsselt.",
+        "save": "Schlüssel speichern"
+      },
+      "toasts": {
+        "saved": "{{key}}-API-Schlüssel erfolgreich gespeichert.",
+        "removed": "{{key}}-API-Schlüssel entfernt.",
+        "saveFailed": "API-Schlüssel konnte nicht gespeichert werden.",
+        "deleteFailed": "API-Schlüssel konnte nicht gelöscht werden."
+      },
+      "delete": {
+        "title": "API-Schlüssel löschen",
+        "body": "Möchtest du den <1>{{key}}</1>-API-Schlüssel wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden. Wenn der Dienst auf diesen Schlüssel angewiesen ist, wird er nicht mehr funktionieren.",
+        "cancel": "Abbrechen",
+        "confirm": "Schlüssel löschen"
+      }
+    },
     "team": {
       "loading": "Team wird geladen…",
       "loadFailed": "Benutzer konnten nicht geladen werden",

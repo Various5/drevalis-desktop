@@ -11,6 +11,7 @@ import {
   EyeOff,
   Zap,
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -23,6 +24,8 @@ import { apiKeys as apiKeysApi } from '@/lib/api';
 // Constants / helpers
 // ---------------------------------------------------------------------------
 
+// Brand-named service credentials — kept in source to match the labels the
+// user sees in each third-party provider's own console. Not translated.
 export const KEY_NAME_OPTIONS = [
   { value: 'runpod', label: 'RunPod API Key' },
   { value: 'vastai_api_key', label: 'Vast.ai API Key' },
@@ -40,12 +43,6 @@ export const KEY_NAME_OPTIONS = [
   { value: 'youtube_client_secret', label: 'YouTube Client Secret' },
   { value: 'hf_token', label: 'HuggingFace Token' },
 ];
-
-export function sourceLabel(source: string): string {
-  if (source === 'db') return 'Database';
-  if (source === 'env') return 'Environment';
-  return source;
-}
 
 export function sourceBadgeVariant(source: string): string {
   if (source === 'db') return 'accent';
@@ -68,52 +65,53 @@ interface IntegrationInfo {
   source: string;
 }
 
+// Brand names stay constant; description text is translated via i18n key.
 const INTEGRATION_DEFS: Array<{
   id: string;
   label: string;
-  description: string;
+  i18nKey: string;
   iconBg: string;
   iconColor: string;
 }> = [
   {
     id: 'runpod',
     label: 'RunPod',
-    description: 'Cloud GPU pods — manage at /cloud-gpu',
+    i18nKey: 'settings.apiKeys.integration.items.runpod',
     iconBg: 'bg-violet-500/10',
     iconColor: 'text-violet-400',
   },
   {
     id: 'vast_ai',
     label: 'Vast.ai',
-    description: 'Spot-market GPU pods — manage at /cloud-gpu',
+    i18nKey: 'settings.apiKeys.integration.items.vast_ai',
     iconBg: 'bg-sky-500/10',
     iconColor: 'text-sky-400',
   },
   {
     id: 'lambda_labs',
     label: 'Lambda Labs',
-    description: 'On-demand A100/H100 — manage at /cloud-gpu',
+    i18nKey: 'settings.apiKeys.integration.items.lambda_labs',
     iconBg: 'bg-teal-500/10',
     iconColor: 'text-teal-400',
   },
   {
     id: 'elevenlabs',
     label: 'ElevenLabs',
-    description: 'Premium text-to-speech voices',
+    i18nKey: 'settings.apiKeys.integration.items.elevenlabs',
     iconBg: 'bg-amber-500/10',
     iconColor: 'text-amber-400',
   },
   {
     id: 'anthropic',
     label: 'Anthropic',
-    description: 'Claude LLM for script generation',
+    i18nKey: 'settings.apiKeys.integration.items.anthropic',
     iconBg: 'bg-orange-500/10',
     iconColor: 'text-orange-400',
   },
   {
     id: 'youtube',
     label: 'YouTube',
-    description: 'Direct video upload via OAuth',
+    i18nKey: 'settings.apiKeys.integration.items.youtube',
     iconBg: 'bg-red-500/10',
     iconColor: 'text-red-400',
   },
@@ -124,6 +122,7 @@ const INTEGRATION_DEFS: Array<{
 // ---------------------------------------------------------------------------
 
 export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { onNavigateToApiKeys: () => void }) {
+  const { t } = useTranslation();
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [integrations, setIntegrations] = useState<Record<string, IntegrationInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -139,6 +138,12 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
   const [showApiKey, setShowApiKey] = useState(false);
 
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sourceLabel = (source: string): string => {
+    if (source === 'db') return t('settings.apiKeys.sources.db');
+    if (source === 'env') return t('settings.apiKeys.sources.env');
+    return source;
+  };
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -173,10 +178,10 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
     try {
       await apiKeysApi.store(formKeyName, formApiKey.trim());
       setFormApiKey('');
-      showSuccess(`${formKeyName} API key saved successfully.`);
+      showSuccess(t('settings.apiKeys.toasts.saved', { key: formKeyName }));
       void fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save API key.');
+      setError(err instanceof Error ? err.message : t('settings.apiKeys.toasts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -186,10 +191,10 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
     setDeletingKey(keyName);
     try {
       await apiKeysApi.remove(keyName);
-      showSuccess(`${keyName} API key removed.`);
+      showSuccess(t('settings.apiKeys.toasts.removed', { key: keyName }));
       void fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete API key.');
+      setError(err instanceof Error ? err.message : t('settings.apiKeys.toasts.deleteFailed'));
     } finally {
       setDeletingKey(null);
       setConfirmDelete(null);
@@ -202,9 +207,9 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold text-txt-primary">API Keys</h3>
+        <h3 className="text-lg font-semibold text-txt-primary">{t('settings.apiKeys.heading')}</h3>
         <p className="text-sm text-txt-secondary mt-0.5">
-          Manage encrypted API keys for third-party services. Keys are stored encrypted at rest.
+          {t('settings.apiKeys.intro')}
         </p>
       </div>
 
@@ -230,7 +235,7 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
           <button
             className="ml-auto text-error/60 hover:text-error transition-colors"
             onClick={() => setError(null)}
-            aria-label="Dismiss error"
+            aria-label={t('settings.apiKeys.dismissError')}
           >
             <XCircle size={14} />
           </button>
@@ -241,13 +246,13 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
       <Card padding="md">
         <h4 className="text-sm font-semibold text-txt-primary mb-3 flex items-center gap-2">
           <Zap size={14} className="text-accent" />
-          Integration Status
+          {t('settings.apiKeys.integration.title')}
         </h4>
         <div className="grid grid-cols-2 gap-3">
           {INTEGRATION_DEFS.map((def) => {
             const info = integrations[def.id];
             const configured = info?.configured ?? false;
-            const source = info?.source ?? 'Not configured';
+            const source = info?.source ?? t('settings.apiKeys.integration.notConfigured');
             return (
               <div
                 key={def.id}
@@ -258,13 +263,13 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-txt-primary leading-tight">{def.label}</p>
-                  <p className="text-[11px] text-txt-tertiary leading-tight mt-0.5 truncate">{def.description}</p>
+                  <p className="text-[11px] text-txt-tertiary leading-tight mt-0.5 truncate">{t(def.i18nKey)}</p>
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   {configured ? (
-                    <CheckCircle2 size={15} className="text-success" aria-label="Configured" />
+                    <CheckCircle2 size={15} className="text-success" aria-label={t('settings.apiKeys.integration.ariaConfigured')} />
                   ) : (
-                    <XCircle size={15} className="text-txt-tertiary/50" aria-label="Not configured" />
+                    <XCircle size={15} className="text-txt-tertiary/50" aria-label={t('settings.apiKeys.integration.ariaNotConfigured')} />
                   )}
                   {configured && (
                     <Badge variant={sourceBadgeVariant(source)} className="text-[10px] leading-none">
@@ -283,20 +288,20 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-txt-primary flex items-center gap-2">
             <Key size={14} className="text-accent" />
-            Stored Keys
+            {t('settings.apiKeys.stored.title')}
           </h4>
           <Button variant="ghost" size="sm" onClick={() => void fetchData()}>
             <RefreshCw size={12} />
-            Refresh
+            {t('settings.apiKeys.stored.refresh')}
           </Button>
         </div>
 
         {keys.length === 0 ? (
           <div className="py-8 text-center">
             <Key size={24} className="mx-auto text-txt-tertiary/40 mb-2" />
-            <p className="text-sm text-txt-tertiary">No API keys stored in database.</p>
+            <p className="text-sm text-txt-tertiary">{t('settings.apiKeys.stored.empty')}</p>
             <p className="text-xs text-txt-tertiary/70 mt-0.5">
-              Keys set via environment variables are shown in Integration Status above.
+              {t('settings.apiKeys.stored.emptyHint')}
             </p>
           </div>
         ) : (
@@ -314,7 +319,7 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-mono font-medium text-txt-primary">{k.key_name}</span>
-                      <Badge variant="success" className="text-[10px]">Configured</Badge>
+                      <Badge variant="success" className="text-[10px]">{t('settings.apiKeys.stored.configuredBadge')}</Badge>
                       {intInfo?.source && (
                         <Badge variant={sourceBadgeVariant(intInfo.source)} className="text-[10px]">
                           {sourceLabel(intInfo.source)}
@@ -322,9 +327,9 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
                       )}
                     </div>
                     <p className="text-[11px] text-txt-tertiary mt-0.5">
-                      Added {new Date(k.created_at).toLocaleDateString()}
+                      {t('settings.apiKeys.stored.added', { date: new Date(k.created_at).toLocaleDateString() })}
                       {k.updated_at !== k.created_at && (
-                        <span> · Updated {new Date(k.updated_at).toLocaleDateString()}</span>
+                        <span> · {t('settings.apiKeys.stored.updated', { date: new Date(k.updated_at).toLocaleDateString() })}</span>
                       )}
                     </p>
                   </div>
@@ -334,7 +339,7 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
                     loading={deletingKey === k.key_name}
                     onClick={() => setConfirmDelete(k.key_name)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-txt-tertiary hover:text-error shrink-0"
-                    aria-label={`Delete ${k.key_name} API key`}
+                    aria-label={t('settings.apiKeys.stored.deleteAria', { key: k.key_name })}
                   >
                     <Trash2 size={13} />
                   </Button>
@@ -349,18 +354,18 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
       <Card padding="md">
         <h4 className="text-sm font-semibold text-txt-primary mb-3 flex items-center gap-2">
           <Plus size={14} className="text-accent" />
-          Add New Key
+          {t('settings.apiKeys.add.title')}
         </h4>
         <div className="space-y-3">
           <Select
-            label="Service"
+            label={t('settings.apiKeys.add.service')}
             value={formKeyName}
             onChange={(e) => setFormKeyName(e.target.value)}
             options={KEY_NAME_OPTIONS}
           />
           <div>
             <label className="block text-xs font-medium text-txt-secondary mb-1" htmlFor="new-api-key-input">
-              API Key
+              {t('settings.apiKeys.add.apiKey')}
             </label>
             <div className="relative">
               <input
@@ -368,7 +373,7 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
                 type={showApiKey ? 'text' : 'password'}
                 value={formApiKey}
                 onChange={(e) => setFormApiKey(e.target.value)}
-                placeholder="Paste your API key here..."
+                placeholder={t('settings.apiKeys.add.placeholder')}
                 className="w-full h-8 pr-10 pl-2.5 text-sm text-txt-primary bg-bg-elevated border border-border rounded placeholder:text-txt-tertiary focus:border-accent focus:shadow-accent-glow transition-all duration-fast font-mono"
                 aria-describedby="api-key-hint"
               />
@@ -376,13 +381,13 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
                 type="button"
                 onClick={() => setShowApiKey((v) => !v)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-txt-tertiary hover:text-txt-secondary transition-colors"
-                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                aria-label={showApiKey ? t('settings.apiKeys.add.hideAria') : t('settings.apiKeys.add.showAria')}
               >
                 {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <p id="api-key-hint" className="text-[11px] text-txt-tertiary mt-1">
-              Your key is encrypted before being stored in the database.
+              {t('settings.apiKeys.add.hint')}
             </p>
           </div>
           <div className="flex justify-end">
@@ -394,7 +399,7 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
               onClick={() => void handleSave()}
             >
               <Key size={13} />
-              Save Key
+              {t('settings.apiKeys.add.save')}
             </Button>
           </div>
         </div>
@@ -404,15 +409,18 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
       <Dialog
         open={confirmDelete !== null}
         onClose={() => setConfirmDelete(null)}
-        title="Delete API Key"
+        title={t('settings.apiKeys.delete.title')}
       >
         <p className="text-sm text-txt-secondary">
-          Are you sure you want to delete the <strong className="text-txt-primary">{confirmDelete}</strong> API key?
-          This action cannot be undone. If the service relies on this key, it will stop working.
+          <Trans
+            i18nKey="settings.apiKeys.delete.body"
+            values={{ key: confirmDelete ?? '' }}
+            components={{ 1: <strong className="text-txt-primary" /> }}
+          />
         </p>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
-            Cancel
+            {t('settings.apiKeys.delete.cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -420,7 +428,7 @@ export function ApiKeysSection({ onNavigateToApiKeys: _onNavigateToApiKeys }: { 
             onClick={() => confirmDelete && void handleDelete(confirmDelete)}
           >
             <Trash2 size={13} />
-            Delete Key
+            {t('settings.apiKeys.delete.confirm')}
           </Button>
         </DialogFooter>
       </Dialog>

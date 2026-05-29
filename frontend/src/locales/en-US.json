@@ -170,6 +170,168 @@
       ],
       "exposeConfirmLabel": "Enable LAN access"
     },
+    "license": {
+      "loading": "Loading license…",
+      "heading": "License",
+      "intro": "Your subscription entitlements and seat information.",
+      "stateBadges": {
+        "active": "Active",
+        "grace": "Grace period",
+        "expired": "Expired",
+        "invalid": "Invalid",
+        "unactivated": "Unactivated"
+      },
+      "labels": {
+        "status": "Status",
+        "tier": "Tier",
+        "paidThrough": "Paid through",
+        "licenseExpiry": "License",
+        "hardExpiry": "Hard expiry (+ 7d grace)",
+        "updatesIncludedUntil": "Updates included until",
+        "neverExpires": "Never expires",
+        "seatCap": "Seat cap",
+        "machineSingular": "machine",
+        "machinePlural": "machines",
+        "features": "Features",
+        "thisMachine": "This machine",
+        "activatedAt": "Activated {{date}}"
+      },
+      "lifetimeUpdatesUntil": "Updates included until {{date}}",
+      "tierLifetime": "Lifetime (Pro)",
+      "expiresToday": "Expires today",
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left",
+      "expiredBadge": "Expired",
+      "manage": {
+        "title": "Manage subscription",
+        "intro": "Upgrade, downgrade, change payment method, view invoices, or cancel — handled by Stripe's billing portal.",
+        "opening": "Opening…",
+        "openPortal": "Open portal",
+        "errorTitle": "Billing portal unavailable",
+        "errorDefault": "could not open billing portal"
+      },
+      "lifetime": {
+        "title": "Lifetime (Pro) — thank you.",
+        "introWithDate": "Your license is permanent. There's no billing portal, nothing to renew. Updates are bundled through {{date}}; after that the app keeps working and you can extend updates anytime from your account page.",
+        "introNoDate": "Your license is permanent. There's no billing portal, nothing to renew. Updates are bundled through your included window; after that the app keeps working and you can extend updates anytime from your account page."
+      },
+      "upgrade": {
+        "title": "Upgrade to Lifetime (Pro)",
+        "intro": "One-time CHF 899. Keeps the Pro feature set, never renews. 3 years of updates included. Limited to the first 100 seats.",
+        "button": "Upgrade"
+      },
+      "replace": {
+        "title": "Replace license key",
+        "intro": "Paste a new JWT to switch tier or extend the subscription.",
+        "placeholder": "eyJhbGciOiJFZERTQSI...",
+        "activating": "Activating…",
+        "replace": "Replace",
+        "successToast": "License replaced",
+        "errorTitle": "Activation failed",
+        "errorDefault": "activation failed"
+      },
+      "machines": {
+        "title": "Activated machines",
+        "introUsage": "{{used}} of {{cap}} seats used on your {{tier}} tier.",
+        "introFallback": "Seats currently held by this license key.",
+        "refreshTitle": "Re-check seat list",
+        "loading": "Loading...",
+        "unavailable": "Seat list not available.",
+        "empty": "No machines currently registered.",
+        "thisMachineBadge": "This machine",
+        "versionPrefix": "v",
+        "firstSeen": "First seen {{when}}",
+        "lastHeartbeat": "Last heartbeat {{when}}",
+        "deactivateSelfTitle": "Deactivate this machine (the app will lock)",
+        "deactivateRemoteTitle": "Free the seat held by this remote machine",
+        "deactivateButton": "Deactivate",
+        "deactivatingButton": "Working...",
+        "confirmDeactivateSelf": "Deactivate THIS machine's seat? The app will lock until you paste a new license.",
+        "confirmDeactivateRemote": "Free the seat held by machine {{machine}}…? The other install locks on its next heartbeat.",
+        "selfDeactivatedToast": "This machine deactivated",
+        "seatReleasedToast": "Seat released",
+        "deactivationFailedToast": "Deactivation failed"
+      },
+      "seatList": {
+        "warningTitle": "Seat list unavailable",
+        "warningBody": "The license server returned an error. This is typically a stale license-server deployment — your license still works. Use the refresh button above to retry."
+      },
+      "deactivate": {
+        "title": "Deactivate this machine",
+        "intro": "Clears the stored license. The app will lock until a new key is pasted. Equivalent to hitting \"Deactivate\" next to the highlighted row above.",
+        "button": "Deactivate",
+        "working": "Working...",
+        "confirm": "Deactivate license on this machine? The app will lock until you activate again.",
+        "successToast": "License deactivated",
+        "failedToast": "Deactivate failed"
+      },
+      "machineIdCopiedToast": "Machine ID copied",
+      "copyFailedToast": "Copy failed",
+      "relativeTime": {
+        "justNow": "just now",
+        "minAgo_one": "{{count}} min ago",
+        "minAgo_other": "{{count}} min ago",
+        "hAgo": "{{count}}h ago",
+        "dAgo": "{{count}}d ago",
+        "dash": "-"
+      }
+    },
+    "apiKeys": {
+      "heading": "API Keys",
+      "intro": "Manage encrypted API keys for third-party services. Keys are stored encrypted at rest.",
+      "dismissError": "Dismiss error",
+      "integration": {
+        "title": "Integration Status",
+        "configured": "Configured",
+        "notConfigured": "Not configured",
+        "items": {
+          "runpod": "Cloud GPU pods — manage at /cloud-gpu",
+          "vast_ai": "Spot-market GPU pods — manage at /cloud-gpu",
+          "lambda_labs": "On-demand A100/H100 — manage at /cloud-gpu",
+          "elevenlabs": "Premium text-to-speech voices",
+          "anthropic": "Claude LLM for script generation",
+          "youtube": "Direct video upload via OAuth"
+        },
+        "ariaConfigured": "Configured",
+        "ariaNotConfigured": "Not configured"
+      },
+      "sources": {
+        "db": "Database",
+        "env": "Environment"
+      },
+      "stored": {
+        "title": "Stored Keys",
+        "refresh": "Refresh",
+        "empty": "No API keys stored in database.",
+        "emptyHint": "Keys set via environment variables are shown in Integration Status above.",
+        "configuredBadge": "Configured",
+        "added": "Added {{date}}",
+        "updated": "Updated {{date}}",
+        "deleteAria": "Delete {{key}} API key"
+      },
+      "add": {
+        "title": "Add New Key",
+        "service": "Service",
+        "apiKey": "API Key",
+        "placeholder": "Paste your API key here...",
+        "showAria": "Show API key",
+        "hideAria": "Hide API key",
+        "hint": "Your key is encrypted before being stored in the database.",
+        "save": "Save Key"
+      },
+      "toasts": {
+        "saved": "{{key}} API key saved successfully.",
+        "removed": "{{key}} API key removed.",
+        "saveFailed": "Failed to save API key.",
+        "deleteFailed": "Failed to delete API key."
+      },
+      "delete": {
+        "title": "Delete API Key",
+        "body": "Are you sure you want to delete the <1>{{key}}</1> API key? This action cannot be undone. If the service relies on this key, it will stop working.",
+        "cancel": "Cancel",
+        "confirm": "Delete Key"
+      }
+    },
     "team": {
       "loading": "Loading team…",
       "loadFailed": "Failed to load users",
