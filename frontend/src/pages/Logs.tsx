@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Terminal, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -35,6 +36,8 @@ const POLL_INTERVAL = 5000;
 
 function LevelBadge({ level }: { level: AppEventLevel }) {
   // Maps directly to the semantic Badge variants already in the design system.
+  // Level codes stay uppercase English (WARNING/ERROR/CRITICAL) — these are
+  // canonical log severity tokens, not prose.
   const variant = level === 'critical' ? 'error' : level; // warning | error
   const label = level.toUpperCase();
 
@@ -55,6 +58,7 @@ function LevelBadge({ level }: { level: AppEventLevel }) {
 // ---------------------------------------------------------------------------
 
 function ContextBlob({ context }: { context: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const keys = Object.keys(context);
 
@@ -68,7 +72,7 @@ function ContextBlob({ context }: { context: Record<string, unknown> }) {
         className="flex items-center gap-1 text-[10px] text-txt-tertiary hover:text-txt-secondary transition-colors"
       >
         {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        {open ? 'hide context' : `${keys.length} field${keys.length === 1 ? '' : 's'}`}
+        {open ? t('logs.appEvents.hideContext') : t('logs.appEvents.fields', { count: keys.length })}
       </button>
 
       {open && (
@@ -84,18 +88,19 @@ function ContextBlob({ context }: { context: Record<string, unknown> }) {
 // App Events section
 // ---------------------------------------------------------------------------
 
-const LEVEL_OPTIONS: { value: AppEventLevel; label: string }[] = [
-  { value: 'warning', label: 'Warning+' },
-  { value: 'error', label: 'Error+' },
-  { value: 'critical', label: 'Critical only' },
-];
-
 function AppEventsSection({ autoRefresh, reloadTick = 0 }: { autoRefresh: boolean; reloadTick?: number }) {
+  const { t } = useTranslation();
   const [appEvents, setAppEvents] = useState<AppLogEvent[]>([]);
   const [minLevel, setMinLevel] = useState<AppEventLevel>('warning');
   const [loading, setLoading] = useState(true);
   // null = not configured (empty list from server), false = fetch failed
   const [available, setAvailable] = useState<boolean | null>(null);
+
+  const levelOptions: { value: AppEventLevel; label: string }[] = [
+    { value: 'warning', label: t('logs.appEvents.levels.warning') },
+    { value: 'error', label: t('logs.appEvents.levels.error') },
+    { value: 'critical', label: t('logs.appEvents.levels.critical') },
+  ];
 
   const fetchAppEvents = useCallback(async () => {
     try {
@@ -129,7 +134,7 @@ function AppEventsSection({ autoRefresh, reloadTick = 0 }: { autoRefresh: boolea
       <div className="p-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AlertTriangle size={14} className="text-warning" />
-          <span className="text-sm font-medium text-txt-primary">App events</span>
+          <span className="text-sm font-medium text-txt-primary">{t('logs.appEvents.title')}</span>
           {available && (
             <Badge variant="neutral">{appEvents.length}</Badge>
           )}
@@ -140,9 +145,9 @@ function AppEventsSection({ autoRefresh, reloadTick = 0 }: { autoRefresh: boolea
           value={minLevel}
           onChange={(e) => setMinLevel(e.target.value as AppEventLevel)}
           className="text-xs bg-bg-secondary text-txt-secondary border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent"
-          aria-label="Minimum severity"
+          aria-label={t('logs.appEvents.minLevelAria')}
         >
-          {LEVEL_OPTIONS.map((opt) => (
+          {levelOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -157,14 +162,15 @@ function AppEventsSection({ autoRefresh, reloadTick = 0 }: { autoRefresh: boolea
           </div>
         ) : available === false ? (
           <p className="text-xs text-txt-tertiary text-center py-4">
-            App events require owner access (team mode) or{' '}
-            <code className="font-mono">LOG_FILE</code> is not configured.
+            {t('logs.appEvents.ownerRequiredPrefix')}{' '}
+            <code className="font-mono">LOG_FILE</code>{' '}
+            {t('logs.appEvents.ownerRequiredSuffix')}
           </p>
         ) : appEvents.length === 0 ? (
           <EmptyState
             icon={AlertTriangle}
-            title="No events recorded"
-            description="Warning/error events from the structured log will appear here."
+            title={t('logs.appEvents.emptyTitle')}
+            description={t('logs.appEvents.emptyDescription')}
           />
         ) : (
           <div className="space-y-3">
@@ -209,6 +215,7 @@ function AppEventsSection({ autoRefresh, reloadTick = 0 }: { autoRefresh: boolea
 // ---------------------------------------------------------------------------
 
 function Logs() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,28 +234,24 @@ function Logs() {
 
   const handleClear = useCallback(async () => {
     if (clearing) return;
-    const ok = window.confirm(
-      'Clear every entry in the App Events log file?\n\n' +
-      'Pipeline / generation history is NOT affected — only the structured ' +
-      'warning/error log file is wiped.',
-    );
+    const ok = window.confirm(t('logs.clearConfirm'));
     if (!ok) return;
     setClearing(true);
     try {
       const res = await eventsApi.clear();
       toast.success(
         res.files_truncated > 0
-          ? `Cleared ${res.files_truncated} log file${res.files_truncated === 1 ? '' : 's'}.`
-          : 'No log files to clear.',
+          ? t('logs.clearedToast', { count: res.files_truncated })
+          : t('logs.clearedToastNone'),
       );
       // Force AppEventsSection to refetch.
       setClearTick((n) => n + 1);
     } catch (e) {
-      toast.error('Failed to clear logs', { description: formatError(e) });
+      toast.error(t('logs.clearFailed'), { description: formatError(e) });
     } finally {
       setClearing(false);
     }
-  }, [clearing, toast]);
+  }, [clearing, toast, t]);
 
   // Initial load
   useEffect(() => {
@@ -290,7 +293,7 @@ function Logs() {
     <div>
       {/* Banner already shows "Event Log"; subtitle + actions only. */}
       <PageHeader
-        subtitle="Recent pipeline execution events."
+        subtitle={t('logs.subtitle')}
         actions={
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -300,21 +303,21 @@ function Logs() {
                 onChange={(e) => setAutoRefresh(e.target.checked)}
                 className="w-4 h-4 rounded accent-accent"
               />
-              <span className="text-sm text-txt-secondary">Auto-refresh</span>
+              <span className="text-sm text-txt-secondary">{t('logs.autoRefresh')}</span>
             </label>
             <Button variant="ghost" size="sm" onClick={() => void fetchEvents()}>
               <RefreshCw size={14} />
-              Refresh
+              {t('logs.refresh')}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleClear}
               disabled={clearing}
-              aria-label="Clear all app event log entries"
+              aria-label={t('logs.clearAria')}
             >
               <Trash2 size={14} />
-              {clearing ? 'Clearing…' : 'Clear logs'}
+              {clearing ? t('logs.clearing') : t('logs.clearLogs')}
             </Button>
           </div>
         }
@@ -334,25 +337,25 @@ function Logs() {
         return (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <StatCard
-              label="Total Events"
+              label={t('logs.stats.total')}
               value={events.length}
               icon={<Terminal size={20} />}
               color="#EDEDEF"
             />
             <StatCard
-              label="Successful"
+              label={t('logs.stats.successful')}
               value={successCount}
               icon={<CheckCircle2 size={20} />}
               color="#34D399"
             />
             <StatCard
-              label="Failed"
+              label={t('logs.stats.failed')}
               value={failedCount}
               icon={<XCircle size={20} />}
               color="#F87171"
             />
             <StatCard
-              label="Avg Duration"
+              label={t('logs.stats.avgDuration')}
               value={`${avgDuration.toFixed(1)}s`}
               icon={<Clock size={20} />}
               color="#00D4AA"
@@ -366,7 +369,7 @@ function Logs() {
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Terminal size={14} className="text-txt-tertiary" />
-            <span className="text-sm font-medium text-txt-primary">Pipeline events</span>
+            <span className="text-sm font-medium text-txt-primary">{t('logs.pipeline.title')}</span>
             <Badge variant="neutral">{events.length}</Badge>
           </div>
         </div>
@@ -375,8 +378,8 @@ function Logs() {
           {events.length === 0 ? (
             <EmptyState
               icon={Terminal}
-              title="No pipeline events recorded yet"
-              description="Events appear here as episodes are generated."
+              title={t('logs.pipeline.emptyTitle')}
+              description={t('logs.pipeline.emptyDescription')}
             />
           ) : (
             <div className="space-y-0">

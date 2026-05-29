@@ -16,6 +16,46 @@
       "unreachable": "Unreachable"
     }
   },
+  "logs": {
+    "subtitle": "Recent pipeline execution events.",
+    "autoRefresh": "Auto-refresh",
+    "refresh": "Refresh",
+    "clearLogs": "Clear logs",
+    "clearing": "Clearing…",
+    "clearAria": "Clear all app event log entries",
+    "clearConfirm": "Clear every entry in the App Events log file?\n\nPipeline / generation history is NOT affected — only the structured warning/error log file is wiped.",
+    "clearFailed": "Failed to clear logs",
+    "clearedToast_one": "Cleared {{count}} log file.",
+    "clearedToast_other": "Cleared {{count}} log files.",
+    "clearedToastNone": "No log files to clear.",
+    "stats": {
+      "total": "Total Events",
+      "successful": "Successful",
+      "failed": "Failed",
+      "avgDuration": "Avg Duration"
+    },
+    "appEvents": {
+      "title": "App events",
+      "minLevelAria": "Minimum severity",
+      "levels": {
+        "warning": "Warning+",
+        "error": "Error+",
+        "critical": "Critical only"
+      },
+      "ownerRequiredPrefix": "App events require owner access (team mode) or",
+      "ownerRequiredSuffix": "is not configured.",
+      "emptyTitle": "No events recorded",
+      "emptyDescription": "Warning/error events from the structured log will appear here.",
+      "hideContext": "hide context",
+      "fields_one": "{{count}} field",
+      "fields_other": "{{count}} fields"
+    },
+    "pipeline": {
+      "title": "Pipeline events",
+      "emptyTitle": "No pipeline events recorded yet",
+      "emptyDescription": "Events appear here as episodes are generated."
+    }
+  },
   "settings": {
     "language": "Language",
     "languageHint": "Interface language. Detected from your OS on first run; more of the app is translated over time.",

@@ -16,6 +16,46 @@
       "unreachable": "Nicht erreichbar"
     }
   },
+  "logs": {
+    "subtitle": "Aktuelle Pipeline-Ausführungs-Ereignisse.",
+    "autoRefresh": "Auto-Aktualisierung",
+    "refresh": "Aktualisieren",
+    "clearLogs": "Logs leeren",
+    "clearing": "Wird geleert…",
+    "clearAria": "Alle App-Ereignis-Logeinträge leeren",
+    "clearConfirm": "Jeden Eintrag in der App-Ereignis-Logdatei leeren?\n\nDer Pipeline-/Generierungsverlauf ist NICHT betroffen — nur die strukturierte Warn-/Fehlerprotokoll-Datei wird geleert.",
+    "clearFailed": "Logs konnten nicht geleert werden",
+    "clearedToast_one": "{{count}} Logdatei geleert.",
+    "clearedToast_other": "{{count}} Logdateien geleert.",
+    "clearedToastNone": "Keine Logdateien zum Leeren.",
+    "stats": {
+      "total": "Ereignisse gesamt",
+      "successful": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "avgDuration": "Ø Dauer"
+    },
+    "appEvents": {
+      "title": "App-Ereignisse",
+      "minLevelAria": "Mindest-Schweregrad",
+      "levels": {
+        "warning": "Warnung+",
+        "error": "Fehler+",
+        "critical": "Nur kritisch"
+      },
+      "ownerRequiredPrefix": "App-Ereignisse erfordern Eigentümer-Zugriff (Team-Modus) oder",
+      "ownerRequiredSuffix": "ist nicht konfiguriert.",
+      "emptyTitle": "Keine Ereignisse aufgezeichnet",
+      "emptyDescription": "Warn-/Fehler-Ereignisse aus dem strukturierten Log erscheinen hier.",
+      "hideContext": "Kontext ausblenden",
+      "fields_one": "{{count}} Feld",
+      "fields_other": "{{count}} Felder"
+    },
+    "pipeline": {
+      "title": "Pipeline-Ereignisse",
+      "emptyTitle": "Noch keine Pipeline-Ereignisse aufgezeichnet",
+      "emptyDescription": "Ereignisse erscheinen hier, sobald Episoden generiert werden."
+    }
+  },
   "settings": {
     "language": "Sprache",
     "languageHint": "Sprache der Benutzeroberfläche. Beim ersten Start vom Betriebssystem erkannt; mit der Zeit wird mehr übersetzt.",
