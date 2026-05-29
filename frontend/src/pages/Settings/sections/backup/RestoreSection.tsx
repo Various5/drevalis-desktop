@@ -1,5 +1,6 @@
 import { Ref } from 'react';
 import { Archive, AlertTriangle, Upload } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -51,16 +52,18 @@ export function RestoreSection({
   onSelectExistingArchive,
   onFileInputChange,
 }: RestoreSectionProps) {
+  const { t } = useTranslation();
   return (
     <Card className="p-6 border-amber-500/30 bg-amber-500/5">
       <div className="flex items-start gap-3 mb-3">
         <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-semibold">Restore from archive</h4>
+          <h4 className="font-semibold">{t('settings.backup.restore.heading')}</h4>
           <p className="text-sm text-txt-secondary mt-1">
-            <strong>Destructive.</strong> Restoring truncates every user table and overwrites
-            storage files with the contents of the archive. Your current content is deleted. This
-            is the right action when migrating to a new machine.
+            <Trans
+              i18nKey="settings.backup.restore.warning"
+              components={{ 1: <strong /> }}
+            />
           </p>
         </div>
       </div>
@@ -69,9 +72,9 @@ export function RestoreSection({
         {archives.length > 0 && (
           <div>
             <label className="block text-xs font-medium text-txt-secondary mb-1">
-              1a. Pick an archive already on disk{' '}
+              {t('settings.backup.restore.pickExistingLabel')}{' '}
               <span className="text-txt-muted font-normal">
-                (recommended for archives &gt;5 GB)
+                {t('settings.backup.restore.pickExistingNote')}
               </span>
             </label>
             <select
@@ -80,7 +83,7 @@ export function RestoreSection({
               disabled={restoring}
               className="block w-full text-sm bg-bg-elevated text-txt-primary rounded p-2 border border-bg-hover"
             >
-              <option value="">— pick an archive —</option>
+              <option value="">{t('settings.backup.restore.pickExistingPlaceholder')}</option>
               {archives.map((a) => (
                 <option key={a.filename} value={a.filename}>
                   {a.filename} · {formatBytes(a.size_bytes)} ·{' '}
@@ -89,19 +92,21 @@ export function RestoreSection({
               ))}
             </select>
             <p className="mt-1 text-[11px] text-txt-muted leading-relaxed">
-              Place multi-GB archives directly in{' '}
-              <span className="font-mono">BACKUP_DIRECTORY</span> via{' '}
-              <span className="font-mono">docker cp</span> or the host bind-mount, then refresh
-              the list. This skips the browser upload entirely — no proxy timeouts, no
-              navigation issues.
+              <Trans
+                i18nKey="settings.backup.restore.pickExistingHint"
+                components={{
+                  1: <span className="font-mono" />,
+                  2: <span className="font-mono" />,
+                }}
+              />
             </p>
           </div>
         )}
 
         <div>
           <label className="block text-xs font-medium text-txt-secondary mb-1">
-            1b. …or upload a new archive (.tar.gz){' '}
-            <span className="text-txt-muted font-normal">(only safe for &lt;5 GB)</span>
+            {t('settings.backup.restore.uploadLabel')}{' '}
+            <span className="text-txt-muted font-normal">{t('settings.backup.restore.uploadNote')}</span>
           </label>
           <input
             ref={fileInputRef}
@@ -113,7 +118,7 @@ export function RestoreSection({
           />
         </div>
         <div className="space-y-2">
-          <div className="text-xs font-medium text-txt-secondary">What to restore</div>
+          <div className="text-xs font-medium text-txt-secondary">{t('settings.backup.restore.whatToRestore')}</div>
           <label className="flex items-center gap-2 text-xs text-txt-secondary">
             <input
               type="checkbox"
@@ -122,8 +127,10 @@ export function RestoreSection({
               className="rounded"
             />
             <span>
-              <strong className="text-txt-primary">Database rows</strong> — series, episodes,
-              audiobooks, configs, OAuth tokens
+              <Trans
+                i18nKey="settings.backup.restore.dbLabel"
+                components={{ 1: <strong className="text-txt-primary" /> }}
+              />
             </span>
           </label>
           <label className="flex items-center gap-2 text-xs text-txt-secondary">
@@ -134,8 +141,10 @@ export function RestoreSection({
               className="rounded"
             />
             <span>
-              <strong className="text-txt-primary">Media files</strong> — generated videos,
-              audiobook audio, voice previews (can be very large)
+              <Trans
+                i18nKey="settings.backup.restore.mediaLabel"
+                components={{ 1: <strong className="text-txt-primary" /> }}
+              />
             </span>
           </label>
         </div>
@@ -148,17 +157,20 @@ export function RestoreSection({
             className="rounded"
           />
           <label htmlFor="allow-key-mismatch" className="text-txt-secondary">
-            Allow different ENCRYPTION_KEY (OAuth tokens + API keys will need to be re-entered)
+            {t('settings.backup.restore.allowKeyMismatch')}
           </label>
         </div>
         <div>
           <label className="block text-xs font-medium text-txt-secondary mb-1">
-            2. Type <strong className="text-txt-primary font-mono">RESTORE</strong> to confirm
+            <Trans
+              i18nKey="settings.backup.restore.confirmLabel"
+              components={{ 1: <strong className="text-txt-primary font-mono" /> }}
+            />
           </label>
           <Input
             value={restoreConfirm}
             onChange={(e) => onRestoreConfirmChange(e.target.value)}
-            placeholder="RESTORE"
+            placeholder={t('settings.backup.restore.confirmPlaceholder')}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -174,7 +186,9 @@ export function RestoreSection({
             className="bg-amber-500 hover:bg-amber-400 text-bg-base"
           >
             <Archive className="w-4 h-4 mr-1" />
-            {restoring && selectedExisting ? 'Restoring...' : 'Restore from picked archive'}
+            {restoring && selectedExisting
+              ? t('settings.backup.restore.restoringEllipsis')
+              : t('settings.backup.restore.restoreFromPicked')}
           </Button>
           <Button
             onClick={onRestore}
@@ -187,7 +201,9 @@ export function RestoreSection({
             className="bg-amber-500/80 hover:bg-amber-500 text-bg-base"
           >
             <Upload className="w-4 h-4 mr-1" />
-            {restoring && !selectedExisting ? 'Restoring...' : 'Upload + restore'}
+            {restoring && !selectedExisting
+              ? t('settings.backup.restore.restoringEllipsis')
+              : t('settings.backup.restore.uploadAndRestore')}
           </Button>
         </div>
 
@@ -199,7 +215,7 @@ export function RestoreSection({
           >
             <div className="flex items-center justify-between text-xs text-txt-secondary mb-1">
               <span>
-                Stage:{' '}
+                {t('settings.backup.restore.stageLabel')}{' '}
                 <span className="font-mono text-txt-primary">{restoreProgress.stage}</span>
               </span>
               <div className="flex items-center gap-2">
@@ -214,7 +230,7 @@ export function RestoreSection({
                     onClick={onDismissProgress}
                     className="text-[10px] text-txt-muted hover:text-txt-primary underline"
                   >
-                    dismiss
+                    {t('settings.backup.restore.dismiss')}
                   </button>
                 )}
               </div>
@@ -240,14 +256,14 @@ export function RestoreSection({
             <div className="mt-2 text-xs text-txt-secondary">{restoreProgress.message}</div>
             {restoreProgress.stage === 'uploading' ? (
               <div className="mt-1 text-[11px] text-red-400 leading-relaxed">
-                <strong>Don't navigate away.</strong> The upload is browser-bound — leaving
-                this page aborts it and you'll have to start over. For multi-GB archives,
-                cancel and use "Restore from picked archive" instead.
+                <Trans
+                  i18nKey="settings.backup.restore.uploadingNoLeave"
+                  components={{ 1: <strong /> }}
+                />
               </div>
             ) : (
               <div className="mt-1 text-[11px] text-txt-muted">
-                Safe to navigate away — the restore runs in the background on the worker.
-                Come back to this page to see progress.
+                {t('settings.backup.restore.safeToLeave')}
               </div>
             )}
           </div>

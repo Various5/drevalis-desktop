@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Calendar } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -31,6 +32,7 @@ export function ScheduleSection({
   retention,
   autoEnabled,
 }: ScheduleSectionProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [userToggle, setUserToggle] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,11 +72,11 @@ export function ScheduleSection({
       setUserToggle(next);
       toast.success(
         next
-          ? 'Auto-backup enabled — next run at 03:00 UTC'
-          : 'Auto-backup disabled',
+          ? t('settings.backup.schedule.enabledToast')
+          : t('settings.backup.schedule.disabledToast'),
       );
     } catch (err) {
-      toast.error('Could not save preference', { description: formatError(err) });
+      toast.error(t('settings.backup.schedule.saveFailed'), { description: formatError(err) });
     } finally {
       setSaving(false);
     }
@@ -86,12 +88,10 @@ export function ScheduleSection({
         <Calendar className="w-5 h-5 text-accent shrink-0 mt-0.5" />
         <div>
           <h3 className="text-base font-display font-semibold text-txt-primary">
-            Auto-backup schedule
+            {t('settings.backup.schedule.title')}
           </h3>
           <p className="text-xs text-txt-secondary mt-1">
-            When enabled, the worker creates a backup tarball every day at
-            03:00 UTC and prunes archives beyond the retention count.
-            Toggle here takes effect at the next tick — no restart needed.
+            {t('settings.backup.schedule.intro')}
           </p>
         </div>
       </header>
@@ -109,14 +109,14 @@ export function ScheduleSection({
           />
           <div className="flex-1">
             <div className="text-sm font-medium text-txt-primary">
-              Nightly backup at 03:00 UTC
+              {t('settings.backup.schedule.toggleLabel')}
             </div>
             <div className="text-[11px] text-txt-tertiary mt-0.5">
               {autoEnabled
-                ? 'Forced on by DREVALIS_BACKUP_AUTO_ENABLED env var. Unset the env to disable.'
+                ? t('settings.backup.schedule.forcedByEnv')
                 : effective
-                  ? `Saving up to ${retention} archive${retention === 1 ? '' : 's'}; older ones are deleted.`
-                  : `When you turn this on the worker keeps the last ${retention} archive${retention === 1 ? '' : 's'}.`}
+                  ? t('settings.backup.schedule.savingUpTo', { count: retention })
+                  : t('settings.backup.schedule.willKeep', { count: retention })}
             </div>
           </div>
         </label>
@@ -124,14 +124,14 @@ export function ScheduleSection({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
         <div className="rounded bg-bg-elevated p-3">
-          <div className="text-txt-muted uppercase tracking-wider mb-1">Directory</div>
+          <div className="text-txt-muted uppercase tracking-wider mb-1">{t('settings.backup.schedule.directoryLabel')}</div>
           <div className="text-txt-primary font-mono break-all">
             {backupDirectoryAbs || backupDirectory}
           </div>
           {backupDirectoryHostSource && backupDirectoryHostSource !== backupDirectoryAbs && (
             <>
               <div className="text-txt-muted uppercase tracking-wider mt-3 mb-1">
-                Mount source
+                {t('settings.backup.schedule.mountSourceLabel')}
               </div>
               <div className="text-accent font-mono break-all">
                 {backupDirectoryHostSource}
@@ -140,37 +140,37 @@ export function ScheduleSection({
           )}
         </div>
         <div className="rounded bg-bg-elevated p-3">
-          <div className="text-txt-muted uppercase tracking-wider mb-1">Retention</div>
+          <div className="text-txt-muted uppercase tracking-wider mb-1">{t('settings.backup.schedule.retentionLabel')}</div>
           <div className="text-txt-primary">
-            Keep {retention} most recent
+            {t('settings.backup.schedule.retentionValue', { count: retention })}
           </div>
           <div className="text-[11px] text-txt-tertiary mt-1">
-            Set <code>DREVALIS_BACKUP_RETENTION</code> to change.
+            <Trans i18nKey="settings.backup.schedule.retentionEnvHint" components={{ 1: <code /> }} />
           </div>
         </div>
         <div className="rounded bg-bg-elevated p-3">
-          <div className="text-txt-muted uppercase tracking-wider mb-1">Status</div>
+          <div className="text-txt-muted uppercase tracking-wider mb-1">{t('settings.backup.schedule.statusLabel')}</div>
           <div className={effective ? 'text-accent' : 'text-txt-secondary'}>
-            {effective ? 'Nightly at 03:00 UTC' : 'Disabled'}
+            {effective ? t('settings.backup.schedule.statusActive') : t('settings.backup.schedule.statusDisabled')}
           </div>
           <div className="text-[11px] text-txt-tertiary mt-1">
             {effective
-              ? 'Toggle off above to pause.'
-              : 'Manual backups still work — use the button below.'}
+              ? t('settings.backup.schedule.statusActiveHint')
+              : t('settings.backup.schedule.statusDisabledHint')}
           </div>
         </div>
       </div>
 
       <p className="text-[11px] text-txt-tertiary leading-relaxed">
-        Want backups off-box? Point{' '}
-        <code className="text-txt-secondary">DREVALIS_BACKUP_DIRECTORY</code> at a
-        synced folder (Dropbox, OneDrive, Syncthing, an SMB/NFS mount) and the
-        nightly archive lands there automatically.
+        <Trans
+          i18nKey="settings.backup.schedule.offBoxHint"
+          components={{ 1: <code className="text-txt-secondary" /> }}
+        />
       </p>
 
       {userToggle === null && (
         <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-          Reload
+          {t('settings.backup.schedule.reload')}
         </Button>
       )}
     </Card>

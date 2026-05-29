@@ -1,4 +1,5 @@
 import { Wrench } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import type { RepairReport, StorageProbe } from './types';
@@ -21,25 +22,25 @@ export function RepairSection({
   onRepair,
   onProbe,
 }: RepairSectionProps) {
+  const { t } = useTranslation();
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h4 className="font-semibold flex items-center gap-2">
             <Wrench className="w-4 h-4" />
-            Repair media links
+            {t('settings.backup.repair.heading')}
           </h4>
           <p className="text-sm text-txt-secondary mt-1">
-            Relink <code>media_assets</code> rows to files on disk after a rough restore or
-            manual copy. Non-destructive: only rows whose current path is broken get updated.
+            <Trans i18nKey="settings.backup.repair.intro" components={{ 1: <code /> }} />
           </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => onProbe(false)} disabled={probing} variant="ghost">
-            {probing ? 'Probing...' : 'Diagnose serving'}
+            {probing ? t('settings.backup.repair.probing') : t('settings.backup.repair.diagnose')}
           </Button>
           <Button onClick={onRepair} disabled={repairing} variant="primary">
-            {repairing ? 'Scanning...' : 'Repair now'}
+            {repairing ? t('settings.backup.repair.scanning') : t('settings.backup.repair.repairNow')}
           </Button>
         </div>
       </div>
@@ -48,12 +49,12 @@ export function RepairSection({
           {probeReport.cached && (
             <div className="flex items-center justify-between rounded bg-bg-base/50 px-2 py-1 text-[11px] text-txt-secondary">
               <span>
-                Cached
+                {t('settings.backup.repair.cachedPrefix')}
                 {(() => {
                   const age = formatRelativeAge(probeReport.cached_at);
                   return age ? ` ${age}` : '';
                 })()}
-                {' · 5 min TTL'}
+                {' '}{t('settings.backup.repair.cachedSuffix')}
               </span>
               <button
                 type="button"
@@ -61,34 +62,34 @@ export function RepairSection({
                 disabled={probing}
                 className="text-accent hover:underline disabled:opacity-50"
               >
-                {probing ? 'Refreshing...' : 'Refresh now'}
+                {probing ? t('settings.backup.repair.refreshing') : t('settings.backup.repair.refreshNow')}
               </button>
             </div>
           )}
           <div className="font-mono text-txt-primary space-y-0.5">
             <div>
-              inside container: {probeReport.storage_base_path}
+              {t('settings.backup.repair.insideContainer')} {probeReport.storage_base_path}
               {probeReport.process_uid !== null && (
-                <> · uid={probeReport.process_uid}</>
+                <> · {t('settings.backup.repair.uidPrefix')}{probeReport.process_uid}</>
               )}
               {probeReport.mount_fs && (
                 <>
-                  {' '}· fs={probeReport.mount_fs}
+                  {' '}· {t('settings.backup.repair.fsPrefix')}{probeReport.mount_fs}
                   {(probeReport.mount_fs === 'cifs' ||
                     probeReport.mount_fs === 'smb3' ||
                     probeReport.mount_fs === 'nfs' ||
                     probeReport.mount_fs === 'nfs4') && (
                     <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">
                       {probeReport.mount_fs === 'cifs' || probeReport.mount_fs === 'smb3'
-                        ? 'SMB/CIFS share'
-                        : 'NFS share'}
+                        ? t('settings.backup.repair.smbBadge')
+                        : t('settings.backup.repair.nfsBadge')}
                     </span>
                   )}
                 </>
               )}
             </div>
             {probeReport.host_source_path && (
-              <div className="text-accent">on host: {probeReport.host_source_path}</div>
+              <div className="text-accent">{t('settings.backup.repair.onHost')} {probeReport.host_source_path}</div>
             )}
           </div>
           {probeReport.hints.length > 0 && (
@@ -106,18 +107,19 @@ export function RepairSection({
           {probeReport.top_level_entries && (
             <details className="rounded bg-bg-base p-2" open>
               <summary className="cursor-pointer text-txt-secondary">
-                What the container sees at /app/storage
+                {t('settings.backup.repair.topLevelTitle')}
                 {typeof probeReport.total_visible_count === 'number' && (
                   <span className="ml-2 text-txt-muted">
-                    ({probeReport.total_visible_count} entries,{' '}
-                    {formatBytes(probeReport.total_visible_bytes || 0)} visible)
+                    {t('settings.backup.repair.topLevelMeta', {
+                      count: probeReport.total_visible_count,
+                      bytes: formatBytes(probeReport.total_visible_bytes || 0),
+                    })}
                   </span>
                 )}
               </summary>
               {probeReport.top_level_entries.length === 0 ? (
                 <div className="mt-2 text-txt-muted">
-                  No top-level entries. The storage directory is empty inside the container —
-                  whatever you have on the host is not reaching this bind mount.
+                  {t('settings.backup.repair.topLevelEmpty')}
                 </div>
               ) : (
                 <div className="mt-2 space-y-1 font-mono text-[11px]">
@@ -140,7 +142,9 @@ export function RepairSection({
                         {e.kind === 'file' && typeof e.size_bytes === 'number'
                           ? formatBytes(e.size_bytes)
                           : e.kind === 'dir'
-                            ? `${e.child_count}${e.child_count_capped ? '+' : ''} children`
+                            ? t('settings.backup.repair.childrenSuffix', {
+                                count: `${e.child_count}${e.child_count_capped ? '+' : ''}`,
+                              })
                             : ''}
                       </span>
                     </div>
@@ -148,24 +152,21 @@ export function RepairSection({
                 </div>
               )}
               <div className="mt-2 text-[10px] text-txt-muted">
-                If what you see here doesn't match what's in{' '}
-                <code className="bg-bg-elevated px-1 rounded">
-                  %USERPROFILE%\Drevalis\storage\
-                </code>{' '}
-                on your host, the running container was started from a different directory than
-                the one you copied files into. In a terminal at{' '}
-                <code className="bg-bg-elevated px-1 rounded">%USERPROFILE%\Drevalis\</code>:{' '}
-                <code className="bg-bg-elevated px-1 rounded">
-                  docker compose down; docker compose up -d
-                </code>
-                .
+                <Trans
+                  i18nKey="settings.backup.repair.topLevelHint"
+                  components={{
+                    1: <code className="bg-bg-elevated px-1 rounded" />,
+                    2: <code className="bg-bg-elevated px-1 rounded" />,
+                    3: <code className="bg-bg-elevated px-1 rounded" />,
+                  }}
+                />
               </div>
             </details>
           )}
           {probeReport.samples.length > 0 && (
             <details className="rounded bg-bg-base p-2">
               <summary className="cursor-pointer text-txt-secondary">
-                Probe samples ({probeReport.samples.length})
+                {t('settings.backup.repair.samplesTitle', { count: probeReport.samples.length })}
               </summary>
               <div className="mt-2 space-y-1 font-mono">
                 {probeReport.samples.map((s, i) => (
@@ -183,7 +184,11 @@ export function RepairSection({
                             : 'text-error',
                       ].join(' ')}
                     >
-                      {s.readable ? 'readable' : s.exists ? 'exists' : 'missing'}
+                      {s.readable
+                        ? t('settings.backup.repair.sampleReadable')
+                        : s.exists
+                          ? t('settings.backup.repair.sampleExists')
+                          : t('settings.backup.repair.sampleMissing')}
                     </span>
                     <span className="min-w-0 truncate text-txt-secondary">
                       {s.abs_path}
@@ -200,17 +205,17 @@ export function RepairSection({
         <div className="mt-4 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="rounded bg-bg-elevated p-3">
-              <div className="text-txt-muted uppercase tracking-wider mb-1">Scanned</div>
+              <div className="text-txt-muted uppercase tracking-wider mb-1">{t('settings.backup.repair.stats.scanned')}</div>
               <div className="text-txt-primary text-lg font-semibold">{repairReport.scanned}</div>
             </div>
             <div className="rounded bg-bg-elevated p-3">
-              <div className="text-txt-muted uppercase tracking-wider mb-1">Already OK</div>
+              <div className="text-txt-muted uppercase tracking-wider mb-1">{t('settings.backup.repair.stats.alreadyOk')}</div>
               <div className="text-txt-primary text-lg font-semibold">
                 {repairReport.already_ok}
               </div>
             </div>
             <div className="rounded bg-emerald-500/10 p-3">
-              <div className="text-emerald-300 uppercase tracking-wider mb-1">Relinked</div>
+              <div className="text-emerald-300 uppercase tracking-wider mb-1">{t('settings.backup.repair.stats.relinked')}</div>
               <div className="text-emerald-200 text-lg font-semibold">{repairReport.relinked}</div>
             </div>
             <div
@@ -223,7 +228,7 @@ export function RepairSection({
                   repairReport.unresolved > 0 ? 'text-amber-300' : 'text-txt-muted'
                 }`}
               >
-                Unresolved
+                {t('settings.backup.repair.stats.unresolved')}
               </div>
               <div
                 className={`text-lg font-semibold ${
@@ -237,13 +242,14 @@ export function RepairSection({
           {repairReport.relinked_paths.length > 0 && (
             <details className="rounded bg-bg-elevated p-3 text-xs">
               <summary className="cursor-pointer text-txt-secondary">
-                Relinked paths ({repairReport.relinked_paths.length}
-                {repairReport.relinked > repairReport.relinked_paths.length ? '+' : ''})
+                {t('settings.backup.repair.relinkedTitle', {
+                  count: `${repairReport.relinked_paths.length}${repairReport.relinked > repairReport.relinked_paths.length ? '+' : ''}`,
+                })}
               </summary>
               <div className="mt-2 space-y-1 font-mono">
                 {repairReport.relinked_paths.map((p, i) => (
                   <div key={i} className="truncate">
-                    <span className="text-txt-muted">{p.from || '(empty)'}</span>
+                    <span className="text-txt-muted">{p.from || t('settings.backup.repair.relinkedEmpty')}</span>
                     <span className="text-emerald-300 mx-1">→</span>
                     <span className="text-txt-primary">{p.to}</span>
                   </div>
@@ -254,17 +260,18 @@ export function RepairSection({
           {repairReport.unresolved_paths.length > 0 && (
             <details className="rounded bg-amber-500/5 p-3 text-xs">
               <summary className="cursor-pointer text-amber-300">
-                Unresolved paths ({repairReport.unresolved_paths.length}
-                {repairReport.unresolved > repairReport.unresolved_paths.length ? '+' : ''})
+                {t('settings.backup.repair.unresolvedTitle', {
+                  count: `${repairReport.unresolved_paths.length}${repairReport.unresolved > repairReport.unresolved_paths.length ? '+' : ''}`,
+                })}
               </summary>
               <div className="mt-2 space-y-1 font-mono text-txt-secondary">
                 {repairReport.unresolved_paths.map((p, i) => (
                   <div key={i} className="truncate flex items-start gap-2">
                     <span className="shrink-0 font-sans text-[10px] uppercase tracking-wider">
                       {p.basename_on_disk ? (
-                        <span className="text-amber-300">bytes nearby</span>
+                        <span className="text-amber-300">{t('settings.backup.repair.bytesNearby')}</span>
                       ) : (
-                        <span className="text-error">missing</span>
+                        <span className="text-error">{t('settings.backup.repair.missing')}</span>
                       )}
                     </span>
                     <span className="min-w-0 truncate">{p.path}</span>
@@ -272,21 +279,23 @@ export function RepairSection({
                 ))}
               </div>
               <p className="mt-2 text-txt-muted">
-                <strong className="text-txt-primary">bytes nearby</strong> — the filename exists
-                somewhere under the storage root but the repair couldn't confidently match it
-                (ambiguous duplicates, missing size on DB row). You can often recover by
-                regenerating the specific scene; safe to ignore otherwise.
+                <Trans
+                  i18nKey="settings.backup.repair.unresolvedHelp"
+                  components={{ 1: <strong className="text-txt-primary" /> }}
+                />
                 <br />
-                <strong className="text-txt-primary">missing</strong> — the file truly isn't on
-                disk. Regenerate the affected episode or delete the orphan row.
+                <Trans
+                  i18nKey="settings.backup.repair.missingHelp"
+                  components={{ 1: <strong className="text-txt-primary" /> }}
+                />
               </p>
             </details>
           )}
           {repairReport.storage_base_abs && (
             <p className="text-[11px] text-txt-tertiary mt-2 font-mono">
-              storage root: {repairReport.storage_base_abs}
+              {t('settings.backup.repair.storageRoot')} {repairReport.storage_base_abs}
               {typeof repairReport.indexed_files === 'number' && (
-                <> · indexed {repairReport.indexed_files} files</>
+                <> {t('settings.backup.repair.indexedFiles', { count: repairReport.indexed_files })}</>
               )}
             </p>
           )}
@@ -294,11 +303,11 @@ export function RepairSection({
             <div className="mt-3 grid md:grid-cols-2 gap-3">
               <div className="rounded bg-bg-elevated p-3">
                 <div className="text-[10px] text-txt-tertiary uppercase tracking-wider mb-2">
-                  Sample DB paths ({repairReport.sample_db_paths?.length ?? 0})
+                  {t('settings.backup.repair.sampleDbTitle', { count: repairReport.sample_db_paths?.length ?? 0 })}
                 </div>
                 <div className="font-mono text-[11px] text-txt-primary space-y-1 break-all">
                   {(repairReport.sample_db_paths || []).length === 0 ? (
-                    <div className="text-txt-muted">No media_assets rows with a file_path.</div>
+                    <div className="text-txt-muted">{t('settings.backup.repair.sampleDbEmpty')}</div>
                   ) : (
                     (repairReport.sample_db_paths || []).map((p, i) => (
                       <div key={i}>{p}</div>
@@ -308,13 +317,12 @@ export function RepairSection({
               </div>
               <div className="rounded bg-bg-elevated p-3">
                 <div className="text-[10px] text-txt-tertiary uppercase tracking-wider mb-2">
-                  Sample disk paths ({repairReport.sample_disk_paths?.length ?? 0})
+                  {t('settings.backup.repair.sampleDiskTitle', { count: repairReport.sample_disk_paths?.length ?? 0 })}
                 </div>
                 <div className="font-mono text-[11px] text-txt-primary space-y-1 break-all">
                   {(repairReport.sample_disk_paths || []).length === 0 ? (
                     <div className="text-txt-muted">
-                      Index empty — container sees no files under storage_root. The bind mount
-                      is pointing at the wrong directory.
+                      {t('settings.backup.repair.sampleDiskEmpty')}
                     </div>
                   ) : (
                     (repairReport.sample_disk_paths || []).map((p, i) => (

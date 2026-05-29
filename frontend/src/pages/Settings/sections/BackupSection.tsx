@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -17,6 +18,7 @@ import { RestoreSection } from './backup/RestoreSection';
 import { RepairSection } from './backup/RepairSection';
 
 export function BackupSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [state, setState] = useState<BackupListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,11 +44,11 @@ export function BackupSection() {
       const data: BackupListResponse = await res.json();
       setState(data);
     } catch (err) {
-      toast.error('Failed to load backups', { description: formatError(err) });
+      toast.error(t('settings.backup.loadFailed'), { description: formatError(err) });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     refresh();
@@ -67,7 +69,7 @@ export function BackupSection() {
     setRestoreProgress({
       stage: 'resuming',
       progress_pct: 0,
-      message: 'Reconnecting to in-flight restore…',
+      message: t('settings.backup.restoreStages.resumingTitle'),
     });
     pollRestoreStatus(stashed);
     // pollRestoreStatus is stable (useCallback) so empty-deps is fine.
@@ -80,29 +82,32 @@ export function BackupSection() {
       const res = await fetch('/api/v1/backup', { method: 'POST' });
       if (!res.ok) throw new ApiError(res.status, res.statusText, await res.text());
       const data = await res.json();
-      toast.success('Backup created', {
-        description: `${data.filename} (${formatBytes(data.size_bytes)})`,
+      toast.success(t('settings.backup.createdToast'), {
+        description: t('settings.backup.createdToastDesc', {
+          filename: data.filename,
+          size: formatBytes(data.size_bytes),
+        }),
       });
       await refresh();
     } catch (err) {
-      toast.error('Backup failed', { description: formatError(err) });
+      toast.error(t('settings.backup.createFailed'), { description: formatError(err) });
     } finally {
       setCreating(false);
     }
   };
 
   const onDelete = async (filename: string) => {
-    if (!confirm(`Delete ${filename}? This cannot be undone.`)) return;
+    if (!confirm(t('settings.backup.deleteConfirm', { filename }))) return;
     try {
       const res = await fetch(`/api/v1/backup/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       });
       if (!res.ok && res.status !== 204)
         throw new ApiError(res.status, res.statusText, await res.text());
-      toast.success('Deleted', { description: filename });
+      toast.success(t('settings.backup.deletedToast'), { description: filename });
       await refresh();
     } catch (err) {
-      toast.error('Delete failed', { description: formatError(err) });
+      toast.error(t('settings.backup.deleteFailed'), { description: formatError(err) });
     }
   };
 
@@ -122,7 +127,7 @@ export function BackupSection() {
       const data: StorageProbe = await res.json();
       setProbeReport(data);
     } catch (err) {
-      toast.error('Storage probe failed', { description: formatError(err) });
+      toast.error(t('settings.backup.probeFailed'), { description: formatError(err) });
     } finally {
       setProbing(false);
     }
@@ -167,20 +172,20 @@ export function BackupSection() {
       const data: RepairReport = await res.json();
       setRepairReport(data);
       if (data.relinked > 0) {
-        toast.success('Media links repaired', {
-          description: `${data.relinked} relinked, ${data.unresolved} unresolved`,
+        toast.success(t('settings.backup.repaired'), {
+          description: t('settings.backup.repairedDesc', { relinked: data.relinked, unresolved: data.unresolved }),
         });
       } else if (data.unresolved > 0) {
-        toast.error('No matches found', {
-          description: `${data.unresolved} rows still point nowhere`,
+        toast.error(t('settings.backup.noMatchesTitle'), {
+          description: t('settings.backup.noMatchesDesc', { unresolved: data.unresolved }),
         });
       } else {
-        toast.success('Nothing to repair', {
-          description: `All ${data.already_ok} media rows resolve correctly`,
+        toast.success(t('settings.backup.nothingToRepair'), {
+          description: t('settings.backup.nothingToRepairDesc', { count: data.already_ok }),
         });
       }
     } catch (err) {
-      toast.error('Repair failed', { description: formatError(err) });
+      toast.error(t('settings.backup.repairFailed'), { description: formatError(err) });
     } finally {
       setRepairing(false);
     }
@@ -217,7 +222,7 @@ export function BackupSection() {
             setRestoreProgress({
               stage: data.stage ?? data.status,
               progress_pct: data.progress_pct ?? 0,
-              message: data.message ?? 'Restoring…',
+              message: data.message ?? t('settings.backup.restoreStages.restoringFallback'),
             });
           } else if (data.status === 'done') {
             if (pollRef.current != null) {
@@ -232,15 +237,18 @@ export function BackupSection() {
             setRestoreProgress({
               stage: 'done',
               progress_pct: 100,
-              message: data.message ?? 'Restore complete.',
+              message: data.message ?? t('settings.backup.restoreStages.restoreCompleteFallback'),
             });
             const result = data.result ?? {};
             const totalRows = Object.values(
               (result.rows_inserted ?? {}) as Record<string, number>,
             ).reduce((a, b) => a + b, 0);
             const storageCount = (result.storage_paths_restored ?? []).length;
-            toast.success('Restore complete', {
-              description: `${totalRows} rows + ${storageCount} storage dirs. Reload the page to pick up the new state.`,
+            toast.success(t('settings.backup.restoreErrors.completeTitle'), {
+              description: t('settings.backup.restoreErrors.completeDesc', {
+                rows: totalRows,
+                dirs: storageCount,
+              }),
             });
             setRestoring(false);
             setRestoreConfirm('');
@@ -261,18 +269,15 @@ export function BackupSection() {
             setRestoreProgress({
               stage: 'failed',
               progress_pct: data.progress_pct ?? 0,
-              message: data.message ?? data.error ?? 'Restore failed',
+              message: data.message ?? data.error ?? t('settings.backup.restoreStages.restoreFailedFallback'),
             });
-            toast.error('Restore failed', {
-              description: data.error ?? data.message ?? 'see worker logs',
+            toast.error(t('settings.backup.restoreErrors.failedTitle'), {
+              description: data.error ?? data.message ?? t('settings.backup.restoreErrors.failedFallback'),
             });
             setRestoring(false);
           } else if (data.status === 'unknown') {
             // Status key not in Redis — TTL expired (1h) or worker died
-            // before writing the first progress event. Without this
-            // branch the poll loop runs forever and ``restoring`` stays
-            // true, locking the UI. Treat as terminal: clear the
-            // stashed job_id, drop the bar, let the user start fresh.
+            // before writing the first progress event. Treat as terminal.
             if (pollRef.current != null) {
               window.clearInterval(pollRef.current);
               pollRef.current = null;
@@ -284,62 +289,53 @@ export function BackupSection() {
             }
             setRestoring(false);
             setRestoreProgress(null);
-            toast.error('Restore status lost', {
-              description:
-                'The worker either never picked up the job or the status TTL expired. Try again.',
+            toast.error(t('settings.backup.restoreErrors.lostStatus'), {
+              description: t('settings.backup.restoreErrors.lostStatusDesc'),
             });
           }
         } catch {
-          // Network blip — keep polling. The job is on the worker side
-          // so a transient API blip doesn't lose progress.
+          // Network blip — keep polling.
         }
       };
-      // Kick off an immediate first poll so the bar appears within a
-      // second of the upload finishing, then settle into a 2s cadence.
       void tick();
       pollRef.current = window.setInterval(() => void tick(), 2000);
     },
-    [toast, refresh],
+    [toast, refresh, t],
   );
 
   // F-USER-FIX (v0.29.5): browser-blocking guard during the upload
   // phase. The 22GB single-POST upload dies on tab navigation and on
-  // any reverse-proxy timeout, so we set up beforeunload + a confirm
-  // dialog while ``restoring`` is true AND the stage is still
-  // "uploading". After enqueue (stage transitions to "queued" /
-  // "extract" / etc.) the work is fully on the worker — the user can
-  // navigate freely and the resume-on-mount effect picks the bar
-  // back up.
+  // any reverse-proxy timeout, so we set up beforeunload while
+  // ``restoring`` is true AND the stage is still "uploading".
   useEffect(() => {
     if (!restoring || restoreProgress?.stage !== 'uploading') return;
     const handler = (ev: BeforeUnloadEvent) => {
       ev.preventDefault();
-      ev.returnValue =
-        'Restore upload is in progress. Leaving this page aborts the upload — you will have to start over.';
+      ev.returnValue = t('settings.backup.beforeUnload');
       return ev.returnValue;
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [restoring, restoreProgress?.stage]);
+  }, [restoring, restoreProgress?.stage, t]);
 
   const onRestoreFromExisting = async () => {
     if (!selectedExisting) {
-      toast.error('Pick an existing archive from the dropdown first');
+      toast.error(t('settings.backup.restoreErrors.pickExistingFirst'));
       return;
     }
     if (restoreConfirm !== 'RESTORE') {
-      toast.error('Type RESTORE in the confirmation field to proceed');
+      toast.error(t('settings.backup.restoreErrors.typeRestore'));
       return;
     }
     if (!restoreDb && !restoreMedia) {
-      toast.error('Select at least one of database or media to restore');
+      toast.error(t('settings.backup.restoreErrors.selectAtLeastOne'));
       return;
     }
     setRestoring(true);
     setRestoreProgress({
       stage: 'queued',
       progress_pct: 0,
-      message: 'Enqueueing restore from existing archive…',
+      message: t('settings.backup.restoreStages.queuedEnqueueing'),
     });
     try {
       const params = new URLSearchParams();
@@ -363,11 +359,11 @@ export function BackupSection() {
       setRestoreProgress({
         stage: 'queued',
         progress_pct: 0,
-        message: 'Restore enqueued. Waiting for worker…',
+        message: t('settings.backup.restoreStages.queuedWaiting'),
       });
       pollRestoreStatus(data.job_id);
     } catch (err) {
-      toast.error('Restore enqueue failed', { description: formatError(err) });
+      toast.error(t('settings.backup.restoreErrors.enqueueFailed'), { description: formatError(err) });
       setRestoring(false);
       setRestoreProgress(null);
     }
@@ -376,22 +372,22 @@ export function BackupSection() {
   const onRestore = async () => {
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
-      toast.error('No file selected');
+      toast.error(t('settings.backup.restoreErrors.noFile'));
       return;
     }
     if (restoreConfirm !== 'RESTORE') {
-      toast.error('Type RESTORE in the confirmation field to proceed');
+      toast.error(t('settings.backup.restoreErrors.typeRestore'));
       return;
     }
     if (!restoreDb && !restoreMedia) {
-      toast.error('Select at least one of database or media to restore');
+      toast.error(t('settings.backup.restoreErrors.selectAtLeastOne'));
       return;
     }
     setRestoring(true);
     setRestoreProgress({
       stage: 'uploading',
       progress_pct: 0,
-      message: `Uploading ${file.name}…`,
+      message: t('settings.backup.restoreStages.uploadingStart', { filename: file.name }),
     });
     try {
       const fd = new FormData();
@@ -415,7 +411,7 @@ export function BackupSection() {
             setRestoreProgress({
               stage: 'uploading',
               progress_pct: pct,
-              message: `Uploading ${file.name} (${pct}%)…`,
+              message: t('settings.backup.restoreStages.uploadingProgress', { filename: file.name, pct }),
             });
           }
         });
@@ -436,11 +432,11 @@ export function BackupSection() {
       setRestoreProgress({
         stage: 'queued',
         progress_pct: 0,
-        message: 'Upload complete — restore enqueued. Waiting for worker…',
+        message: t('settings.backup.restoreStages.uploadCompleteEnqueued'),
       });
       pollRestoreStatus(data.job_id);
     } catch (err) {
-      toast.error('Restore upload failed', { description: formatError(err) });
+      toast.error(t('settings.backup.restoreErrors.uploadFailed'), { description: formatError(err) });
       setRestoring(false);
       setRestoreProgress(null);
     }
@@ -461,8 +457,6 @@ export function BackupSection() {
   };
 
   // Mutual-exclusivity handlers between the two restore paths.
-  // These need access to fileInputRef.current, so they live in the
-  // parent where the ref is owned, not in the child.
   const onSelectExistingArchive = (filename: string) => {
     setSelectedExisting(filename);
     // Clear the file picker so only one restore path is active at a time.
@@ -478,8 +472,8 @@ export function BackupSection() {
     }
   };
 
-  if (loading) return <Card className="p-6">Loading backups...</Card>;
-  if (!state) return <Card className="p-6">Backup service unavailable.</Card>;
+  if (loading) return <Card className="p-6">{t('settings.backup.loading')}</Card>;
+  if (!state) return <Card className="p-6">{t('settings.backup.unavailable')}</Card>;
 
   return (
     <div className="space-y-6">
@@ -489,15 +483,14 @@ export function BackupSection() {
           <div>
             <h3 className="font-semibold text-lg flex items-center gap-2 mb-1">
               <Archive className="w-5 h-5" />
-              Backups
+              {t('settings.backup.heading')}
             </h3>
             <p className="text-sm text-txt-secondary">
-              Full-install archives (DB rows + user media). Safe to move between machines that
-              share the same ENCRYPTION_KEY.
+              {t('settings.backup.intro')}
             </p>
           </div>
           <Button onClick={onCreate} disabled={creating} variant="primary">
-            {creating ? 'Creating...' : 'Backup now'}
+            {creating ? t('settings.backup.creating') : t('settings.backup.backupNow')}
           </Button>
         </div>
       </Card>
