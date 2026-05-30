@@ -83,7 +83,7 @@ async def generate_series_async(
             target_duration = payload.get("target_duration_seconds", 30)
 
             system_prompt = """\
-You are a YouTube Shorts series creator. Generate a complete series configuration from the user's idea.
+You are a YouTube Shorts series creator. Turn the user's idea into a complete, COHERENT series configuration.
 Output ONLY valid JSON with this exact structure:
 {
     "name": "catchy series name (max 50 chars)",
@@ -94,15 +94,21 @@ Output ONLY valid JSON with this exact structure:
         {"title": "catchy episode title", "topic": "1-2 sentence description of what this episode covers"}
     ]
 }
-Make the series name catchy and YouTube-friendly.
-Visual style should be specific enough for AI image generation (mention colors, lighting, composition).
-Character description should be detailed enough to generate consistent visuals.
-Each episode topic should be specific and actionable, not vague."""
+
+Rules:
+- Stay true to the user's idea. The name, description, visual_style, character_description, TONE and FORMAT must all reflect it.
+- Every episode must be an episode OF THIS SHOW — matching its premise, tone, format and characters — NOT generic facts about the broad topic. If the idea is comedic, narrative or character-driven, each episode must carry that same angle (e.g. a comedy space-pirate show gets funny pirate misadventures, not dry astronomy lessons).
+- Only generate straight educational/listicle episodes if the user's idea is itself a straight educational show.
+- Make the series name catchy and YouTube-friendly.
+- Visual style must be specific enough for AI image generation (colors, lighting, composition).
+- Character description must be detailed enough to generate consistent visuals.
+- Each episode title and topic must be specific, distinct and on-premise — never vague or repetitive."""
 
             user_prompt = (
                 f"Create a YouTube Shorts series based on this idea:\n\n"
                 f"{payload['idea']}\n\n"
-                f"Generate exactly {episode_count} episode ideas.\n"
+                f"Generate exactly {episode_count} episode ideas that clearly belong to THIS series — "
+                f"each one matching its premise, tone, format and characters, not generic facts about the topic.\n"
                 f"Target duration per episode: {target_duration} seconds.\n\n"
                 f"Return the JSON now:"
             )

@@ -18,6 +18,7 @@ from drevalis.core.deps import get_db, get_settings
 from drevalis.core.exceptions import NotFoundError, ValidationError
 from drevalis.models.comfyui import ComfyUIServer
 from drevalis.schemas.comfyui_crud import (
+    ComfyUIModelsResponse,
     ComfyUIServerCreate,
     ComfyUIServerResponse,
     ComfyUIServerTestResponse,
@@ -220,6 +221,42 @@ async def test_server(
         )
 
 
+@router.get(
+    "/servers/{server_id}/models",
+    response_model=ComfyUIModelsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List model files installed on a ComfyUI server",
+)
+async def list_server_models(
+    server_id: UUID,
+    svc: ComfyUIServerService = Depends(_server_service),
+) -> ComfyUIModelsResponse:
+    """Return the checkpoints / LoRAs / VAEs / UNETs installed on the server
+    so the UI can offer a real pick-list. Degrades to ``available=False`` with
+    empty lists when the server is offline or unreachable — never raises a 5xx
+    for a box that simply isn't running, so series setup is never blocked.
+    """
+    try:
+        server = await svc.get(server_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    api_key = await svc.decrypt_api_key(server)
+
+    from drevalis.services.comfyui import ComfyUIClient
+
+    client = ComfyUIClient(base_url=server.url, api_key=api_key)
+    try:
+        models = await client.list_models()
+        return ComfyUIModelsResponse(available=True, **models)
+    except Exception as exc:
+        # Offline / unreachable / unexpected payload — degrade gracefully so
+        # the UI falls back to free-text model entry instead of erroring.
+        return ComfyUIModelsResponse(available=False, message=str(exc))
+    finally:
+        await client.close()
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Workflows
 # ═══════════════════════════════════════════════════════════════════════════
@@ -374,7 +411,6 @@ async def install_template(
     import re
     import shutil as _shutil
     import time
-    from pathlib import Path
 
     from drevalis.services.comfyui.templates import TEMPLATES, template_json_path
 

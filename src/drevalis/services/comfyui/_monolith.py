@@ -268,6 +268,37 @@ class ComfyUIClient:
             )
             return False
 
+    async def list_models(self) -> dict[str, list[str]]:
+        """Return the model files installed on this ComfyUI server.
+
+        Queries ``/object_info`` (the same metadata ComfyUI's own web UI uses
+        to populate its node dropdowns) and extracts the option lists for the
+        common loader nodes, so the app can offer a pick-list of what's
+        actually loadable instead of asking the user to type filenames blind.
+        Returns an empty list for any loader the server doesn't have installed
+        rather than raising.
+        """
+        resp = await self._client.get("/object_info", timeout=httpx.Timeout(15.0))
+        resp.raise_for_status()
+        info: dict[str, Any] = resp.json()
+
+        def _options(class_type: str, field: str) -> list[str]:
+            node = info.get(class_type, {})
+            required = node.get("input", {}).get("required", {})
+            spec = required.get(field)
+            # ComfyUI returns ``[[opt, opt, ...]]`` or ``[[...], {meta}]``;
+            # the installed-file list is the first element.
+            if isinstance(spec, list) and spec and isinstance(spec[0], list):
+                return [str(o) for o in spec[0]]
+            return []
+
+        return {
+            "checkpoints": _options("CheckpointLoaderSimple", "ckpt_name"),
+            "loras": _options("LoraLoader", "lora_name"),
+            "vaes": _options("VAELoader", "vae_name"),
+            "unets": _options("UNETLoader", "unet_name"),
+        }
+
 
 # ── Server pool ────────────────────────────────────────────────────────────
 

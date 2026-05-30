@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
 
-from arq.connections import ArqRedis
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
@@ -27,8 +26,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from drevalis.api.routes.episodes._helpers import _episode_service, logger
 from drevalis.core.config import Settings
-from drevalis.core.deps import get_db, get_redis, get_settings
+from drevalis.core.deps import get_db, get_settings
 from drevalis.core.license.deprecation import apply_deprecation_headers
+from drevalis.core.redis import get_arq_pool
 from drevalis.services.episode import (
     EpisodeNoScriptError,
     EpisodeNotFoundError,
@@ -510,7 +510,6 @@ async def get_seo_score(
 )
 async def generate_seo(
     episode_id: UUID,
-    redis: ArqRedis = Depends(get_redis),
     svc: EpisodeService = Depends(_episode_service),
 ) -> dict[str, Any]:
     """Enqueue SEO generation as a background job."""
@@ -519,7 +518,16 @@ async def generate_seo(
     except (EpisodeNotFoundError, EpisodeNoScriptError) as exc:
         raise HTTPException(404, "Episode not found or has no script") from exc
 
-    await redis.enqueue_job("generate_seo_async", str(episode_id))
+    # Enqueue via the arq pool singleton (the plain Redis from get_redis has
+    # no enqueue_job — using it here previously raised AttributeError -> 500).
+    try:
+        arq = get_arq_pool()
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Background worker not ready yet; try again in a moment.",
+        ) from exc
+    await arq.enqueue_job("generate_seo_async", str(episode_id))
     return {"status": "queued", "message": "SEO generation started in background"}
 
 

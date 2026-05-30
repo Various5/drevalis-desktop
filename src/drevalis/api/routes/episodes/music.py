@@ -18,13 +18,13 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from arq.connections import ArqRedis
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from drevalis.api.routes.episodes._helpers import _episode_service, logger
 from drevalis.core.concurrency import effective_max_concurrent_generations
 from drevalis.core.config import Settings
-from drevalis.core.deps import get_redis, get_settings
+from drevalis.core.deps import get_settings
+from drevalis.core.redis import get_arq_pool
 from drevalis.schemas.episode import SetMusicRequest
 from drevalis.services.episode import (
     ConcurrencyCapReachedError,
@@ -153,7 +153,6 @@ async def list_episode_music(
 async def generate_episode_music(
     episode_id: UUID,
     payload: dict[str, Any],
-    redis: ArqRedis = Depends(get_redis),
     svc: EpisodeService = Depends(_episode_service),
 ) -> dict[str, Any]:
     """Enqueue music generation as a background job."""
@@ -189,7 +188,17 @@ async def generate_episode_music(
             ),
         )
 
-    await redis.enqueue_job(
+    # arq jobs must be enqueued via the dedicated arq pool singleton, NOT the
+    # plain Redis client yielded by ``get_redis`` (which has no enqueue_job —
+    # calling it there raised AttributeError and surfaced as a 500).
+    try:
+        arq = get_arq_pool()
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Background worker not ready yet; try again in a moment.",
+        ) from exc
+    await arq.enqueue_job(
         "generate_episode_music",
         str(episode_id),
         mood,

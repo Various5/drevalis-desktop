@@ -79,6 +79,22 @@ class ComfyUIServerTestResponse(BaseModel):
     server_id: UUID
 
 
+class ComfyUIModelsResponse(BaseModel):
+    """Model files installed on a ComfyUI server (read from ``/object_info``).
+
+    ``available`` is False when the server couldn't be queried (offline /
+    unreachable); the lists are then empty and the UI falls back to free-text
+    entry. The endpoint never fails hard on a server-side error.
+    """
+
+    available: bool
+    checkpoints: list[str] = Field(default_factory=list)
+    loras: list[str] = Field(default_factory=list)
+    vaes: list[str] = Field(default_factory=list)
+    unets: list[str] = Field(default_factory=list)
+    message: str | None = None
+
+
 # ── ComfyUI Workflow schemas ──────────────────────────────────────────────
 
 
