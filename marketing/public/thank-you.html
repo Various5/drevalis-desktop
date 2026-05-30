@@ -18,6 +18,7 @@
 </head>
 
 <body class="antialiased">
+  <a href="#main" class="skip-link">Skip to content</a>
   <nav class="site-nav">
     <div class="site-nav-inner">
       <a href="/" class="site-brand">
@@ -32,6 +33,7 @@
     </div>
   </nav>
 
+  <main id="main">
   <section class="section relative overflow-hidden">
     <div class="bg-glow" style="background: var(--accent); top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 500px; opacity: 0.25;"></div>
     <div class="container-md text-center relative z-10 reveal">
@@ -60,16 +62,16 @@
           <div class="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--bg-base)] font-bold flex items-center justify-center flex-shrink-0">2</div>
           <div class="min-w-0 flex-1">
             <h4 class="mb-1">Download the installer</h4>
-            <p class="text-sm text-[var(--txt-secondary)] mb-3">Grab the signed Windows installer from the <a href="https://github.com/Various5/drevalis-desktop/releases/latest" rel="noopener">latest GitHub release</a> and run it. No admin prompt, no Docker, no terminal.</p>
+            <p class="text-sm text-[var(--txt-secondary)] mb-3">Grab the signed Windows installer from the <a href="https://github.com/Various5/drevalis-desktop/releases/latest" rel="noopener">latest GitHub release</a> and run it — no admin rights needed.</p>
             <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-sm" rel="noopener">Download for Windows →</a>
-            <p class="small-muted mt-3">macOS and Linux installers are coming after we wire up code signing — see <a href="/download">drevalis.com/download</a>.</p>
+            <p class="small-muted mt-3">macOS and Linux aren't supported yet — see <a href="/download">drevalis.com/download</a>.</p>
           </div>
         </li>
         <li class="card p-6 flex gap-5">
           <div class="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--bg-base)] font-bold flex items-center justify-center flex-shrink-0">3</div>
           <div>
             <h4 class="mb-1">Open the app and paste your key</h4>
-            <p class="text-sm text-[var(--txt-secondary)]">Launch Drevalis from the Start menu. The window opens after a few seconds. Paste your license key on the activation screen — the app exchanges it with our license server for a signed token and unlocks. That's it.</p>
+            <p class="text-sm text-[var(--txt-secondary)]">Launch Drevalis from the Start menu. The window opens after a few seconds. Paste your license key on the activation screen and the app activates instantly. That's it.</p>
           </div>
         </li>
         <li class="card p-6 flex gap-5">
@@ -87,6 +89,8 @@
       </div>
     </div>
   </section>
+
+  </main>
 
   <footer class="site-footer">
     <div class="site-footer-grid">

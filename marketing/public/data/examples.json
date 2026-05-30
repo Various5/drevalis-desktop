@@ -6,7 +6,6 @@
     "video_url": "/assets/examples/true-crime-diamond-caper.mp4",
     "poster_url": "/assets/examples/true-crime-diamond-caper.jpg",
     "duration_seconds": 60,
-    "gpu_used": "RTX 4090",
     "generation_time_minutes": 7
   },
   {
@@ -16,7 +15,6 @@
     "video_url": "/assets/examples/interrogation-hypnosis-2004.mp4",
     "poster_url": "/assets/examples/interrogation-hypnosis-2004.jpg",
     "duration_seconds": 60,
-    "gpu_used": "RTX 4090",
     "generation_time_minutes": 6
   },
   {
@@ -26,7 +24,6 @@
     "video_url": "/assets/examples/strangest-foods-yak-butter.mp4",
     "poster_url": "/assets/examples/strangest-foods-yak-butter.jpg",
     "duration_seconds": 60,
-    "gpu_used": "RTX 4090",
     "generation_time_minutes": 6
   }
 ]

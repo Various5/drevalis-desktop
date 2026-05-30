@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Download — Drevalis Creator Studio</title>
-  <meta name="description" content="Download Drevalis Creator Studio for Windows. Native installer — no Docker, no terminal. Signed updates delivered in-app." />
+  <meta name="description" content="Download Drevalis Creator Studio for Windows. One signed installer, ready in two minutes — with automatic, signed updates delivered in-app." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,6 +18,7 @@
 </head>
 
 <body class="antialiased">
+  <a href="#main" class="skip-link">Skip to content</a>
   <nav class="site-nav">
     <div class="site-nav-inner">
       <a href="/" class="site-brand">
@@ -35,18 +36,19 @@
     </div>
   </nav>
 
+  <main id="main">
   <!-- ── Hero ──────────────────────────────────────────────────────── -->
   <section class="section-compact relative overflow-hidden">
     <div class="bg-glow" style="background: var(--accent); top: -80px; right: 10%; width: 400px; height: 400px; opacity: 0.2;"></div>
     <div class="container-xl text-center relative z-10 reveal">
-      <span class="eyebrow mb-5">Windows · pre-release alpha</span>
+      <span class="eyebrow mb-5">Windows 10 &amp; 11 · 64-bit</span>
       <h1 class="display-hero mt-5 mb-5">Download for <span class="accent-gradient">Windows</span>.</h1>
-      <p class="lead max-w-2xl mx-auto">One signed installer. No Docker, no terminal, no command line. The installer drops the app into <code class="inline">%LOCALAPPDATA%\Drevalis</code>, registers an auto-start tray icon, and you're done in under two minutes.</p>
+      <p class="lead max-w-2xl mx-auto">One installer, no setup headaches — download, run, and you're ready in under two minutes. It adds a tray icon so generation keeps running quietly in the background.</p>
       <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
         <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-lg" rel="noopener">Download installer →</a>
         <a href="https://github.com/Various5/drevalis-desktop/releases" class="btn btn-secondary btn-lg" rel="noopener">All releases</a>
       </div>
-      <p class="small-muted mt-4">Latest build is signed with our Ed25519 updater key. Verify the <code class="inline">.exe.sig</code> alongside the installer if you want.</p>
+      <p class="small-muted mt-4">Every download is digitally signed, and updates install themselves from inside the app.</p>
     </div>
   </section>
 
@@ -57,9 +59,9 @@
         <div class="flex items-center gap-3 mb-2">
           <span class="pill pill-indigo">Windows 10 · 11 · 64-bit</span>
         </div>
-        <h3 class="mb-2">Native installer</h3>
-        <p class="text-sm text-[var(--txt-secondary)] mb-4">An NSIS <code class="inline">.exe</code> — installs as a regular user (no admin prompt needed). FFmpeg and Redis are bundled inside the install directory. The first launch creates a SQLite database under <code class="inline">%LOCALAPPDATA%\Drevalis</code>. macOS and Linux are not supported at this time.</p>
-        <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-sm" rel="noopener">Get the .exe</a>
+        <h3 class="mb-2">A standard Windows installer</h3>
+        <p class="text-sm text-[var(--txt-secondary)] mb-4">Installs without admin rights, and everything it needs comes bundled — there's nothing else to set up. Your work is saved in your own user folder, so uninstalling never deletes anything you've made. macOS and Linux aren't supported yet.</p>
+        <a href="https://github.com/Various5/drevalis-desktop/releases/latest" class="btn btn-primary btn-sm" rel="noopener">Get the installer</a>
       </div>
     </div>
   </section>
@@ -67,13 +69,13 @@
   <!-- ── What the installer does ──────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-lg">
-      <h2 class="display-section mb-6 reveal">What the installer puts on your disk</h2>
+      <h2 class="display-section mb-6 reveal">What you get when you install</h2>
       <div class="card p-7 reveal">
         <ol class="space-y-3 text-[var(--txt-secondary)]">
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>The app, FFmpeg, and a bundled Redis sidecar go into <code class="inline">%LOCALAPPDATA%\Drevalis Creator Studio</code> — about 250 MB on disk.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Your SQLite database, logs, and generated episodes go into <code class="inline">%LOCALAPPDATA%\Drevalis</code> (separate from the program files so an uninstall doesn't nuke your work).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>A Start-menu shortcut and a tray icon. The app keeps running in the tray when you close the window so background generation doesn't get killed.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>That's it. No Docker, no PostgreSQL, no Python — everything's bundled and self-contained.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>The app and everything it needs, installed in one place — about 250 MB.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Your videos, settings, and backups, saved in your personal user folder — kept separate from the app so uninstalling never touches your work.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>A Start-menu shortcut and a tray icon. Close the window and the app keeps working in the tray, so background generation isn't interrupted.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>That's it — nothing else to install, and nothing left running that you didn't ask for.</span></li>
         </ol>
       </div>
     </div>
@@ -85,50 +87,45 @@
       <h2 class="display-section mb-8 text-center reveal">System requirements</h2>
       <div class="grid md:grid-cols-2 gap-5 reveal">
         <div class="card p-7">
-          <span class="pill pill-amber mb-3">Minimum</span>
-          <h4 class="mt-4 mb-3">Runs, but slow on big jobs</h4>
+          <span class="pill pill-neutral mb-3">Minimum</span>
+          <h4 class="mt-4 mb-3">Runs, but slower on big jobs</h4>
           <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>— Windows 10 (22H2+) or Windows 11</li>
-            <li>— 4 CPU cores, 8 GB RAM</li>
-            <li>— 5 GB free disk for the app + a few episodes</li>
-            <li>— GPU optional — needed only for ComfyUI image/video generation</li>
+            <li>— Windows 10 or 11 (64-bit)</li>
+            <li>— 4 processor cores, 8 GB RAM</li>
+            <li>— 5 GB free space for the app and a few episodes</li>
+            <li>— Graphics card optional — only needed for AI image and video</li>
           </ul>
         </div>
         <div class="card p-7">
-          <span class="pill pill-green mb-3">Recommended</span>
+          <span class="pill pill-indigo mb-3">Recommended</span>
           <h4 class="mt-4 mb-3">Smooth on Shorts and long-form</h4>
           <ul class="text-sm text-[var(--txt-secondary)] space-y-2">
-            <li>— 8+ CPU cores, 16 GB+ RAM</li>
-            <li>— NVIDIA GPU with 12 GB+ VRAM (for local ComfyUI)</li>
-            <li>— 50 GB+ NVMe for episode storage</li>
-            <li>— Or rent a cloud GPU from RunPod / Vast.ai (Pro plan) and the app itself runs fine on a laptop</li>
+            <li>— 8+ processor cores, 16 GB+ RAM</li>
+            <li>— NVIDIA graphics card with 12 GB+ memory (for AI visuals)</li>
+            <li>— 50 GB+ fast SSD for storing episodes</li>
+            <li>— Or rent cloud power on the Pro plan — then even a laptop is fine</li>
           </ul>
         </div>
       </div>
-      <p class="text-center small-muted mt-5 reveal">The app itself is light. The heavy lifting is whatever LLM, TTS, and ComfyUI workflow you point it at — they decide your hardware ceiling, not Drevalis.</p>
+      <p class="text-center small-muted mt-5 reveal">The app itself is light. The heavy lifting is the AI tools you connect — they decide your speed, not Drevalis.</p>
     </div>
   </section>
 
   <!-- ── External services you point it at ─────────────────────────── -->
   <section class="section-compact">
     <div class="container-xl">
-      <h2 class="display-section mb-4 reveal">External tools you point it at</h2>
-      <p class="lead max-w-2xl mb-8 reveal">Drevalis orchestrates these — they aren't bundled. You install them once and Drevalis remembers the URL.</p>
-      <div class="grid md:grid-cols-3 gap-4 reveal">
+      <h2 class="display-section mb-4 reveal">What you'll connect</h2>
+      <p class="lead max-w-2xl mb-8 reveal">Two free pieces power the AI. You set them up once and Drevalis remembers them — everything else is built in.</p>
+      <div class="grid md:grid-cols-2 gap-4 reveal">
         <div class="card p-6">
-          <h4 class="mb-2">ComfyUI</h4>
-          <p class="text-sm text-[var(--txt-secondary)] mb-3">Scene image and video generation. Default URL <code class="inline">http://localhost:8188</code>; the app discovers it the first time you launch.</p>
-          <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank" rel="noopener noreferrer" class="text-sm">Install guide →</a>
+          <h4 class="mb-2">An AI writer</h4>
+          <p class="text-sm text-[var(--txt-secondary)] mb-3">Writes your scripts. Use a free app that runs on your own computer, or a cloud service with your own key — your choice, switchable any time in Settings.</p>
+          <span class="text-sm text-[var(--accent)]">Free options available</span>
         </div>
         <div class="card p-6">
-          <h4 class="mb-2">LM Studio · Ollama · or Claude</h4>
-          <p class="text-sm text-[var(--txt-secondary)] mb-3">Any OpenAI-compatible LLM works. Free local options (LM Studio, Ollama) or paid (Claude, OpenAI) — set the key in Settings.</p>
-          <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" class="text-sm">LM Studio →</a>
-        </div>
-        <div class="card p-6">
-          <h4 class="mb-2">FFmpeg + Redis</h4>
-          <p class="text-sm text-[var(--txt-secondary)] mb-3">Both bundled. Redis runs as a sidecar on port 6379; FFmpeg sits inside the install directory. You don't install either separately.</p>
-          <span class="text-sm text-[var(--accent)]">Included</span>
+          <h4 class="mb-2">An image generator</h4>
+          <p class="text-sm text-[var(--txt-secondary)] mb-3">Creates your AI visuals — free, and on your own computer. Drevalis finds it automatically the first time you launch, and ships ready-made styles you can tweak.</p>
+          <span class="text-sm text-[var(--accent)]">Free · runs on your PC</span>
         </div>
       </div>
     </div>
@@ -140,12 +137,12 @@
       <h2 class="display-section mb-6 reveal">After you install</h2>
       <div class="card p-7 reveal">
         <ol class="space-y-3 text-[var(--txt-secondary)]">
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>Launch from the Start menu. The app window opens after a few seconds (the bundled Redis + worker need to spin up).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Paste your license key from the purchase email into the activation screen. It exchanges with <code class="inline">license.drevalis.com</code> for a signed token and unlocks the app.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>Settings → ComfyUI Servers → add your ComfyUI URL (usually <code class="inline">http://localhost:8188</code>).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>Settings → LLM Configs → add your LM Studio / Ollama / Claude endpoint and pick a default model.</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">5</span><span>Settings → Voice Profiles → pick a default TTS voice (Edge or Kokoro are free and ship locally).</span></li>
-          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">6</span><span>Create your first series and generate an episode.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">1</span><span>Launch from the Start menu. The window opens after a few seconds while the app starts up.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">2</span><span>Paste the license key from your purchase email into the activation screen. It activates instantly and unlocks the app.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">3</span><span>In Settings, connect your image generator for AI visuals — the app usually finds it for you.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">4</span><span>In Settings, connect your AI writer and pick a default model.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">5</span><span>In Settings, pick a default voice — plenty are free and built in.</span></li>
+          <li class="flex gap-4"><span class="w-7 h-7 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-sm font-semibold flex-shrink-0">6</span><span>Create your first show and generate an episode.</span></li>
         </ol>
       </div>
     </div>
@@ -155,23 +152,16 @@
   <section class="section-compact">
     <div class="container-lg reveal">
       <h2 class="display-section mb-4">Updates</h2>
-      <p class="lead mb-5">In-app, one click: Settings → Updates → <em>Check for updates</em>. The Tauri auto-updater downloads the signed installer, verifies the Ed25519 signature against the public key embedded in your install, and re-launches the new version. No reinstall, no migrations to run manually.</p>
-      <p class="text-sm text-[var(--txt-secondary)]">Prefer a manual update? Download the latest <code class="inline">.exe</code> from <a href="https://github.com/Various5/drevalis-desktop/releases/latest" rel="noopener">GitHub Releases</a> and run it. Your data lives in <code class="inline">%LOCALAPPDATA%\Drevalis</code> — completely separate from the program files, so reinstalling won't touch anything you've made.</p>
+      <p class="lead mb-5">One click: Settings → Updates → <em>Check for updates</em>. Drevalis downloads the new version, checks it's genuine, and relaunches itself. No reinstalling, nothing to run by hand.</p>
+      <p class="text-sm text-[var(--txt-secondary)]">Prefer to update manually? Download the latest installer from <a href="https://github.com/Various5/drevalis-desktop/releases/latest" rel="noopener">GitHub Releases</a> and run it. Your work is saved separately from the app, so reinstalling never touches anything you've made.</p>
     </div>
   </section>
 
-  <!-- ── Verifying the download ───────────────────────────────────── -->
+  <!-- ── Safe & signed ───────────────────────────────────────────── -->
   <section class="section-compact">
     <div class="container-lg reveal">
-      <h2 class="display-section mb-4">Want to verify the download?</h2>
-      <p class="text-sm text-[var(--txt-secondary)] mb-4">Every release ships three artifacts next to each other on GitHub: the installer, a detached <code class="inline">.sig</code> (Ed25519 minisign), and a <code class="inline">latest.json</code> updater manifest. If you want belt-and-braces verification before running an .exe:</p>
-      <pre class="text-xs"><code># 1. Download the installer + .sig from the same release page.
-# 2. Verify with minisign and the public key from:
-#    https://github.com/Various5/drevalis-desktop/blob/main/.tauri-keys/drevalis-updater.key.pub
-
-minisign -Vm "Drevalis Creator Studio_*_x64-setup.exe" \
-         -P "RWQ25V8RbLTQAErpTcxm7HBW6OojHEAQzHLEF4tkAXtOXp/LbxrK5jZN"</code></pre>
-      <p class="text-sm text-[var(--txt-secondary)] mt-4">The in-app auto-updater does this for you every time it pulls a new version — these manual steps are only if you want to verify before the first install.</p>
+      <h2 class="display-section mb-4">Safe and signed</h2>
+      <p class="text-sm text-[var(--txt-secondary)]">Every release is digitally signed, and the app checks each update is genuine before installing it — so you always know a download really came from us. Advanced users who want the technical details can find them in our <a href="https://github.com/Various5/drevalis-desktop/releases/latest" rel="noopener">release notes</a>.</p>
     </div>
   </section>
 
@@ -180,11 +170,13 @@ minisign -Vm "Drevalis Creator Studio_*_x64-setup.exe" \
     <div class="container-md reveal">
       <div class="card p-8 text-center">
         <h2 class="display-section mb-3">Stuck during install?</h2>
-        <p class="text-[var(--txt-secondary)] mb-6">Email <a href="mailto:support@drevalis.com">support@drevalis.com</a> with the launcher log from <code class="inline">%LOCALAPPDATA%\Drevalis\Logs\drevalis.log</code> and we'll help. One business-day response, usually faster.</p>
+        <p class="text-[var(--txt-secondary)] mb-6">Email <a href="mailto:support@drevalis.com">support@drevalis.com</a> and we'll help. If we need logs, the app's Settings → Diagnostics page can save them as a zip for you to attach. One business-day response, usually faster.</p>
         <a href="mailto:support@drevalis.com" class="btn btn-primary">Email support</a>
       </div>
     </div>
   </section>
+
+  </main>
 
   <!-- Footer -->
   <footer class="site-footer">

@@ -71,13 +71,13 @@
       'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}' +
       '#drevalis-consent-banner h3{margin:0 0 6px;font:600 15px/1.3 "Outfit",system-ui,sans-serif;}' +
       '#drevalis-consent-banner p{margin:0 0 14px;color:#B4B8C1;font-size:13px;}' +
-      '#drevalis-consent-banner a{color:#7cff8a;text-decoration:underline;}' +
+      '#drevalis-consent-banner a{color:#818cf8;text-decoration:underline;}' +
       '#drevalis-consent-banner .cb-row{display:flex;gap:8px;flex-wrap:wrap;}' +
       '#drevalis-consent-banner button{cursor:pointer;padding:8px 14px;border-radius:8px;' +
       'font:500 13px/1 "DM Sans",system-ui,sans-serif;border:1px solid transparent;' +
       'transition:background 120ms,border-color 120ms;}' +
-      '#drevalis-consent-banner .cb-accept{background:#7cff8a;color:#0A0B0E;}' +
-      '#drevalis-consent-banner .cb-accept:hover{background:#5eea70;}' +
+      '#drevalis-consent-banner .cb-accept{background:#6366f1;color:#fff;}' +
+      '#drevalis-consent-banner .cb-accept:hover{background:#4f46e5;}' +
       '#drevalis-consent-banner .cb-decline{background:transparent;color:#E6E8EE;border-color:rgba(255,255,255,0.18);}' +
       '#drevalis-consent-banner .cb-decline:hover{background:rgba(255,255,255,0.06);}' +
       '@media (max-width:480px){#drevalis-consent-banner{left:8px;right:8px;bottom:8px;padding:14px 16px;}}';

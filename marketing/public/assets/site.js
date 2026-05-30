@@ -214,6 +214,56 @@ function wireImageFallback() {
   });
 }
 
+// ── Drop-in media slots ───────────────────────────────────────────────
+// A .img-slot can carry data-img / data-video pointing at a file that may
+// not exist yet — the operator drops finished screenshots and preview clips
+// into /assets/ later. We probe the URL first and only inject the real
+// <img>/<video> once it resolves, so an unfilled slot keeps showing its
+// labelled placeholder hint instead of a broken-media icon. No HTML edit is
+// needed when the asset lands: drop the file, redeploy, and it appears.
+function wireMediaSlots() {
+  document.querySelectorAll('.img-slot[data-img]').forEach((slot) => {
+    if (slot.querySelector('img, video')) return;
+    const src = slot.getAttribute('data-img');
+    if (!src) return;
+    const probe = new Image();
+    probe.onload = () => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = slot.getAttribute('data-alt') || '';
+      img.loading = 'lazy';
+      slot.appendChild(img);
+      slot.removeAttribute('data-img');
+    };
+    // On error we do nothing — the placeholder hint stays visible.
+    probe.src = src;
+  });
+
+  document.querySelectorAll('.img-slot[data-video]').forEach((slot) => {
+    if (slot.querySelector('img, video')) return;
+    const src = slot.getAttribute('data-video');
+    if (!src) return;
+    // HEAD-probe (same-origin, allowed by connect-src 'self') so we never
+    // mount a black <video> box before the clip has been uploaded.
+    fetch(src, { method: 'HEAD' })
+      .then((res) => {
+        if (!res.ok) return;
+        const video = document.createElement('video');
+        video.src = src;
+        const poster = slot.getAttribute('data-poster');
+        if (poster) video.poster = poster;
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        slot.appendChild(video);
+        slot.removeAttribute('data-video');
+      })
+      .catch(() => {
+        /* network hiccup — keep the placeholder hint */
+      });
+  });
+}
+
 // ── Lightbox — click any .img-slot img to view full-resolution ────────
 
 function wireLightbox() {
@@ -315,9 +365,9 @@ async function startPaypalCheckout({ tier, interval }) {
 }
 
 function wirePaypalButtons() {
-  // PayPal is disabled site-wide for now (alpha pricing only takes
-  // Stripe). Keeping the wiring code so flipping the flag back is a
-  // one-line change once PayPal is re-enabled at the licence server.
+  // PayPal is disabled site-wide for now (checkout is Stripe-only).
+  // Keeping the wiring so re-enabling PayPal is a one-line change once
+  // it's switched back on at the licence server.
   return;
   // eslint-disable-next-line no-unreachable
   if (!window.PAYPAL_ENABLED) return;
@@ -417,6 +467,8 @@ async function renderExampleGallery() {
       tile.className =
         'card p-0 overflow-hidden aspect-[9/16] relative group cursor-pointer';
       tile.setAttribute('aria-label', `Play ${ex.title || ex.series_name || 'example'}`);
+      tile.setAttribute('role', 'button');
+      tile.tabIndex = 0;
       // The poster image carries the overlay. Becomes the <video>
       // source on first click.
       const poster = document.createElement('img');
@@ -445,7 +497,7 @@ async function renderExampleGallery() {
       tile.appendChild(poster);
       tile.appendChild(overlay);
       tile.appendChild(play);
-      tile.addEventListener('click', () => {
+      const playTile = () => {
         if (!ex.video_url) return;
         // Pause any other example videos in the grid, then mount ours.
         document
@@ -463,6 +515,13 @@ async function renderExampleGallery() {
         video.playsInline = true;
         video.setAttribute('preload', 'metadata');
         tile.appendChild(video);
+      };
+      tile.addEventListener('click', playTile);
+      tile.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          playTile();
+        }
       });
       host.appendChild(tile);
     }
@@ -589,6 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
   wireIntervalToggle();
   wireBillingPortalForm();
   wireReveal();
+  wireMediaSlots();
   wireImageFallback();
   wireLightbox();
   wireHeroVideoFallback();
