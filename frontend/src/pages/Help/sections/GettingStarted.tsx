@@ -121,7 +121,7 @@ export function GettingStarted() {
           {
             step: '4',
             title: 'Generate',
-            desc: 'Click the Generate button on the episode. Watch the Activity Monitor in the bottom-right corner — it shows real-time progress through all 6 pipeline steps: Script → Voice → Scenes → Captions → Assembly → Thumbnail. Generation time depends on your GPU. An image-mode Short typically takes 3–8 minutes.',
+            desc: 'Click the Generate button on the episode. Watch the Activity Monitor — by default a strip across the bottom of the screen; configurable as a left/right rail or a top strip under Settings → Appearance → Activity Monitor position. It shows real-time progress through all 6 pipeline steps: Script → Voice → Scenes → Captions → Assembly → Thumbnail. Generation time depends on your GPU. An image-mode Short typically takes 3–8 minutes.',
           },
           {
             step: '5',

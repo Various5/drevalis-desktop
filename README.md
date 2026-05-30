@@ -25,13 +25,19 @@ The installer is an NSIS .exe signed with our Ed25519 updater key. It drops the 
 
 1. Launch from the Start menu — first run takes ~20 seconds (bundled Redis + worker spin up).
 2. Paste your licence key from the purchase email. The app exchanges it with `license.drevalis.com` for a signed JWT and unlocks.
-3. Settings → ComfyUI Servers → add your ComfyUI URL (usually `http://localhost:8188`).
-4. Settings → LLM Configs → add a local LLM (LM Studio / Ollama) or a cloud one (Claude / OpenAI).
-5. Settings → Voice Profiles → pick a default TTS voice (Edge or Kokoro are free and ship locally).
+3. **Settings → Integrations → ComfyUI** → add your ComfyUI URL (usually `http://localhost:8188`).
+4. **Settings → Integrations → LLM** → add a local LLM (LM Studio / Ollama) or a cloud one (Claude / OpenAI).
+5. **Settings → Integrations → Voice** → pick a default TTS voice (Edge or Kokoro are free and ship locally).
+
+The sidebar groups your workflow into **Create** (Series, Episodes, Audiobooks, Templates), **Publish** (Calendar, Channels, Scheduled posts), **Monitor** (Dashboard, Jobs, Logs), and **Maintenance** (Health, Storage, Backup, Updates). The Command Palette (⌘K / Ctrl+K) jumps to any of them, and `?` shows the full keyboard shortcut sheet.
+
+Available in **English** and **German** — switch under Settings → Appearance → Language. Detected from your OS on first run.
 
 ### Updates
 
-In-app: Settings → Updates → *Check for updates*. The Tauri auto-updater verifies the Ed25519 signature against the embedded public key, downloads, and relaunches.
+In-app: **Settings → System → Updates → *Check for updates***. The Tauri auto-updater verifies the Ed25519 signature against the embedded public key, downloads, and relaunches.
+
+**Update channels** (Phase 6+): pick between **Stable** (final releases only) and **Release candidate** (also receives `1.0.0-rc.X` and alphas). Defaults to Stable; opt-in to RC under Settings → System → Updates → Update channel. The workflow publishes both `latest.json` (stable) and `latest-rc.json` (rc) on every release.
 
 ### Verifying a download manually
 
@@ -109,8 +115,21 @@ The frontend dev server proxies API calls to `:8000`. Set `DREVALIS_LICENSE_BYPA
 ### Running the test suite
 
 ```powershell
+# Backend
 uv run python -m pytest tests/unit
+
+# Frontend — strict typecheck + Vite build (CI gate)
+cd frontend && npm run build:strict
+
+# Frontend — vitest (RTL + jest-dom, includes the i18n key-parity
+# test that catches en-US / de-DE divergence)
+cd frontend && npx vitest run
+
+# Tauri shell
+cd tauri/src-tauri && cargo check
 ```
+
+CI runs all four on every push to `main` and gates the release workflow on them.
 
 ---
 
@@ -125,6 +144,9 @@ For the why-and-how:
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — code style + PR conventions
 - [`SECURITY.md`](./SECURITY.md) — disclosure policy
 - [`license-server/README.md`](./license-server/README.md) — server-side endpoint contract + deploy
+- [`docs/goals/phases/`](./docs/goals/phases/) — per-phase specs (0 spike → 6 release readiness)
+- [`docs/decisions/`](./docs/decisions/) — ADRs, including ADR-002 (rebuilt editor as a client-side NLE)
+- [`docs/sentry-release-tagging-audit.md`](./docs/sentry-release-tagging-audit.md) — release-tag flow across the 3 SDKs
 
 ---
 
@@ -142,7 +164,9 @@ Pricing tiers (Creator / Pro / Studio) and the canonical feature map live in [`s
 
 - **App / billing issues** — <support@drevalis.com>
 - **Security disclosure** — see [`SECURITY.md`](./SECURITY.md)
-- **Releases + changelog** — [GitHub Releases](https://github.com/Various5/drevalis-desktop/releases)
+- **Releases** — [GitHub Releases](https://github.com/Various5/drevalis-desktop/releases)
+- **Changelog** — [`CHANGELOG.md`](./CHANGELOG.md) (phase-grouped narrative of alpha.58 → alpha.101, plus the legacy alpha.57 era)
+- **Release checklist** — [`docs/release-checklist.md`](./docs/release-checklist.md) (what we walk before every cut)
 
 ---
 
