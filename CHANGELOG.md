@@ -18,6 +18,35 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.3] — 2026-05-30
+
+**Desktop-app bug-fix pass — nine reported issues.**
+
+### Fixed
+- **In-app updater** failed with "command check_for_channel not allowed
+  by acl". The main window runs from the remote origin (127.0.0.1:8000)
+  and Tauri 2 only auto-allows app commands for local content, so the
+  channel-update commands are now registered via `AppManifest::commands`
+  and granted in the capability. **rc.2's updater is broken — install
+  rc.3 manually from the releases page, then in-app updates work again.**
+- **Dialog inputs lost focus after one keystroke** (ComfyUI / LLM / Voice
+  add-server dialogs) — the shared focus hook re-stole focus on every
+  render. Fixed for every dialog.
+- **Generate Music / Generate SEO returned 500** — enqueued on the wrong
+  Redis client; now use the arq pool (clean 503 if the worker isn't up).
+- **AI series generation ignored the premise** — episodes now stay on the
+  show's premise, tone and characters instead of drifting to generic facts.
+- Invisible **white-on-white** `<select>` options; **delete-series** now
+  confirms with "yes" instead of retyping the full series name.
+
+### Changed
+- Sidebar + mobile nav: the Maintenance group collapses to a single
+  **Settings** entry (its panels still open inside the Settings window).
+- ComfyUI LoRA fields autocomplete from the connected server's installed
+  models via a new offline-safe `GET /comfyui/servers/{id}/models`.
+
+---
+
 ## [v1.0.0-rc.2] — 2026-05-30
 
 **Marketing-site overhaul + RC-safe fixes.**
