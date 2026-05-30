@@ -5,7 +5,7 @@ All notable changes to Drevalis Creator Studio (desktop port).
 The format roughly follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions match the git tags pushed to
 [`Various5/drevalis-desktop`](https://github.com/Various5/drevalis-desktop/releases).
-Pre-1.0 releases are alpha-tagged.
+Pre-1.0 releases were alpha-tagged; the 1.0 run uses release candidates (`rc.N`).
 
 ---
 
@@ -15,6 +15,43 @@ Pre-1.0 releases are alpha-tagged.
 Linux AppImage release jobs, prerelease/Latest semantic refinement
 in the workflow so stable + rc channels diverge cleanly post-1.0,
 two pre-1.0 telemetry follow-ups from the Sentry audit.)
+
+---
+
+## [v1.0.0-rc.2] — 2026-05-30
+
+**Marketing-site overhaul + RC-safe fixes.**
+
+### Marketing site (drevalis.com)
+- Removed the cyberpunk boot-intro asset and the remaining neon/"vibe"
+  colours; the site is now a restrained, professional indigo throughout
+  (consent banner included).
+- De-jargoned all selling copy for a creator audience — dropped
+  developer/infra terms (ComfyUI, FFmpeg, Redis, RunPod/Vast, LM Studio,
+  SQLite, NSIS, minisign, `%LOCALAPPDATA%`, LLM/TTS, …) and the
+  signature-verification code block.
+- Added drop-in image + video placeholders (hero, four feature shots,
+  and a "How it works" workflow video); files dropped into
+  `/assets/images` and `/assets/videos` now appear automatically with no
+  HTML edit.
+- Accessibility + correctness: `<main>` landmarks + skip links,
+  keyboard-operable example gallery, hamburger `aria-expanded` /
+  `aria-controls`, AA-contrast muted text, mobile-scrollable comparison
+  table, refreshed OG/Twitter images, and a corrected (previously stale)
+  CSP hash for the homepage structured-data block.
+
+### App — RC-safe fixes (multi-agent review)
+- **Worker catch-up** no longer uses Postgres-only `NOW()`/`INTERVAL`; the
+  48-hour missed-scheduled-post requeue now runs on the desktop SQLite DB
+  instead of silently failing on every startup.
+- **Fresh-install hardening**: a keychain read/write failure no longer
+  crashes Settings on first launch — it falls through to the standard
+  "set ENCRYPTION_KEY" path.
+- Voice quality-gate now queries the correct asset type; YouTube routes
+  import `Literal` (clears type/lint errors); Cloud GPU toast grammar;
+  SeriesDetail focus-listener leak fixed; license-server `/deactivate`
+  gains the same per-IP rate-limit as its siblings; release docs
+  corrected to the non-draft `1.0.0-rc` flow.
 
 ---
 
