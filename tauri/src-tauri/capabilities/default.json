@@ -18,6 +18,9 @@
     "opener:default",
     "opener:allow-open-url",
     "opener:allow-reveal-item-in-dir",
-    "updater:default"
+    "updater:default",
+    "allow-restart-backend",
+    "allow-check-for-channel",
+    "allow-install-for-channel"
   ]
 }
