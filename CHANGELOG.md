@@ -11,8 +11,68 @@ Pre-1.0 releases are alpha-tagged.
 
 ## [Unreleased]
 
-(Phase 6 work in progress: 1.0-rc.1 prep — CHANGELOG, README refresh,
-release checklist, rc updater channel, Sentry release tagging audit.)
+(Tracking toward `1.0.0` final. Forward-looking items: macOS DMG +
+Linux AppImage release jobs, prerelease/Latest semantic refinement
+in the workflow so stable + rc channels diverge cleanly post-1.0,
+two pre-1.0 telemetry follow-ups from the Sentry audit.)
+
+---
+
+## [v1.0.0-rc.1] — 2026-05-30
+
+**Milestone**: first non-alpha release. Drops the `0.1.0-alpha.X`
+scheme and cuts the first release candidate of `1.0.0`. End of the
+desktop-port arc (Phases 0–5) and Phase 6 release-readiness prep.
+
+### Phase 6 — release readiness (alpha.101 → rc.1)
+
+- **CHANGELOG.md** now covers the alpha.58 → alpha.101 era in
+  phase-grouped sections, with the legacy alpha.57 entries
+  preserved verbatim under their own version heading.
+- **`docs/release-checklist.md`** — 11-section pre-cut walk-through
+  (pre-flight → versions in lockstep → signed artefacts →
+  clean-VM install → auto-updater dry run → channel routing →
+  crash telemetry → license sanity → docs sync → forward/back
+  rehearsal → post-promote watching).
+- **Update channels** — Settings → System → Updates → Update
+  channel. Stable (final releases only) vs Release candidate
+  (also receives rc.X and alphas). Defaults to Stable; preference
+  persisted via `/auth/preferences`. Routing is wired through two
+  custom Rust commands (`check_for_channel`, `install_for_channel`)
+  that rebuild the updater with channel-specific manifest URLs at
+  call time — needed because Tauri 2's plugin-updater locks
+  endpoints at compile time. The release workflow mirrors
+  `latest.json` → `latest-rc.json` on every cut.
+- **`docs/sentry-release-tagging-audit.md`** — confirmed the
+  `release` tag flows cleanly from `tauri/src-tauri/Cargo.toml` →
+  Rust `env!("CARGO_PKG_VERSION")` → backend `DREVALIS_RELEASE`
+  env → frontend bootstrap, so all three SDKs converge on the
+  same string. Two non-blocking pre-1.0-final follow-ups
+  documented (standalone-backend fallback +
+  `DREVALIS_ENVIRONMENT` splitting once stable releases exist).
+- **README.md** refreshed for the IA-refactor sidebar groups
+  (Create / Publish / Monitor / Maintenance), the bilingual
+  (en/de) availability, the Stable/RC channel picker, the
+  four-quadrant CI gate (pytest / build:strict / vitest /
+  cargo check), and pointers to the new `docs/goals/phases/`,
+  `docs/decisions/`, and Sentry-audit docs.
+- **Help → Getting Started** — one factual fix on the Activity
+  Monitor dock position (now configurable as bottom/top/left/right
+  rail via Settings → Appearance, not hardcoded bottom-right).
+
+### Migration from alpha.101
+
+- **In-app updater**: alpha.101 installs receive `1.0.0-rc.1` via
+  the existing `latest.json` endpoint (Stable + RC channel both
+  point at the same manifest content during this transition —
+  divergent prerelease/Latest semantics are tracked in the
+  Unreleased pointer).
+- **No DB schema changes**: Alembic head unchanged from alpha.101.
+  Existing series, episodes, audiobooks, voice profiles, LLM
+  configs, ComfyUI servers, and connected channels are preserved
+  intact.
+- **No license re-activation required**: the embedded Ed25519
+  pubkey is unchanged; existing license JWTs continue to verify.
 
 ---
 
