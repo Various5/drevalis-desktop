@@ -10,8 +10,8 @@ import { keys } from './keys';
 // used by the Sidebar / MobileNav / Dashboard / ActivityMonitor for
 // counts. It refetches every 5s ONLY while the WebSocket reports
 // active jobs, and pauses on hidden tabs (R6: Query for snapshots,
-// WS for progress; the WS handler also calls ``invalidateQueries`` so
-// counts update instantly without waiting for the interval).
+// WS for progress). Counts refresh on that 5s interval while jobs are
+// active — there is no WS-driven query invalidation.
 //
 // ``useAllJobs`` is the history table used by the Jobs page —
 // regular staleTime, no interval (pageviews trigger a refetch).

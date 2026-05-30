@@ -184,7 +184,8 @@ export default function CloudGPUPage() {
         const d = await r.json().catch(() => ({}));
         throw new Error(d?.detail?.message || d?.detail || `HTTP ${r.status}`);
       }
-      toast.success(`Pod ${action === 'delete' ? 'deleted' : action + 'ped'}`);
+      const verb = { start: 'started', stop: 'stopped', delete: 'deleted' }[action];
+      toast.success(`Pod ${verb}`);
       await refresh();
     } catch (err) {
       toast.error(`${action} failed`, { description: String(err) });

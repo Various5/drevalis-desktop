@@ -302,10 +302,10 @@ function SeriesDetail() {
     const onVisibility = () => {
       if (document.visibilityState === 'visible') void onFocus();
     };
-    window.addEventListener('focus', () => void onFocus());
+    window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      window.removeEventListener('focus', () => void onFocus());
+      window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);

@@ -258,13 +258,17 @@ class Settings(BaseSettings):
         if os.environ.get("DREVALIS_SKIP_KEYCHAIN"):
             return self
 
+        from keyring.errors import KeyringError
+
         from drevalis.core import keychain
 
         try:
             resolved = keychain.get_or_set_encryption_key(self.encryption_key or None)
-        except RuntimeError:
-            # No env value AND no keychain entry — fall through, the
-            # next validator emits the user-facing error.
+        except (RuntimeError, KeyringError):
+            # No env value AND no keychain entry, or the OS keychain can't be
+            # read/written on this machine (locked, headless, no backend) —
+            # fall through. The next validator emits the user-facing error
+            # rather than crashing app startup on a fresh install.
             return self
         self.encryption_key = resolved
         return self

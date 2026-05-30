@@ -477,7 +477,7 @@ class PipelineOrchestrator:
                     )
 
             elif step == PipelineStep.VOICE:
-                voice_assets = await asset_repo.get_by_episode_and_type(episode.id, "voice")
+                voice_assets = await asset_repo.get_by_episode_and_type(episode.id, "voiceover")
                 for asset in voice_assets:
                     full = self.storage.resolve_path(asset.file_path)
                     report = await qg.check_voice_track(full)

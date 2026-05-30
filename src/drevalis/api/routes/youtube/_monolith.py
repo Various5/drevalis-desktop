@@ -11,7 +11,7 @@ the audiobooks route imports it directly.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
 import html as _html

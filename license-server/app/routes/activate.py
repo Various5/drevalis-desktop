@@ -110,7 +110,11 @@ async def heartbeat(body: HeartbeatRequest) -> JwtResponse:
     return await _validate_and_mint(body.license_key, body.machine_id, body.version)
 
 
-@router.post("/deactivate", status_code=204)
+@router.post(
+    "/deactivate",
+    status_code=204,
+    dependencies=[Depends(rate_limit_ip(_activate_rl, prefix="deactivate"))],
+)
 async def deactivate(body: DeactivateRequest) -> None:
     row = await db.get_license(body.license_key)
     if row is None:

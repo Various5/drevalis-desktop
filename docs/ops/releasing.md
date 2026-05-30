@@ -26,12 +26,16 @@ Tag v0.1.0-alpha.N on main
         ├── Verify SPA bundled into backend     (guards the silent breakage we
         │                                        shipped in alpha.2)
         ├── tauri-action@v0 builds + signs the NSIS installer
-        └── Uploads .exe + .exe.sig + latest.json to a DRAFT GitHub Release
+        └── Publishes .exe + .exe.sig + latest.json as a GitHub Release (Latest)
 ```
 
-The release is created as a **draft** so you can smoke-test the installer
-before exposing it to existing installs. Promoting from draft → "latest"
-is what triggers the in-app auto-updater on any older install.
+The release publishes immediately as a **non-draft, non-prerelease**
+release (`releaseDraft: false`, `prerelease: false` in `release.yml`), so
+GitHub auto-marks it "Latest" — the manifest source of truth for the
+in-app updater (`releases/latest/download/latest.json`). The same run also
+mirrors `latest-rc.json` for the RC update channel. There is **no**
+draft-promote step, so smoke-test the installer *before* you push the
+tag: every tag goes live to existing installs as soon as CI finishes.
 
 ## One-time setup
 
@@ -68,8 +72,9 @@ key until they're re-installed manually.
 
 ## Cutting a release
 
-Versioning is `0.MAJOR.MINOR-pre.N` while pre-1.0. Bump in three places
-(Cargo's strict semver means all three must match):
+Versioning is now `1.0.0-rc.N` heading into the 1.0.0 GA. (Earlier builds
+used the pre-1.0 `0.1.0-alpha.N` scheme.) Bump in three places (Cargo's
+strict semver means all three must match):
 
 | File | Field |
 |---|---|
@@ -121,19 +126,16 @@ minisign -Vm ./dist/Drevalis.Creator.Studio_*_x64-setup.exe \
 #    the latest".
 ```
 
-## Promoting the draft to Latest
+## Going live
 
-Once you've smoke-tested the installer:
+Releases publish directly as "Latest" — there's no draft-promote step.
+Within a few seconds of CI finishing, every existing install that opens
+Settings → Updates → "Check for updates" sees the new version and offers
+to install it. The Tauri plugin downloads `.exe.sig`, verifies it against
+the embedded public key, then launches the new installer.
 
-```bash
-gh release edit v0.1.0-alpha.5 -R Various5/drevalis-desktop \
-    --draft=false --latest
-```
-
-Within a few seconds, every existing install that opens Settings →
-Updates → "Check for updates" sees the new version and offers to install
-it. The Tauri plugin downloads `.exe.sig`, verifies it against the
-embedded public key, then launches the new installer.
+Because each tag goes live immediately, smoke-test the installer on a
+clean VM **before** you push the tag — not after.
 
 ## Rolling back
 

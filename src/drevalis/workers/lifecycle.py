@@ -8,7 +8,7 @@ Functions
 
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -260,8 +260,6 @@ async def startup(ctx: dict[str, Any]) -> None:
 
     # Write initial heartbeat so the API sees the worker as alive immediately
     try:
-        from datetime import datetime
-
         await redis_client.set(
             "worker:heartbeat",
             datetime.now(UTC).isoformat(),
@@ -308,14 +306,27 @@ async def startup(ctx: dict[str, Any]) -> None:
         async with session_factory() as _catchup_ses:
             from sqlalchemy import text as _text
 
+            # Dialect-portable window. SQLite (the desktop default) has no
+            # NOW() function and no INTERVAL literal, so the previous
+            # Postgres-only SQL raised OperationalError on every desktop
+            # startup and the catch-up silently never ran. Compute the 48h
+            # window in Python as UTC-naive ISO strings (matching how the
+            # DateTime column is stored) and bind them; CURRENT_TIMESTAMP is
+            # understood by both SQLite and Postgres for the SET clause.
+            _now_dt = datetime.now(UTC).replace(tzinfo=None)
+            _fmt = "%Y-%m-%d %H:%M:%S.%f"
+            _now_s = _now_dt.strftime(_fmt)
+            _cutoff_s = (_now_dt - timedelta(hours=48)).strftime(_fmt)
             result_posts = await _catchup_ses.execute(
                 _text(
                     "UPDATE scheduled_posts "
-                    "SET status = 'scheduled', error_message = NULL, updated_at = NOW() "
+                    "SET status = 'scheduled', error_message = NULL, "
+                    "updated_at = CURRENT_TIMESTAMP "
                     "WHERE status = 'failed' "
-                    "AND scheduled_at >= NOW() - INTERVAL '48 hours' "
-                    "AND scheduled_at <= NOW()"
-                )
+                    "AND scheduled_at >= :cutoff "
+                    "AND scheduled_at <= :now"
+                ),
+                {"cutoff": _cutoff_s, "now": _now_s},
             )
             await _catchup_ses.commit()
             posts_count = getattr(result_posts, "rowcount", 0)
