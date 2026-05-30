@@ -306,6 +306,21 @@ html.light .text-gradient-accent {
     border: none;
     outline: none;
   }
+
+  /* Native <select> option popups don't inherit the Tailwind bg-* utility
+     applied to the closed control, so the option list paints with the
+     platform colour (often white) and our near-white text disappears
+     (white-on-white). Pin explicit, token-driven colours on the control
+     AND the option/optgroup popup so options stay legible in both themes. */
+  select {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-base);
+  }
+  select option,
+  select optgroup {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-elevated);
+  }
 }
 
 /* --------------------------------------------------------------------------

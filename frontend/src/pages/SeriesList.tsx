@@ -410,8 +410,7 @@ function SeriesList() {
                   Generating series...
                 </p>
                 <p className="text-xs text-txt-tertiary">
-                  The AI is creating your series and episode ideas. This may take
-                  30-60 seconds.
+                  The AI is creating your series and episode ideas.
                 </p>
               </div>
             </div>

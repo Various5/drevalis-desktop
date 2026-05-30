@@ -24,13 +24,6 @@ import {
   FolderOpen,
   Users,
   LayoutTemplate,
-  HeartPulse,
-  HardDrive,
-  Archive,
-  ArrowUpCircle,
-  FileVideo,
-  Stethoscope,
-  Wrench,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -79,22 +72,13 @@ const NAV_MONITOR = isTauri()
   ? NAV_MONITOR_FULL.filter((item) => item.to !== '/cloud-gpu')
   : NAV_MONITOR_FULL;
 
-// Maintenance — operational config. Each item deep-links into Settings with
-// the matching panel pre-selected (/settings/<section>); the panels still
-// live in Settings, these are top-level shortcuts.
-const NAV_MAINTENANCE = [
-  { to: '/settings/health', icon: HeartPulse, label: 'nav.health' },
-  { to: '/settings/storage', icon: HardDrive, label: 'nav.storage' },
-  { to: '/settings/backup', icon: Archive, label: 'nav.backup' },
-  { to: '/settings/updates', icon: ArrowUpCircle, label: 'nav.updates' },
-  { to: '/settings/ffmpeg', icon: FileVideo, label: 'nav.ffmpeg' },
-  { to: '/settings/diagnostics', icon: Stethoscope, label: 'nav.diagnostics' },
-] as const;
-
-// Bottom — config + help, pinned below a divider.
+// Bottom — config + help, pinned below a divider. The former "Maintenance"
+// section (Health / Storage / Backup / Updates / FFmpeg / Diagnostics
+// deep-links) was removed in favour of this single Settings entry; those
+// panels still live inside the Settings window.
 const NAV_BOTTOM = [
-  // ``end`` so /settings doesn't stay highlighted on /settings/<section>
-  // (the Maintenance shortcuts own those).
+  // ``end`` so /settings isn't left highlighted on /settings/<section>
+  // deep links opened from within the Settings window.
   { to: '/settings', icon: Settings, label: 'nav.settings', end: true },
   { to: '/help', icon: HelpCircle, label: 'nav.help' },
 ] as const;
@@ -252,12 +236,6 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Monitor */}
         <SectionHeader labelKey="nav.sections.monitor" icon={Activity} collapsed={collapsed} />
         {NAV_MONITOR.map((item) => (
-          <SidebarLink key={item.to} item={item} collapsed={collapsed} />
-        ))}
-
-        {/* Maintenance — deep-links into Settings panels */}
-        <SectionHeader labelKey="nav.sections.maintenance" icon={Wrench} collapsed={collapsed} />
-        {NAV_MAINTENANCE.map((item) => (
           <SidebarLink key={item.to} item={item} collapsed={collapsed} />
         ))}
 

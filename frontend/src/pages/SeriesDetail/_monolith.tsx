@@ -820,7 +820,8 @@ function SeriesDetail() {
 
       {/* Delete Series — typed confirmation (Phase 4). Unlike deleting a single
           episode (soft-delete + undo), removing a series cascade-deletes its
-          episodes permanently, so this requires typing the series name. */}
+          episodes permanently, so it requires typing "yes" to confirm (the
+          series name is shown in the warning, but isn't what you type). */}
       <ConfirmDangerousDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -839,7 +840,7 @@ function SeriesDetail() {
           `${episodesList.length} ${episodesList.length === 1 ? 'episode is' : 'episodes are'} permanently removed`,
           'All generated media (voice, scenes, renders) is deleted',
         ]}
-        confirmWord={editName.trim() || 'DELETE'}
+        confirmWord="yes"
         confirmLabel="Delete series"
         loading={deleting}
       />

@@ -455,6 +455,16 @@ export interface ComfyUIServerTestResponse {
   server_id: string;
 }
 
+export interface ComfyUIModels {
+  /** False when the server was offline/unreachable; lists are then empty. */
+  available: boolean;
+  checkpoints: string[];
+  loras: string[];
+  vaes: string[];
+  unets: string[];
+  message: string | null;
+}
+
 export interface ComfyUIWorkflowCreate {
   name: string;
   description?: string | null;

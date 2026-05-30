@@ -21,6 +21,7 @@ import type {
   VoiceProfileCreate,
   VoiceProfileUpdate,
   VoiceTestResponse,
+  ComfyUIModels,
   ComfyUIServer,
   ComfyUIServerCreate,
   ComfyUIServerUpdate,
@@ -516,6 +517,12 @@ export const comfyuiServers = {
 
   test: (id: string) =>
     post<ComfyUIServerTestResponse>(`/api/v1/comfyui/servers/${id}/test`),
+
+  // Installed model files (checkpoints/LoRAs/VAEs/UNETs) on the server, so
+  // the UI can offer a pick-list. Returns available:false (empty lists) when
+  // the server is offline.
+  models: (id: string) =>
+    get<ComfyUIModels>(`/api/v1/comfyui/servers/${id}/models`),
 };
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -21,6 +21,7 @@ import {
 } from '@/components/captions/CaptionStyleEditor';
 import { VisualStylePresetPopover } from './VisualStylePresetPopover';
 import { AssetLockPicker } from './AssetLockPicker';
+import { comfyuiServers } from '@/lib/api';
 import type { CaptionStyle, ComfyUIWorkflow } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -328,8 +329,38 @@ export function SetupTab({
   editStyleLora,
   onStyleLoraChange,
 }: SetupTabProps) {
+  // Offer the LoRA fields a pick-list of models actually installed on the
+  // active ComfyUI server (so the user can see what's loadable instead of
+  // typing blind). Falls back silently to free-text entry when the server is
+  // offline or unreachable.
+  const [availableLoras, setAvailableLoras] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const servers = await comfyuiServers.list();
+        const active = servers.find((s) => s.is_active) ?? servers[0];
+        if (!active) return;
+        const models = await comfyuiServers.models(active.id);
+        if (!cancelled && models.available) setAvailableLoras(models.loras);
+      } catch {
+        /* server offline / no access — leave the fields as free text */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-3">
+      {availableLoras.length > 0 && (
+        <datalist id="comfyui-loras">
+          {availableLoras.map((m) => (
+            <option key={m} value={m} />
+          ))}
+        </datalist>
+      )}
       {/* ── Voice & Language ──────────────────────────────────────────── */}
       <CollapsibleSection title="Voice & Language" icon={Subtitles} defaultOpen={false}>
         <div className="mt-3 space-y-4">
@@ -853,6 +884,7 @@ export function SetupTab({
                   value={editCharacterLora}
                   onChange={(e) => onCharacterLoraChange(e.target.value)}
                   placeholder="sdxl_face_v2"
+                  list="comfyui-loras"
                   className="w-full px-2 py-1 text-xs bg-bg-elevated border border-border rounded text-txt-primary"
                 />
               </label>
@@ -892,6 +924,7 @@ export function SetupTab({
                   value={editStyleLora}
                   onChange={(e) => onStyleLoraChange(e.target.value)}
                   placeholder="sdxl_style_v2"
+                  list="comfyui-loras"
                   className="w-full px-2 py-1 text-xs bg-bg-elevated border border-border rounded text-txt-primary"
                 />
               </label>
