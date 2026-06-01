@@ -18,6 +18,28 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.4] — 2026-06-01
+
+**YouTube auth-error handling — dead/revoked OAuth grant.**
+
+### Fixed
+- **"YouTube channel management" failed with a confusing `502
+  youtube_analytics_failed` (`invalid_grant: Token has been expired or
+  revoked`)** when a channel's Google OAuth grant was revoked or expired.
+  A dead grant now surfaces as an actionable **401 reconnect** with a
+  per-channel **"Reconnect"** button on the YouTube page instead of a raw
+  error toast. The classification is centralized so it's consistent across
+  every YouTube path — analytics, video uploads, playlist create/add/delete,
+  video delete, and audiobook YouTube uploads — covering both the explicit
+  token refresh and google-auth's auto-refresh inside an API call.
+
+### Note
+- This fix improves how a dead grant is *reported*; it cannot revive a
+  revoked token. Affected channels must be reconnected (Settings → YouTube,
+  or the new Reconnect button) to restore data.
+
+---
+
 ## [v1.0.0-rc.3] — 2026-05-30
 
 **Desktop-app bug-fix pass — nine reported issues.**
