@@ -19,7 +19,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { SocialConnectWizard } from '@/components/social/SocialConnectWizard';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { youtube as youtubeApi, social as socialApi } from '@/lib/api';
+import { youtube as youtubeApi, social as socialApi, ApiError } from '@/lib/api';
 import type {
   SocialPlatform,
   SocialUpload,
@@ -802,6 +802,17 @@ function YouTubePage() {
   const [uploads, setUploads] = useState<YouTubeUpload[]>([]);
   const [playlists, setPlaylists] = useState<YouTubePlaylist[]>([]);
   const [_stats, setStats] = useState<YouTubeVideoStats[]>([]);
+  // Channels whose stats request failed with an auth error (dead/revoked
+  // OAuth grant → 401, or missing analytics scope → 403). Drives the
+  // per-channel "Reconnect" CTA instead of a raw error toast.
+  const [failedChannels, setFailedChannels] = useState<
+    Array<{
+      channelId: string;
+      channelName: string;
+      kind: 'token_expired' | 'scope' | 'other';
+      hint?: string;
+    }>
+  >([]);
   void _stats;
 
   // Social state
@@ -960,6 +971,8 @@ function YouTubePage() {
   // only drop that channel's stats; the others still populate.
   const fetchStats = useCallback(
     async (currentUploads: YouTubeUpload[]) => {
+      // Reset prior auth failures so a clean run clears the banner.
+      setFailedChannels([]);
       const completed = currentUploads.filter(
         (u) => u.upload_status === 'done' && u.youtube_video_id,
       );
@@ -980,47 +993,93 @@ function YouTubePage() {
       }
       if (byChannel.size === 0) return;
 
-      // Fire one request per channel in parallel, capping each
-      // batch at 50 IDs (YouTube's videos.list limit).
-      const results = await Promise.allSettled(
-        [...byChannel.entries()].flatMap(([channelId, ids]) => {
-          const chunks: string[][] = [];
-          for (let i = 0; i < ids.length; i += 50) {
-            chunks.push(ids.slice(i, i + 50));
-          }
-          return chunks.map((chunk) =>
-            youtubeApi.getVideoStats(chunk, channelId),
-          );
-        }),
-      );
+      // Fire one request per channel in parallel, capping each batch at
+      // 50 IDs (YouTube's videos.list limit). Track the originating
+      // channel per request so we can attribute a failure (revoked token,
+      // missing scope) back to a specific channel and offer a targeted
+      // "Reconnect" button instead of a generic, un-actionable toast.
+      const nameById = new Map(allChannels.map((c) => [c.id, c.channel_name]));
+      const requests = [...byChannel.entries()].flatMap(([channelId, ids]) => {
+        const chunks: string[][] = [];
+        for (let i = 0; i < ids.length; i += 50) {
+          chunks.push(ids.slice(i, i + 50));
+        }
+        return chunks.map((chunk) => ({
+          channelId,
+          promise: youtubeApi.getVideoStats(chunk, channelId),
+        }));
+      });
+      const results = await Promise.allSettled(requests.map((r) => r.promise));
 
       const merged: YouTubeVideoStats[] = [];
-      const errors: string[] = [];
-      for (const r of results) {
+      // One entry per failed channel (dedupe across that channel's chunks);
+      // an auth failure on any chunk marks the whole channel.
+      const failures = new Map<
+        string,
+        {
+          channelId: string;
+          channelName: string;
+          kind: 'token_expired' | 'scope' | 'other';
+          hint?: string;
+        }
+      >();
+      results.forEach((r, i) => {
+        const { channelId } = requests[i]!;
         if (r.status === 'fulfilled') {
           merged.push(...r.value);
-        } else {
-          errors.push(String(r.reason).slice(0, 120));
+          return;
         }
-      }
+        const err = r.reason;
+        const raw =
+          err instanceof ApiError && err.detailRaw && typeof err.detailRaw === 'object'
+            ? (err.detailRaw as { error?: string; hint?: string })
+            : undefined;
+        const status = err instanceof ApiError ? err.status : undefined;
+        let kind: 'token_expired' | 'scope' | 'other' = 'other';
+        if (status === 401 && raw?.error === 'youtube_token_expired') {
+          kind = 'token_expired';
+        } else if (status === 403 && raw?.error === 'analytics_scope_missing') {
+          kind = 'scope';
+        }
+        // Prefer an auth classification over a generic 'other' if multiple
+        // chunks of the same channel fail differently.
+        const prior = failures.get(channelId);
+        if (!prior || (prior.kind === 'other' && kind !== 'other')) {
+          failures.set(channelId, {
+            channelId,
+            channelName: nameById.get(channelId) ?? channelId,
+            kind,
+            hint: raw?.hint,
+          });
+        }
+      });
+
       // Dedupe by video_id in case a video appears in multiple batches.
       const deduped = Array.from(
         new Map(merged.map((s) => [s.video_id, s])).values(),
       );
       setStats(deduped);
+      setFailedChannels([...failures.values()]);
 
-      if (errors.length > 0 && merged.length === 0) {
+      const authFailures = [...failures.values()].filter((f) => f.kind !== 'other');
+      if (failures.size > 0 && merged.length === 0) {
         toast.error('Failed to load any video stats', {
-          description: errors[0] ?? 'YouTube API returned errors.',
+          description: authFailures.length
+            ? 'A channel needs reconnecting — use the Reconnect button below.'
+            : 'YouTube API returned errors.',
         });
-      } else if (errors.length > 0) {
+      } else if (failures.size > 0) {
         toast.warning(
-          `${errors.length} channel${errors.length > 1 ? 's' : ''} failed to return stats`,
-          { description: 'Others loaded. Reconnect affected channels in Settings.' },
+          `${failures.size} channel${failures.size > 1 ? 's' : ''} failed to return stats`,
+          {
+            description: authFailures.length
+              ? 'Others loaded. Reconnect the affected channel(s) below.'
+              : 'Others loaded. Reconnect affected channels in Settings.',
+          },
         );
       }
     },
-    [toast, resolvedChannelId],
+    [toast, resolvedChannelId, allChannels],
   );
 
   // ---- Fetch social data ----
@@ -1077,6 +1136,20 @@ function YouTubePage() {
     // auth_url`` path stranded the user on the backend's JSON callback
     // response — see SocialConnectWizard.tsx for the system-browser
     // OAuth flow that replaced it.
+    setWizardOpen(true);
+  }, []);
+
+  const handleReconnect = useCallback((channelId: string) => {
+    // Mirror Settings → YouTube: signal which channel the wizard should
+    // re-authorize, then open it. Re-running OAuth mints a fresh refresh
+    // token for the channel, which is the only real recovery for a dead
+    // grant (Google "invalid_grant: Token has been expired or revoked").
+    try {
+      sessionStorage.setItem('youtube_reconnect_target', channelId);
+    } catch {
+      // sessionStorage can be unavailable in some embed contexts; the
+      // wizard still re-authorizes, just without the pre-selected target.
+    }
     setWizardOpen(true);
   }, []);
 
@@ -1187,6 +1260,44 @@ function YouTubePage() {
         />
       ) : (
         <>
+          {/* Auth-failure banner: a dead/revoked grant or missing
+              analytics scope surfaces here with a per-channel Reconnect
+              CTA instead of a raw 502 toast. */}
+          {failedChannels.filter((f) => f.kind !== 'other').length > 0 && (
+            <Card padding="md" className="border-amber-500/30 bg-amber-500/5">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-semibold text-amber-100">
+                    Reconnect required
+                  </p>
+                  {failedChannels
+                    .filter((f) => f.kind !== 'other')
+                    .map((f) => (
+                      <div
+                        key={f.channelId}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <span className="text-xs text-amber-200">
+                          {f.channelName} —{' '}
+                          {f.kind === 'scope'
+                            ? 'analytics scope missing'
+                            : 'token expired or revoked'}
+                        </span>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleReconnect(f.channelId)}
+                        >
+                          Reconnect
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Tab bar */}
           <div className="flex border-b border-border">
             {TABS.map((tab) => {
@@ -1274,9 +1385,14 @@ function YouTubePage() {
         onClose={() => setWizardOpen(false)}
         onConnected={() => {
           setWizardOpen(false);
-          // Re-fetch status so the banner flips to the connected
-          // dashboard without a manual page refresh.
+          // A successful reconnect mints a fresh token — drop the
+          // auth-failure banner, re-fetch status, and re-pull stats with
+          // the new token so the dashboard recovers without a manual
+          // reload (uploads are unchanged, so the uploads-keyed effect
+          // won't re-run on its own).
+          setFailedChannels([]);
           void fetchStatus();
+          void fetchStats(uploads);
         }}
       />
     </div>

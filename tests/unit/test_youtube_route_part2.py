@@ -46,6 +46,7 @@ from drevalis.schemas.youtube import (
     PlaylistCreate,
     YouTubeUploadRequest,
 )
+from drevalis.services.youtube import YouTubeTokenExpiredError
 from drevalis.services.youtube_admin import (
     MultipleChannelsAmbiguousError,
     NoChannelConnectedError,
@@ -179,6 +180,31 @@ class TestDeleteVideo:
         assert exc.value.detail["error"] == "youtube_token_expired"
         assert "Reconnect" in exc.value.detail["hint"]
 
+    async def test_token_expired_from_service_returns_401(self) -> None:
+        # The refresh step passes (token still locally valid) but the grant
+        # is revoked, so delete_video's auto-refresh raises
+        # YouTubeTokenExpiredError. Must map to 401, not an uncaught 500.
+        admin = MagicMock()
+        ch = _make_channel()
+        admin.resolve_channel = AsyncMock(return_value=ch)
+        admin.refresh_and_persist_tokens = AsyncMock()
+        yt = MagicMock()
+        yt.delete_video = AsyncMock(side_effect=YouTubeTokenExpiredError("revoked"))
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await delete_video(
+                    youtube_video_id="abc",
+                    channel_id=uuid4(),
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+
 
 # ── POST /playlists ────────────────────────────────────────────────
 
@@ -306,6 +332,27 @@ class TestCreatePlaylist:
                 )
         assert exc.value.status_code == 502
 
+    async def test_token_expired_from_service_returns_401(self) -> None:
+        admin = MagicMock()
+        admin.resolve_channel = AsyncMock(return_value=_make_channel())
+        admin.refresh_and_persist_tokens = AsyncMock()
+        yt = MagicMock()
+        yt.create_playlist = AsyncMock(side_effect=YouTubeTokenExpiredError("revoked"))
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await create_playlist(
+                    payload=PlaylistCreate(title="X"),
+                    channel_id=None,
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+
 
 # ── GET /playlists ─────────────────────────────────────────────────
 
@@ -431,6 +478,29 @@ class TestAddVideoToPlaylist:
                 )
         assert exc.value.status_code == 502
 
+    async def test_token_expired_from_service_returns_401(self) -> None:
+        admin = MagicMock()
+        admin.get_playlist_with_channel = AsyncMock(
+            return_value=(_make_playlist(), _make_channel())
+        )
+        admin.refresh_and_persist_tokens = AsyncMock()
+        yt = MagicMock()
+        yt.add_to_playlist = AsyncMock(side_effect=YouTubeTokenExpiredError("revoked"))
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await add_video_to_playlist(
+                    playlist_id=uuid4(),
+                    payload=PlaylistAddVideo(video_id="x"),
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+
 
 # ── DELETE /playlists/{id} ─────────────────────────────────────────
 
@@ -513,6 +583,31 @@ class TestDeletePlaylist:
                     admin=admin,
                 )
         assert exc.value.status_code == 502
+
+    async def test_token_expired_from_service_returns_401(self) -> None:
+        admin = MagicMock()
+        admin.get_playlist_with_channel = AsyncMock(
+            return_value=(_make_playlist(), _make_channel())
+        )
+        admin.refresh_and_persist_tokens = AsyncMock()
+        admin.delete_playlist_row = AsyncMock()
+        yt = MagicMock()
+        yt.delete_playlist = AsyncMock(side_effect=YouTubeTokenExpiredError("revoked"))
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await delete_playlist(
+                    playlist_id=uuid4(),
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+        # A dead grant must NOT delete the local row.
+        admin.delete_playlist_row.assert_not_awaited()
 
 
 # ── GET /uploads ───────────────────────────────────────────────────
@@ -673,6 +768,66 @@ class TestVideoAnalytics:
         # on the upstream `reason` text.
         assert "reconnect" in exc.value.detail["hint"].lower()
         assert "quota" in exc.value.detail["hint"].lower()
+
+    async def test_token_refresh_error_returns_401(self) -> None:
+        # Pin: a dead/revoked grant surfaced by the explicit refresh step
+        # maps to 401 youtube_token_expired (NOT the generic 502), so the
+        # UI shows a "reconnect this channel" CTA. This is the regression
+        # fix for the reported "ApiError (502) invalid_grant" toast.
+        admin = MagicMock()
+        ch = _make_channel()
+        admin.resolve_channel = AsyncMock(return_value=ch)
+        admin.refresh_and_persist_tokens = AsyncMock(
+            side_effect=TokenRefreshError("invalid_grant: Token has been expired or revoked.")
+        )
+        yt = MagicMock()
+        yt.get_video_stats = AsyncMock()
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await get_video_analytics(
+                    video_ids="abc,def",
+                    channel_id=None,
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+        assert exc.value.detail["channel_id"] == str(ch.id)
+        assert "reconnect" in exc.value.detail["hint"].lower()
+        # The fetch must never run once refresh has failed.
+        yt.get_video_stats.assert_not_awaited()
+
+    async def test_fetch_token_expired_returns_401(self) -> None:
+        # Pin: the auto-refresh path — refresh "succeeds" (token still
+        # locally valid) but the grant is revoked, so get_video_stats
+        # raises YouTubeTokenExpiredError. Must map to 401, not 502.
+        admin = MagicMock()
+        ch = _make_channel()
+        admin.resolve_channel = AsyncMock(return_value=ch)
+        admin.refresh_and_persist_tokens = AsyncMock()
+        yt = MagicMock()
+        yt.get_video_stats = AsyncMock(
+            side_effect=YouTubeTokenExpiredError("YouTube token was revoked or expired")
+        )
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await get_video_analytics(
+                    video_ids="abc,def",
+                    channel_id=None,
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+        assert exc.value.detail["channel_id"] == str(ch.id)
 
     async def test_success_passes_ids_and_returns_response_models(self) -> None:
         admin = MagicMock()

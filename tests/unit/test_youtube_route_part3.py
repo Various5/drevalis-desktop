@@ -43,7 +43,11 @@ from drevalis.api.routes.youtube._monolith import (
 )
 from drevalis.core.exceptions import NotFoundError
 from drevalis.schemas.youtube import YouTubeUploadRequest
-from drevalis.services.youtube import AnalyticsNotAuthorized, YouTubeService
+from drevalis.services.youtube import (
+    AnalyticsNotAuthorized,
+    YouTubeService,
+    YouTubeTokenExpiredError,
+)
 from drevalis.services.youtube_admin import (
     MultipleChannelsAmbiguousError,
     NoChannelConnectedError,
@@ -352,6 +356,42 @@ class TestUploadEpisodeHappyPath:
         admin.record_upload_success.assert_not_awaited()
         admin.auto_add_to_series_playlist.assert_not_awaited()
 
+    async def test_token_expired_during_upload_marks_failed_and_401(self) -> None:
+        # Pin: a revoked grant surfaced by the upload's auto-refresh marks
+        # the row failed (not left "uploading") AND returns the actionable
+        # 401 youtube_token_expired instead of a generic 502.
+        ep = _make_episode()
+        ch = _make_channel()
+        admin = MagicMock()
+        admin.resolve_episode_upload_target = AsyncMock(return_value=(ep, ch, "/v.mp4"))
+        admin.get_or_generate_seo = AsyncMock(return_value={})
+        admin.get_thumbnail_path = AsyncMock(return_value=None)
+        admin.refresh_and_persist_tokens = AsyncMock()
+        admin.create_upload_row = AsyncMock(return_value=_make_upload_row())
+        admin.record_upload_failure = AsyncMock()
+        admin.record_upload_success = AsyncMock()
+        admin.auto_add_to_series_playlist = AsyncMock()
+
+        yt = MagicMock()
+        yt.upload_video = AsyncMock(side_effect=YouTubeTokenExpiredError("revoked"))
+
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await upload_episode(
+                    episode_id=ep.id,
+                    payload=YouTubeUploadRequest(title="x"),
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+        admin.record_upload_failure.assert_awaited_once()
+        admin.record_upload_success.assert_not_awaited()
+
 
 # ── GET /analytics/channel ─────────────────────────────────────────
 
@@ -468,6 +508,34 @@ class TestChannelAnalytics:
                 )
         assert exc.value.status_code == 403
         assert exc.value.detail["error"] == "analytics_scope_missing"
+        assert exc.value.detail["channel_id"] == str(ch.id)
+
+    async def test_fetch_token_expired_returns_401(self) -> None:
+        # Pin: a revoked grant that only trips google-auth's auto-refresh
+        # inside the analytics call (refresh step passed) must map to 401
+        # youtube_token_expired, not the generic 502.
+        admin = MagicMock()
+        ch = _make_channel()
+        admin.resolve_channel = AsyncMock(return_value=ch)
+        admin.refresh_and_persist_tokens = AsyncMock()
+        yt = MagicMock()
+        yt.get_channel_analytics = AsyncMock(
+            side_effect=YouTubeTokenExpiredError("YouTube token was revoked or expired")
+        )
+        with patch(
+            "drevalis.api.routes.youtube._monolith.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await get_channel_analytics(
+                    channel_id=None,
+                    days=28,
+                    db=AsyncMock(),
+                    settings=_settings(),
+                    admin=admin,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
         assert exc.value.detail["channel_id"] == str(ch.id)
 
     async def test_upstream_failure_502(self) -> None:

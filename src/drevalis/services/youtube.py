@@ -8,16 +8,43 @@ the event loop.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 import structlog
 from cryptography.fernet import InvalidToken
+from google.auth.exceptions import RefreshError
 
 from drevalis.core.security import decrypt_value, decrypt_value_multi, encrypt_value
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+_T = TypeVar("_T")
+
+
+def _is_invalid_grant(exc: RefreshError) -> bool:
+    """True if a google-auth ``RefreshError`` means the grant is dead.
+
+    Google raises ``RefreshError(message_str, response_dict)`` where the
+    dict carries ``error == 'invalid_grant'`` ("Token has been expired or
+    revoked."). Some google-auth versions raise with only the message
+    string, so we fall back to a substring match. This is the single
+    source of truth for classifying a revoked/expired refresh token —
+    callers convert it into :class:`YouTubeTokenExpiredError` so the route
+    layer can return an actionable 401 "reconnect this channel" instead of
+    an opaque 502.
+    """
+    args = exc.args
+    # When google-auth provides the structured response dict, trust its
+    # ``error`` code exclusively — this avoids misclassifying a different
+    # error (e.g. ``temporarily_unavailable``) whose message text merely
+    # mentions invalid_grant. Only fall back to a substring scan when no
+    # structured code is available (older google-auth raises message-only).
+    if len(args) > 1 and isinstance(args[1], dict) and "error" in args[1]:
+        return args[1].get("error") == "invalid_grant"
+    return "invalid_grant" in str(exc).lower()
 
 
 class YouTubeTokenExpiredError(Exception):
@@ -239,6 +266,30 @@ class YouTubeService:
             expiry=expiry,
         )
 
+    async def _run_credentialed(self, fn: Callable[..., _T], *args: Any, op: str) -> _T:
+        """Run a synchronous google-api worker off the event loop, converting a
+        dead/revoked-grant ``RefreshError`` into :class:`YouTubeTokenExpiredError`.
+
+        google-auth raises ``RefreshError(invalid_grant)`` two ways: from an
+        explicit ``credentials.refresh()``, and from the *auto-refresh* it does
+        inside ``execute()`` when the stored ``token_expiry`` is still in the
+        future but the grant was revoked server-side. Both surface here at the
+        ``to_thread`` boundary. Reclassifying to the typed expiry error is the
+        single source of truth that lets every route map a dead grant to an
+        actionable 401 "reconnect this channel" instead of a raw 502/500.
+        Non-grant ``RefreshError``s (e.g. ``temporarily_unavailable``) re-raise
+        unchanged so they keep mapping to a retryable 502.
+        """
+        try:
+            return await asyncio.to_thread(fn, *args)
+        except RefreshError as exc:
+            if _is_invalid_grant(exc):
+                raise YouTubeTokenExpiredError(
+                    f"YouTube token was revoked or expired while {op}. "
+                    "Reconnect the channel via Settings -> YouTube."
+                ) from exc
+            raise
+
     # ── Upload ───────────────────────────────────────────────────────────
 
     async def delete_video(
@@ -259,7 +310,7 @@ class YouTubeService:
             youtube = build("youtube", "v3", credentials=credentials)
             youtube.videos().delete(id=video_id).execute()
 
-        await asyncio.to_thread(_do_delete)
+        await self._run_credentialed(_do_delete, op="deleting the video")
         logger.info("youtube_video_deleted", video_id=video_id)
 
     async def upload_video(
@@ -347,7 +398,7 @@ class YouTubeService:
             title=title,
             privacy=privacy_status,
         )
-        result = await asyncio.to_thread(_do_upload)
+        result = await self._run_credentialed(_do_upload, op="uploading the video")
         logger.info(
             "youtube_upload_complete",
             video_id=result["video_id"],
@@ -410,7 +461,7 @@ class YouTubeService:
                 result["refresh_token_encrypted"] = new_refresh_enc
             return result
 
-        updated = await asyncio.to_thread(_refresh)
+        updated = await self._run_credentialed(_refresh, op="refreshing the access token")
         logger.info("youtube_token_refreshed")
         return updated
 
@@ -456,7 +507,7 @@ class YouTubeService:
                 else 0,
             }
 
-        result = await asyncio.to_thread(_create)
+        result = await self._run_credentialed(_create, op="creating the playlist")
         logger.info("youtube_playlist_created", playlist_id=result["playlist_id"], title=title)
         return result
 
@@ -508,7 +559,7 @@ class YouTubeService:
 
             return results
 
-        return await asyncio.to_thread(_list)
+        return await self._run_credentialed(_list, op="listing playlists")
 
     async def add_to_playlist(
         self,
@@ -541,7 +592,7 @@ class YouTubeService:
             }
             return youtube.playlistItems().insert(part="snippet", body=body).execute()  # type: ignore[no-any-return]
 
-        result = await asyncio.to_thread(_add)
+        result = await self._run_credentialed(_add, op="adding the video to the playlist")
         logger.info(
             "youtube_playlist_item_added",
             playlist_id=playlist_id,
@@ -568,7 +619,7 @@ class YouTubeService:
             youtube = build("youtube", "v3", credentials=credentials)
             youtube.playlists().delete(id=playlist_id).execute()
 
-        await asyncio.to_thread(_delete)
+        await self._run_credentialed(_delete, op="removing the playlist")
         logger.info("youtube_playlist_deleted", playlist_id=playlist_id)
 
     # ── Analytics ─────────────────────────────────────────────────────────
@@ -736,11 +787,17 @@ class YouTubeService:
                     )
             return out
 
-        playlist_id = await asyncio.to_thread(_resolve_uploads_playlist_id)
+        playlist_id = await self._run_credentialed(
+            _resolve_uploads_playlist_id, op="resolving the channel's uploads playlist"
+        )
         if not playlist_id:
             return []
-        ids = await asyncio.to_thread(_list_playlist_video_ids, playlist_id)
-        return await asyncio.to_thread(_fetch_video_details, ids)
+        ids = await self._run_credentialed(
+            _list_playlist_video_ids, playlist_id, op="listing channel videos"
+        )
+        return await self._run_credentialed(
+            _fetch_video_details, ids, op="fetching channel video details"
+        )
 
     async def get_video_stats(
         self,
@@ -812,7 +869,11 @@ class YouTubeService:
             results: list[dict[str, Any]] = []
             for chunk in chunks:
                 ids_param = ",".join(chunk)
-                results.extend(await asyncio.to_thread(_fetch_chunk, ids_param))
+                results.extend(
+                    await self._run_credentialed(
+                        _fetch_chunk, ids_param, op="fetching video stats"
+                    )
+                )
             return results
 
         return await _fetch_all()
@@ -957,7 +1018,9 @@ class YouTubeService:
                 ],
             }
 
-        return await asyncio.to_thread(_fetch)
+        # ``_fetch`` only catches HttpError; an auto-refresh RefreshError is
+        # not an HttpError, so _run_credentialed reclassifies a dead grant.
+        return await self._run_credentialed(_fetch, op="fetching channel analytics")
 
 
 class AnalyticsNotAuthorized(Exception):

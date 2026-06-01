@@ -41,6 +41,7 @@ from drevalis.api.routes.audiobooks._monolith import (
 )
 from drevalis.core.exceptions import NotFoundError, ValidationError
 from drevalis.services.audiobook_admin import NoChannelSelectedError
+from drevalis.services.youtube import YouTubeTokenExpiredError
 
 
 def _settings(tmp_path: Path | None = None) -> Any:
@@ -392,6 +393,74 @@ class TestYouTubeUpload:
         assert exc.value.status_code == 400
         assert exc.value.detail["error"] == "no_channel_selected"
         assert "youtube_channel_id" in exc.value.detail["hint"]
+
+    async def test_revoked_grant_during_refresh_returns_401(self, tmp_path: Path) -> None:
+        # Pin: a dead/revoked grant surfaced by refresh_tokens_if_needed
+        # maps to 401 youtube_token_expired (so the UI shows a reconnect
+        # CTA), not an opaque 500 from an uncaught exception.
+        ab = SimpleNamespace(id=uuid4())
+        ch = _make_channel()
+        video_path = tmp_path / "video.mp4"
+        video_path.write_bytes(b"\x00")
+
+        svc = MagicMock()
+        svc.prepare_youtube_upload = AsyncMock(return_value=(ab, ch, video_path))
+        svc.create_youtube_upload_row = AsyncMock()
+        yt = MagicMock()
+        yt.refresh_tokens_if_needed = AsyncMock(
+            side_effect=YouTubeTokenExpiredError("refresh token revoked or expired")
+        )
+        yt.upload_video = AsyncMock()
+        with patch(
+            "drevalis.api.routes.youtube.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await upload_audiobook_to_youtube(
+                    ab.id,
+                    _upload_request(),
+                    db=AsyncMock(),
+                    settings=_settings(tmp_path),
+                    svc=svc,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+        assert "reconnect" in exc.value.detail["hint"].lower()
+        # Must not have proceeded to create an upload row or upload.
+        svc.create_youtube_upload_row.assert_not_awaited()
+        yt.upload_video.assert_not_awaited()
+
+    async def test_revoked_grant_during_upload_returns_401(self, tmp_path: Path) -> None:
+        # Pin: refresh passes but the grant is revoked, so upload_video's
+        # auto-refresh raises YouTubeTokenExpiredError. The row is marked
+        # failed and the route returns 401, not a 502.
+        ab = SimpleNamespace(id=uuid4())
+        ch = _make_channel()
+        video_path = tmp_path / "video.mp4"
+        video_path.write_bytes(b"\x00")
+
+        svc = MagicMock()
+        svc.prepare_youtube_upload = AsyncMock(return_value=(ab, ch, video_path))
+        svc.create_youtube_upload_row = AsyncMock(return_value=SimpleNamespace(id=uuid4()))
+        svc.record_youtube_upload_failure = AsyncMock()
+        yt = MagicMock()
+        yt.refresh_tokens_if_needed = AsyncMock(return_value=None)
+        yt.upload_video = AsyncMock(side_effect=YouTubeTokenExpiredError("revoked"))
+        with patch(
+            "drevalis.api.routes.youtube.build_youtube_service",
+            AsyncMock(return_value=yt),
+        ):
+            with pytest.raises(HTTPException) as exc:
+                await upload_audiobook_to_youtube(
+                    ab.id,
+                    _upload_request(),
+                    db=AsyncMock(),
+                    settings=_settings(tmp_path),
+                    svc=svc,
+                )
+        assert exc.value.status_code == 401
+        assert exc.value.detail["error"] == "youtube_token_expired"
+        svc.record_youtube_upload_failure.assert_awaited_once()
 
     async def test_success_records_video_and_url(self, tmp_path: Path) -> None:
         ab = SimpleNamespace(id=uuid4())

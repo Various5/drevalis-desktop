@@ -42,6 +42,7 @@ from drevalis.schemas.youtube import (
 from drevalis.services.youtube import (
     AnalyticsNotAuthorized,
     YouTubeService,
+    YouTubeTokenExpiredError,
     fetch_token_scopes,
 )
 from drevalis.services.youtube_admin import (
@@ -119,6 +120,22 @@ def _ambiguous_channel_400(exc: MultipleChannelsAmbiguousError) -> HTTPException
             ],
         },
     )
+
+
+def _token_expired_401(exc: Exception, channel_id: object | None = None) -> HTTPException:
+    """Build the 401 ``youtube_token_expired`` response the frontend keys off
+    to render a per-channel "Reconnect" CTA. Shared by every route that can
+    surface a dead/revoked grant (``TokenRefreshError`` from the explicit
+    refresh, or ``YouTubeTokenExpiredError`` from an auto-refresh inside a
+    Data/Analytics API call)."""
+    detail: dict[str, Any] = {
+        "error": "youtube_token_expired",
+        "reason": str(exc),
+        "hint": "Reconnect this channel via Settings → YouTube.",
+    }
+    if channel_id is not None:
+        detail["channel_id"] = str(channel_id)
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
 
 # ── OAuth flow ───────────────────────────────────────────────────────────
@@ -1359,12 +1376,15 @@ async def delete_video(
             },
         ) from exc
 
-    await yt_service.delete_video(
-        channel.access_token_encrypted or "",
-        channel.refresh_token_encrypted,
-        channel.token_expiry,
-        youtube_video_id,
-    )
+    try:
+        await yt_service.delete_video(
+            channel.access_token_encrypted or "",
+            channel.refresh_token_encrypted,
+            channel.token_expiry,
+            youtube_video_id,
+        )
+    except YouTubeTokenExpiredError as exc:
+        raise _token_expired_401(exc, channel.id) from exc
     await db.commit()
     return {"message": f"Deleted video {youtube_video_id}"}
 
@@ -1534,6 +1554,13 @@ async def upload_episode(
             video_id=upload_result["video_id"],
             privacy_status=payload.privacy_status,
         )
+    except YouTubeTokenExpiredError as exc:
+        # Dead/revoked grant surfaced by the upload's auto-refresh — mark
+        # the row failed (so it isn't stuck "uploading") and return the
+        # actionable 401 reconnect signal instead of a generic 502.
+        await admin.record_upload_failure(upload, str(exc))
+        logger.warning("youtube_upload_token_expired", episode_id=str(episode_id))
+        raise _token_expired_401(exc, channel.id) from exc
     except Exception as exc:
         await admin.record_upload_failure(upload, str(exc))
         logger.error(
@@ -1671,6 +1698,8 @@ async def create_playlist(
             description=payload.description,
             privacy_status=payload.privacy_status,
         )
+    except YouTubeTokenExpiredError as exc:
+        raise _token_expired_401(exc, channel.id) from exc
     except Exception as exc:
         logger.error("youtube_create_playlist_failed", error=str(exc), exc_info=True)
         raise HTTPException(
@@ -1759,6 +1788,8 @@ async def add_video_to_playlist(
             playlist_id=playlist.youtube_playlist_id,
             video_id=payload.video_id,
         )
+    except YouTubeTokenExpiredError as exc:
+        raise _token_expired_401(exc, channel.id) from exc
     except Exception as exc:
         logger.error(
             "youtube_add_to_playlist_failed",
@@ -1816,6 +1847,8 @@ async def delete_playlist(
             token_expiry=channel.token_expiry,
             playlist_id=playlist.youtube_playlist_id,
         )
+    except YouTubeTokenExpiredError as exc:
+        raise _token_expired_401(exc, channel.id) from exc
     except Exception as exc:
         logger.error(
             "youtube_delete_playlist_failed",
@@ -1912,14 +1945,42 @@ async def get_video_analytics(
             detail="video_ids must contain at most 5000 IDs per request",
         )
 
+    # Split refresh from fetch so a dead/revoked grant maps to an
+    # actionable 401 "reconnect this channel" (mirroring the channel-
+    # analytics endpoint + the upload/playlist routes) instead of a
+    # generic 502. The explicit refresh surfaces TokenRefreshError; the
+    # fetch can surface YouTubeTokenExpiredError when google-auth auto-
+    # refreshes a still-locally-valid-but-revoked token inside the call.
     try:
         await admin.refresh_and_persist_tokens(channel, yt_service, commit=True)
+    except TokenRefreshError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": "youtube_token_expired",
+                "reason": str(exc),
+                "channel_id": str(channel.id),
+                "hint": "Reconnect this channel via Settings → YouTube.",
+            },
+        ) from exc
+
+    try:
         stats = await yt_service.get_video_stats(
             access_token_encrypted=channel.access_token_encrypted or "",
             refresh_token_encrypted=channel.refresh_token_encrypted,
             token_expiry=channel.token_expiry,
             video_ids=ids,
         )
+    except YouTubeTokenExpiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": "youtube_token_expired",
+                "reason": str(exc),
+                "channel_id": str(channel.id),
+                "hint": "Reconnect this channel via Settings → YouTube.",
+            },
+        ) from exc
     except Exception as exc:
         logger.error(
             "youtube_analytics_failed",
@@ -2039,6 +2100,18 @@ async def get_channel_analytics(
                 "error": "analytics_scope_missing",
                 "hint": str(exc),
                 "channel_id": str(channel.id),
+            },
+        ) from exc
+    except YouTubeTokenExpiredError as exc:
+        # Auto-refresh inside the analytics call hit a dead grant — map to
+        # the same 401 reconnect signal as the explicit-refresh step above.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": "youtube_token_expired",
+                "reason": str(exc),
+                "channel_id": str(channel.id),
+                "hint": "Reconnect this channel via Settings → YouTube.",
             },
         ) from exc
     except Exception as exc:

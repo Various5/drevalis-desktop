@@ -872,6 +872,7 @@ async def upload_audiobook_to_youtube(
     YouTube channel connection and a generated video (``output_format``
     must be ``audio_image`` or ``audio_video``)."""
     from drevalis.api.routes.youtube import build_youtube_service
+    from drevalis.services.youtube import YouTubeTokenExpiredError
 
     yt_service = await build_youtube_service(settings, db)
 
@@ -893,11 +894,25 @@ async def upload_audiobook_to_youtube(
             },
         ) from exc
 
-    updated_tokens = await yt_service.refresh_tokens_if_needed(
-        channel.access_token_encrypted or "",
-        channel.refresh_token_encrypted,
-        channel.token_expiry,
-    )
+    # A revoked/expired grant raises YouTubeTokenExpiredError here. Map it
+    # to the same actionable 401 the YouTube routes use so the UI shows a
+    # "reconnect this channel" CTA instead of an opaque 500.
+    try:
+        updated_tokens = await yt_service.refresh_tokens_if_needed(
+            channel.access_token_encrypted or "",
+            channel.refresh_token_encrypted,
+            channel.token_expiry,
+        )
+    except YouTubeTokenExpiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": "youtube_token_expired",
+                "reason": str(exc),
+                "channel_id": str(channel.id),
+                "hint": "Reconnect this channel via Settings → YouTube.",
+            },
+        ) from exc
     if updated_tokens:
         for key, value in updated_tokens.items():
             setattr(channel, key, value)
@@ -937,6 +952,19 @@ async def upload_audiobook_to_youtube(
             "youtube_url": result["url"],
             "upload_id": str(upload.id),
         }
+    except YouTubeTokenExpiredError as exc:
+        # Dead/revoked grant surfaced by the upload's auto-refresh — mark
+        # the row failed and return the actionable 401 reconnect signal.
+        await svc.record_youtube_upload_failure(upload, str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": "youtube_token_expired",
+                "reason": str(exc),
+                "channel_id": str(channel.id),
+                "hint": "Reconnect this channel via Settings → YouTube.",
+            },
+        ) from exc
     except Exception as exc:
         await svc.record_youtube_upload_failure(upload, str(exc))
         log.error(
