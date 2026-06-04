@@ -18,6 +18,45 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.5] — 2026-06-04
+
+**Desktop bug-fix pass — YouTube reconnect, update-availability banner, LLM health.**
+
+### Fixed
+- **Connecting or reconnecting a YouTube channel left the "Waiting for
+  YouTube…" dialog spinning forever.** The connect wizard detected a
+  finished OAuth round-trip by watching the *set of connected channel IDs*,
+  which never changes on a reconnect — the channel row is updated in place
+  (it's unique on the YouTube channel id). It now also keys on each
+  channel's `updated_at` (bumped when the callback writes fresh tokens), so
+  a reconnect — and the "Google auto-selected my already-connected account"
+  case — is detected and the dialog closes on its own. (TikTok's connect
+  flow shares the same shape but its status endpoint exposes no per-account
+  change marker, so reconnecting the *same* TikTok account still needs a
+  separate backend change — tracked, not yet fixed.)
+- **Settings → Health showed LM Studio "unreachable" ("All connection
+  attempts failed") even when the LLM config's own Test button was green.**
+  The health card pinged the static `lm_studio_base_url` default
+  (`localhost:1234/v1`) instead of the endpoint you actually configured, so
+  the two views disagreed whenever LM Studio ran on a different host/port. It
+  now checks each configured LLM provider — the same `llm_configs` rows the
+  Test button uses — probing `{base_url}/models` with the configured key, so
+  a reachable provider reads green in both places (and a fresh install with no
+  configs still falls back to the bundled default).
+
+### Added
+- **In-app "update available — download it manually" banner**, decoupled
+  from the Tauri auto-updater so it still works when that updater is broken
+  or unreachable. A new public `GET /api/v1/system/update-status` endpoint
+  checks the channel's GitHub release manifest over plain HTTP — no Tauri
+  IPC, and exempt from the license gate so an expired/unlicensed install can
+  still see it — and the desktop SPA shows a dismissible banner (per-version
+  dismissal) linking to the release. This is the safety net that prevents a
+  repeat of the rc.2 situation, where a broken updater left users with no
+  signal that a fixed build existed.
+
+---
+
 ## [v1.0.0-rc.4] — 2026-06-01
 
 **YouTube auth-error handling — dead/revoked OAuth grant.**
