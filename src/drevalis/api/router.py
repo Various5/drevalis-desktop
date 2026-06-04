@@ -32,6 +32,7 @@ from drevalis.api.routes.schedule import router as schedule_router
 from drevalis.api.routes.series import router as series_router
 from drevalis.api.routes.settings import router as settings_router
 from drevalis.api.routes.social import router as social_router
+from drevalis.api.routes.system import router as system_router
 from drevalis.api.routes.telemetry import router as telemetry_router
 from drevalis.api.routes.updates import router as updates_router
 from drevalis.api.routes.video_ingest import router as video_ingest_router
@@ -79,6 +80,10 @@ import os as _os_updates
 
 if _os_updates.environ.get("DREVALIS_DESKTOP_MODE", "1") == "0":
     router.include_router(updates_router)
+# /api/v1/system/* — desktop update-status check, decoupled from the Tauri
+# updater IPC so a broken auto-updater can still surface "update available".
+# Unconditional (it's FOR desktop) and license-gate-exempt (see gate.py).
+router.include_router(system_router)
 router.include_router(metrics_router)
 router.include_router(cost_router)
 router.include_router(settings_router)

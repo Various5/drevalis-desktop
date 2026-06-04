@@ -549,11 +549,96 @@ async def _check_lm_studio(base_url: str) -> ServiceHealth:
         )
 
 
+async def _check_llm_configs(
+    db: AsyncSession,
+    fallback_base_url: str,
+    encryption_key: str,
+    encryption_keys: dict[int, str] | None = None,
+) -> list[ServiceHealth]:
+    """Check each *configured* LLM endpoint's reachability.
+
+    Reads the same source of truth the LLM-config "Test" button uses — the
+    ``llm_configs`` rows — rather than the static ``lm_studio_base_url``
+    setting. The two used to disagree: a per-config test was green because it
+    hit the endpoint the user actually configured, while this page pinged the
+    hardcoded ``localhost:1234`` default that pointed nowhere ("All connection
+    attempts failed"). Probes ``{base_url}/models`` (the OpenAI-compatible
+    listing endpoint LM Studio / Ollama / OpenAI all expose), authenticated
+    with the config's own key so a cloud endpoint isn't mislabeled. Falls back
+    to the ``lm_studio_base_url`` setting only when no configs exist (fresh
+    install), preserving the bundled-default reading.
+    """
+    import httpx
+
+    from drevalis.core.security import decrypt_value, decrypt_value_multi
+    from drevalis.services.llm_config import LLMConfigService
+
+    try:
+        svc = LLMConfigService(db, encryption_key, encryption_keys=encryption_keys)
+        configs = await svc.list_all()
+    except Exception:
+        configs = []
+
+    if not configs:
+        return [await _check_lm_studio(fallback_base_url)]
+
+    results: list[ServiceHealth] = []
+    for config in configs:
+        base_url = config.base_url.rstrip("/")
+        is_anthropic = (
+            "anthropic" in base_url.lower()
+            or config.model_name.lower().startswith("claude")
+        )
+
+        # Authenticate the probe with the config's own key so a cloud endpoint
+        # answers 200 instead of 401; local servers (LM Studio) ignore it. A
+        # decrypt failure just means we probe unauthenticated — reachability is
+        # still observable.
+        headers: dict[str, str] = {}
+        if config.api_key_encrypted:
+            try:
+                if encryption_keys:
+                    api_key, _ = decrypt_value_multi(config.api_key_encrypted, encryption_keys)
+                else:
+                    api_key = decrypt_value(config.api_key_encrypted, encryption_key)
+                if is_anthropic:
+                    headers["x-api-key"] = api_key
+                    headers["anthropic-version"] = "2023-06-01"
+                else:
+                    headers["Authorization"] = f"Bearer {api_key}"
+            except Exception:
+                pass
+
+        name = f"llm:{config.name}"
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
+                resp = await client.get(f"{base_url}/models", headers=headers)
+            if resp.status_code == 200:
+                results.append(ServiceHealth(name=name, status="ok", message=base_url))
+            else:
+                results.append(
+                    ServiceHealth(
+                        name=name,
+                        status="degraded",
+                        message=f"HTTP {resp.status_code} from {base_url}/models",
+                    )
+                )
+        except Exception as exc:
+            results.append(
+                ServiceHealth(
+                    name=name,
+                    status="unreachable",
+                    message=f"{base_url} -- {str(exc)[:150]}",
+                )
+            )
+    return results
+
+
 @router.get(
     "/health",
     response_model=HealthCheckResponse,
     status_code=status.HTTP_200_OK,
-    summary="System health check (DB, Redis, ComfyUI, FFmpeg, Piper TTS, LM Studio)",
+    summary="System health check (DB, Redis, ComfyUI, FFmpeg, Piper TTS, LLM providers)",
 )
 async def system_health(
     db: AsyncSession = Depends(get_db),
@@ -563,7 +648,8 @@ async def system_health(
     """Check the health of all backend services concurrently.
 
     Returns structured status for: PostgreSQL, Redis, ComfyUI server(s),
-    FFmpeg, Piper TTS models, and LM Studio.
+    FFmpeg, Piper TTS models, and each configured LLM provider (the same
+    ``llm_configs`` rows the per-config "Test" button checks).
     """
     # Run all health checks concurrently for faster response
     # Run independent checks in parallel. Listing them by-call keeps
@@ -584,7 +670,14 @@ async def system_health(
     )
     ffmpeg_task = asyncio.create_task(_check_ffmpeg(settings.ffmpeg_path))
     piper_task = asyncio.create_task(_check_piper_tts(settings.piper_models_path))
-    lm_studio_task = asyncio.create_task(_check_lm_studio(settings.lm_studio_base_url))
+    llm_task = asyncio.create_task(
+        _check_llm_configs(
+            db,
+            settings.lm_studio_base_url,
+            settings.encryption_key,
+            encryption_keys=settings.get_encryption_keys(),
+        )
+    )
 
     db_health = await db_task
     redis_health = await redis_task
@@ -592,7 +685,7 @@ async def system_health(
     comfyui_healths = await comfyui_task
     ffmpeg_health = await ffmpeg_task
     piper_health = await piper_task
-    lm_studio_health = await lm_studio_task
+    llm_healths = await llm_task
 
     services: list[ServiceHealth] = [
         db_health,
@@ -601,7 +694,7 @@ async def system_health(
         *comfyui_healths,
         ffmpeg_health,
         piper_health,
-        lm_studio_health,
+        *llm_healths,
     ]
 
     # -- Overall status -----------------------------------------------------

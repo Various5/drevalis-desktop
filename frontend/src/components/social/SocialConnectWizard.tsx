@@ -23,7 +23,22 @@ import {
   youtube as youtubeApi,
   social as socialApi,
 } from '@/lib/api';
+import type { YouTubeChannel } from '@/types';
 import { openExternal } from '@/lib/tauri';
+
+// Fingerprint of the connected YouTube channels, used to detect when a
+// connect OR reconnect lands. Keyed on each channel's ``updated_at`` — not
+// just the id set — because reconnecting an existing channel reuses the same
+// row (same ``id`` / ``channel_id``); only ``updated_at`` bumps when the
+// OAuth callback writes fresh tokens. An id-only fingerprint is blind to
+// reconnects, so the verify poll would spin until the 5-minute timeout even
+// after the user finished consent in the browser.
+export function youtubeFingerprint(channels: YouTubeChannel[]): string {
+  return channels
+    .map((c) => `${c.id}:${c.updated_at}`)
+    .sort()
+    .join(',');
+}
 
 // SocialConnectWizard
 //
@@ -69,11 +84,15 @@ interface PlatformSpec {
   // Endpoint to call to mint the consent URL after credentials saved.
   fetchAuthUrl: () => Promise<{ auth_url: string }>;
   // Snapshot the current connected-channel "fingerprint" before kicking
-  // off auth. Used to detect *new* connections — boolean "connected"
-  // alone is unreliable for second-channel onboarding because the
-  // platform already reports connected=true from a previous channel.
+  // off auth. Used to detect a connect OR reconnect landing — boolean
+  // "connected" alone is unreliable for second-channel onboarding (the
+  // platform already reports connected=true from a previous channel), and
+  // an id-only fingerprint is blind to reconnects (the row is reused), so
+  // the fingerprint must also key on a per-channel mutation marker such as
+  // ``updated_at``.
   snapshotConnections: () => Promise<string>;
-  // Returns true if connections have grown / changed vs the snapshot.
+  // Returns true if connections have grown / changed vs the snapshot — a
+  // new channel appeared, or an existing one was re-authorized.
   hasNewConnection: (snapshot: string) => Promise<boolean>;
   // Returns true if at least one credential is already saved server-side.
   // When true the wizard skips the "intro" + "credentials" steps and
@@ -123,8 +142,7 @@ const SPECS: Record<SocialPlatform, PlatformSpec> = {
     fetchAuthUrl: () => youtubeApi.getAuthUrl(),
     snapshotConnections: async () => {
       try {
-        const channels = await youtubeApi.listChannels();
-        return channels.map((c) => c.id).sort().join(',');
+        return youtubeFingerprint(await youtubeApi.listChannels());
       } catch {
         return '';
       }
@@ -132,8 +150,7 @@ const SPECS: Record<SocialPlatform, PlatformSpec> = {
     hasNewConnection: async (snapshot: string) => {
       try {
         const channels = await youtubeApi.listChannels();
-        const current = channels.map((c) => c.id).sort().join(',');
-        return current !== snapshot && channels.length > 0;
+        return channels.length > 0 && youtubeFingerprint(channels) !== snapshot;
       } catch {
         return false;
       }

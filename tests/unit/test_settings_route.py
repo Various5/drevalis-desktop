@@ -28,6 +28,7 @@ from drevalis.api.routes.settings import (
     _check_comfyui_servers,
     _check_database,
     _check_ffmpeg,
+    _check_llm_configs,
     _check_lm_studio,
     _check_piper_tts,
     _check_redis,
@@ -592,6 +593,123 @@ class TestCheckLMStudio:
         assert out.status == "unreachable"
 
 
+# ── _check_llm_configs ─────────────────────────────────────────────
+
+
+class TestCheckLLMConfigs:
+    """The Health page must reflect the *configured* LLM endpoints (the same
+    ``llm_configs`` the per-config Test button hits), not the static
+    ``lm_studio_base_url`` default — otherwise a working LM Studio on a
+    non-default address shows green in the test but "unreachable" here."""
+
+    @staticmethod
+    def _mock_service(configs: list[Any]) -> Any:
+        svc = MagicMock()
+        svc.list_all = AsyncMock(return_value=configs)
+        return svc
+
+    @staticmethod
+    def _config(name: str, base_url: str, model: str = "local-model") -> Any:
+        c = MagicMock()
+        c.name = name
+        c.base_url = base_url
+        c.model_name = model
+        c.api_key_encrypted = None
+        return c
+
+    async def test_no_configs_falls_back_to_lm_studio_setting(self) -> None:
+        from drevalis.schemas.settings import ServiceHealth
+
+        sentinel = ServiceHealth(name="lm_studio", status="ok", message="fallback")
+        with (
+            patch(
+                "drevalis.services.llm_config.LLMConfigService",
+                return_value=self._mock_service([]),
+            ),
+            patch(
+                "drevalis.api.routes.settings._check_lm_studio",
+                AsyncMock(return_value=sentinel),
+            ) as fallback,
+        ):
+            out = await _check_llm_configs(AsyncMock(), "http://localhost:1234/v1", "key")
+        fallback.assert_awaited_once_with("http://localhost:1234/v1")
+        assert out == [sentinel]
+
+    async def test_each_config_probed_at_its_own_base_url(self) -> None:
+        # The fix: a configured endpoint that responds is "ok" even though it
+        # isn't the hardcoded localhost:1234 default.
+        import httpx
+
+        def _h(request: httpx.Request) -> httpx.Response:
+            assert request.url.path.endswith("/models")
+            if "5000" in str(request.url):
+                return httpx.Response(200, json={"data": [{"id": "m"}]})
+            return httpx.Response(500)
+
+        real = httpx.AsyncClient
+
+        def _patched(*args: Any, **kwargs: Any) -> Any:
+            kwargs["transport"] = httpx.MockTransport(_h)
+            return real(*args, **kwargs)
+
+        configs = [
+            self._config("LM Studio", "http://192.168.1.50:5000/v1"),
+            self._config("Other", "http://192.168.1.50:9999/v1"),
+        ]
+        with (
+            patch(
+                "drevalis.services.llm_config.LLMConfigService",
+                return_value=self._mock_service(configs),
+            ),
+            patch("httpx.AsyncClient", side_effect=_patched),
+        ):
+            out = await _check_llm_configs(AsyncMock(), "http://localhost:1234/v1", "key")
+        by_name = {h.name: h for h in out}
+        assert by_name["llm:LM Studio"].status == "ok"
+        assert by_name["llm:Other"].status == "degraded"
+
+    async def test_connection_error_marked_unreachable(self) -> None:
+        import httpx
+
+        def _h(_request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("All connection attempts failed")
+
+        real = httpx.AsyncClient
+
+        def _patched(*args: Any, **kwargs: Any) -> Any:
+            kwargs["transport"] = httpx.MockTransport(_h)
+            return real(*args, **kwargs)
+
+        configs = [self._config("LM Studio", "http://localhost:1234/v1")]
+        with (
+            patch(
+                "drevalis.services.llm_config.LLMConfigService",
+                return_value=self._mock_service(configs),
+            ),
+            patch("httpx.AsyncClient", side_effect=_patched),
+        ):
+            out = await _check_llm_configs(AsyncMock(), "http://localhost:1234/v1", "key")
+        assert out[0].name == "llm:LM Studio"
+        assert out[0].status == "unreachable"
+
+    async def test_db_lookup_failure_falls_back(self) -> None:
+        from drevalis.schemas.settings import ServiceHealth
+
+        sentinel = ServiceHealth(name="lm_studio", status="unreachable", message="x")
+        with (
+            patch(
+                "drevalis.services.llm_config.LLMConfigService",
+                side_effect=RuntimeError("db down"),
+            ),
+            patch(
+                "drevalis.api.routes.settings._check_lm_studio",
+                AsyncMock(return_value=sentinel),
+            ),
+        ):
+            out = await _check_llm_configs(AsyncMock(), "http://localhost:1234/v1", "key")
+        assert out == [sentinel]
+
+
 # ── system_health (composite) ──────────────────────────────────────
 
 
@@ -627,8 +745,8 @@ class TestSystemHealth:
                 AsyncMock(return_value=ok),
             ),
             patch(
-                "drevalis.api.routes.settings._check_lm_studio",
-                AsyncMock(return_value=ok),
+                "drevalis.api.routes.settings._check_llm_configs",
+                AsyncMock(return_value=[ok]),
             ),
         ):
             out = await system_health(
@@ -667,8 +785,8 @@ class TestSystemHealth:
                 AsyncMock(return_value=ok),
             ),
             patch(
-                "drevalis.api.routes.settings._check_lm_studio",
-                AsyncMock(return_value=ok),
+                "drevalis.api.routes.settings._check_llm_configs",
+                AsyncMock(return_value=[ok]),
             ),
         ):
             out = await system_health(
@@ -707,8 +825,8 @@ class TestSystemHealth:
                 AsyncMock(return_value=ok),
             ),
             patch(
-                "drevalis.api.routes.settings._check_lm_studio",
-                AsyncMock(return_value=ok),
+                "drevalis.api.routes.settings._check_llm_configs",
+                AsyncMock(return_value=[ok]),
             ),
         ):
             out = await system_health(

@@ -7,6 +7,10 @@ import { MobileNav } from './MobileNav';
 import { ActivityMonitor } from '@/components/ActivityMonitor';
 import { OnboardingGate } from '@/components/onboarding/OnboardingGate';
 import { DemoBanner } from '@/components/DemoBanner';
+import {
+  UpdateAvailableBanner,
+  useUpdateBanner,
+} from '@/components/UpdateAvailableBanner';
 import { CommandPalette } from '@/components/CommandPalette';
 import { ShortcutOverlay } from '@/components/ShortcutOverlay';
 import { useAuthMode } from '@/lib/useAuth';
@@ -51,6 +55,10 @@ function Layout() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { pathname } = useLocation();
   const { demoMode } = useAuthMode();
+  // Desktop update nudge — decoupled from the Tauri updater so a broken
+  // auto-updater can't hide that a newer build exists. Fetched once here so
+  // the result drives both the banner and the shell's top padding.
+  const updateBanner = useUpdateBanner();
   const { activityDock } = useTheme();
   const { t } = useTranslation();
   // Phase 3.4: active-jobs count comes from the WebSocket directly.
@@ -130,7 +138,7 @@ function Layout() {
     <CommandPaletteContext.Provider value={paletteContextValue}>
     <div
       className="min-h-[100dvh] bg-bg-base noise-overlay"
-      style={demoMode ? { paddingTop: 32 } : undefined}
+      style={demoMode || updateBanner.visible ? { paddingTop: 32 } : undefined}
     >
       {/* Skip-to-content — first tab stop; hidden until focused (Phase 5 a11y). */}
       <a
@@ -140,6 +148,7 @@ function Layout() {
         {t('common.skipToContent')}
       </a>
       <DemoBanner />
+      <UpdateAvailableBanner state={updateBanner} />
       {/* Sidebar — hidden on mobile, visible md+ */}
       <Sidebar
         collapsed={sidebarCollapsed}

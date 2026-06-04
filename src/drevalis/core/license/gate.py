@@ -6,6 +6,9 @@ wizard and health checks can run):
 
 - ``/health``
 - ``/api/v1/license/*``        (status, activate, deactivate)
+- ``/api/v1/system/*``         (update-status check; an unlicensed/expired
+                               install is exactly the one that may need to
+                               update, and it exposes no licensed data)
 - ``/docs``, ``/redoc``, ``/openapi.json``   (developer discoverability)
 - ``/storage/*``               (static media; files are already on disk, no
                                additional compute, and blocking them would
@@ -34,6 +37,7 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 _EXEMPT_PREFIXES: tuple[str, ...] = (
     "/health",
     "/api/v1/license",
+    "/api/v1/system",
     "/docs",
     "/redoc",
     "/openapi.json",

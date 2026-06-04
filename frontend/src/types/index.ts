@@ -681,6 +681,12 @@ export interface YouTubeChannel {
   is_active: boolean;
   upload_days: string[] | null;
   upload_time: string | null;
+  // ISO timestamps from the backend (YouTubeChannelResponse). ``updated_at``
+  // bumps whenever the row is rewritten — notably when the OAuth callback
+  // re-authorizes an existing channel — so the connect wizard can detect a
+  // reconnect even though the channel id is unchanged.
+  created_at: string;
+  updated_at: string;
 }
 
 export interface YouTubeUpload {
