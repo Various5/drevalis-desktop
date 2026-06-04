@@ -523,17 +523,20 @@ class TestGenerateSEO:
     async def test_success_enqueues(self) -> None:
         svc = MagicMock()
         svc.get_with_script_or_raise = AsyncMock()
-        redis = MagicMock()
-        redis.enqueue_job = AsyncMock()
-        out = await generate_seo(uuid4(), redis=redis, svc=svc)
+        arq = MagicMock()
+        arq.enqueue_job = AsyncMock()
+        with patch(
+            "drevalis.api.routes.episodes.seo.get_arq_pool", return_value=arq
+        ):
+            out = await generate_seo(uuid4(), svc=svc)
         assert out["status"] == "queued"
-        redis.enqueue_job.assert_awaited_once()
+        arq.enqueue_job.assert_awaited_once()
 
     async def test_episode_or_script_missing_404(self) -> None:
         svc = MagicMock()
         svc.get_with_script_or_raise = AsyncMock(side_effect=EpisodeNoScriptError(uuid4()))
         with pytest.raises(HTTPException) as exc:
-            await generate_seo(uuid4(), redis=MagicMock(), svc=svc)
+            await generate_seo(uuid4(), svc=svc)
         assert exc.value.status_code == 404
 
 

@@ -455,13 +455,16 @@ class TestGenerateEpisodeMusic:
     async def test_success_enqueues(self) -> None:
         svc = MagicMock()
         svc.get_or_raise = AsyncMock()
-        redis = MagicMock()
-        redis.enqueue_job = AsyncMock()
-        out = await generate_episode_music(
-            uuid4(), {"mood": "epic", "duration": 30}, redis=redis, svc=svc
-        )
+        arq = MagicMock()
+        arq.enqueue_job = AsyncMock()
+        with patch(
+            "drevalis.api.routes.episodes.music.get_arq_pool", return_value=arq
+        ):
+            out = await generate_episode_music(
+                uuid4(), {"mood": "epic", "duration": 30}, svc=svc
+            )
         assert out["status"] == "queued"
-        redis.enqueue_job.assert_awaited_once()
+        arq.enqueue_job.assert_awaited_once()
 
     async def test_episode_not_found_404(self) -> None:
         svc = MagicMock()
@@ -470,7 +473,6 @@ class TestGenerateEpisodeMusic:
             await generate_episode_music(
                 uuid4(),
                 {"mood": "epic", "duration": 30},
-                redis=MagicMock(),
                 svc=svc,
             )
         assert exc.value.status_code == 404
@@ -479,7 +481,7 @@ class TestGenerateEpisodeMusic:
         svc = MagicMock()
         svc.get_or_raise = AsyncMock()
         with pytest.raises(HTTPException) as exc:
-            await generate_episode_music(uuid4(), {"duration": 30}, redis=MagicMock(), svc=svc)
+            await generate_episode_music(uuid4(), {"duration": 30}, svc=svc)
         assert exc.value.status_code == 400
 
     async def test_empty_mood_400(self) -> None:
@@ -487,7 +489,7 @@ class TestGenerateEpisodeMusic:
         svc.get_or_raise = AsyncMock()
         with pytest.raises(HTTPException) as exc:
             await generate_episode_music(
-                uuid4(), {"mood": "", "duration": 30}, redis=MagicMock(), svc=svc
+                uuid4(), {"mood": "", "duration": 30}, svc=svc
             )
         assert exc.value.status_code == 400
 
@@ -498,7 +500,6 @@ class TestGenerateEpisodeMusic:
             await generate_episode_music(
                 uuid4(),
                 {"mood": "epic", "duration": "long"},
-                redis=MagicMock(),
                 svc=svc,
             )
         assert exc.value.status_code == 400
@@ -511,7 +512,6 @@ class TestGenerateEpisodeMusic:
             await generate_episode_music(
                 uuid4(),
                 {"mood": "epic", "duration": 200},
-                redis=MagicMock(),
                 svc=svc,
             )
         assert exc.value.status_code == 400
