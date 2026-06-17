@@ -18,6 +18,48 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.6] — 2026-06-17
+
+**Missed-upload recovery + a pre-public security-hardening pass.**
+
+### Added
+- **Bulk "Upload now" for missed scheduled uploads.** The Calendar's
+  Problems banner gains an *Upload now (N)* action that instantly re-runs
+  every *missed* post (status `scheduled` with a slot >15 min in the past —
+  usually the app was closed when the slot came up), alongside the existing
+  *Reschedule all*. Backend `POST /api/v1/schedule/publish-missed` enqueues
+  the publish job to run immediately instead of waiting up to 5 min for the
+  next cron tick; missed-only by design (failed posts stay on the
+  reschedule/retry flows). Each upload still runs the duplicate check and
+  counts against the platform's daily upload cap.
+
+### Security
+Pre-public hardening pass (multi-agent audit; 0 Critical / 0 High):
+- **Bundled Redis** now binds `127.0.0.1` and no longer disables
+  protected-mode — closes an unauthenticated, all-interfaces Redis on
+  LAN-exposed installs.
+- **WebSocket progress streams** now honor the LAN-access token (the
+  validator previously ignored it, leaving `/ws/progress/*` open in LAN
+  mode) and reject cross-site handshakes (CWE-1385).
+- **Editor render** validates timeline `asset_path` (rejects absolute /
+  `..` paths) and allowlists overlay position/colour fields before they
+  reach the FFmpeg filtergraph (CWE-22 + filter-injection).
+- **Backup restore** drops rows whose stored `file_path` is absolute or
+  escapes the storage tree.
+- **ComfyUI/RunPod** server URLs are refused if non-http(s) or pointing at
+  a link-local / cloud-metadata address (SSRF), while loopback/LAN/RunPod
+  hosts stay allowed.
+- **Crash telemetry** no longer serialises stack-frame locals (which could
+  hold decrypted tokens) to the error backend; the support-diagnostics
+  bundle now redacts `redis_url` credentials + `*_dsn`; and login/owner
+  log lines mask the email address.
+- **License server** throttles the seat-management surface per-license (not
+  just per-IP) and audit-logs deactivations with the source IP.
+- **CI:** all GitHub Actions in the release workflows are pinned to full
+  commit SHAs (supply-chain hardening).
+
+---
+
 ## [v1.0.0-rc.5] — 2026-06-04
 
 **Desktop bug-fix pass — YouTube reconnect, update-availability banner, LLM health.**
