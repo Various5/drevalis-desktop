@@ -18,6 +18,33 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.7] — 2026-06-17
+
+**Faster recovery when a scheduled upload's YouTube sign-in has expired.**
+
+### Added
+- **"Reconnect YouTube" CTA on the Calendar's Problems banner.** When a
+  scheduled upload fails because the channel's OAuth grant was revoked or
+  expired (`invalid_grant`), the banner now says so explicitly and offers a
+  one-click button straight to the YouTube channels page — instead of
+  leaving you to decode the error and hunt for where to reconnect.
+- **"Retry failed now" on the Problems banner.** Re-fires every *failed*
+  post immediately (resets them and enqueues the publish job now rather
+  than waiting for the 5-min cron) — the companion to "Upload now" for the
+  *missed* bucket. Still gated by the worker's duplicate check + the
+  platform's daily upload cap, so anything genuinely blocked just fails
+  again rather than double-posting; a confirm warns when some failures need
+  a reconnect first.
+
+### Notes
+- This does not change the dead-grant behaviour itself — a revoked/expired
+  YouTube token still can't upload until the channel is reconnected (the
+  underlying `invalid_grant` is Google rejecting the refresh token; if your
+  OAuth consent screen is still in "Testing", Google expires those tokens
+  every ~7 days — publish the consent screen to stop the recurrence).
+
+---
+
 ## [v1.0.0-rc.6] — 2026-06-17
 
 **Missed-upload recovery + a pre-public security-hardening pass.**
