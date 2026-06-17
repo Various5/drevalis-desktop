@@ -18,6 +18,21 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.8] — 2026-06-17
+
+**Copy fix: point channel reconnect/connect hints at the Channels hub.**
+
+### Fixed
+- **~23 user-facing strings still said "Settings → YouTube" / "Settings →
+  Social Media"** — a dead nav path left over from the May Channels-hub
+  refactor (channel connect/reconnect now lives under **Channels**, not
+  Settings). Migrated them to **Channels → YouTube** / **Channels →
+  \<Platform\>** across backend error hints, the YouTube page, onboarding,
+  Help docs, and both the `en-US` and `de-DE` (→ *Kanäle*) locales. Real
+  Settings sections (Backup, API Keys, Health, LLM, …) are unchanged.
+
+---
+
 ## [v1.0.0-rc.7] — 2026-06-17
 
 **Faster recovery when a scheduled upload's YouTube sign-in has expired.**
