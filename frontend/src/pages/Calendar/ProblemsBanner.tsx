@@ -1,64 +1,65 @@
 import { useState } from 'react';
-import { AlertTriangle, Clock, CalendarPlus, UploadCloud } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Clock, CalendarPlus, UploadCloud, RotateCw, Youtube } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { schedule as scheduleApi } from '@/lib/api';
-import { isMissed, type ScheduledPost } from './types';
+import { isMissed, needsYouTubeReconnect, type ScheduledPost } from './types';
 
 // ---------------------------------------------------------------------------
 // ProblemsBanner — top-of-calendar surface that flags posts in trouble.
-// Two buckets:
 //
-//   - failed: backend marked the post as failed (publish_scheduled_posts
-//     cron caught an exception and persisted the error_message).
-//   - missed: post is still ``scheduled`` but its scheduled_at is more
-//     than 15min in the past. Usually means the worker was down at the
-//     time, or YouTube returned a transient error.
+// Buckets:
+//   - failed: the worker attempted the upload and it errored (error_message
+//     persisted). A sub-set are *dead-grant* failures — the channel's
+//     YouTube OAuth token was revoked/expired (invalid_grant). Those can't
+//     be retried in place; the channel must be reconnected first.
+//   - missed: still ``scheduled`` but scheduled_at is >15min in the past
+//     (the worker was down / app closed when the slot came up).
 //
-// Two actions:
-//
-//   - Retry all → calls /schedule/retry-failed which flips ``failed``
-//     back to ``scheduled``. The worker has its own dup-detection
-//     (title-similarity + existing-upload-row check) so retrying a
-//     post that already uploaded won't burn quota — it short-circuits
-//     and links the existing video. We surface that contract in the
-//     description text so the user understands a retry IS quota-safe.
-//
-//   - Reschedule all → for failed AND missed, bulk-walks each post
-//     through ``/schedule/next-slot`` and PATCHes them onto the next
-//     allowed slot per channel. Useful when YouTube has hard-failed
-//     for the day (e.g. quota exhausted) and the operator wants to
-//     defer everything to tomorrow rather than retrying in-place.
+// Actions (most-relevant first, depending on what's wrong):
+//   - Reconnect YouTube → only shown when a failure is a dead grant. Deep-
+//     links to /youtube (the channel-management page; despite the worker's
+//     "Settings → YouTube" wording, that's where reconnect actually lives).
+//   - Upload now → instantly fires the *missed* posts (enqueues the publish
+//     job now instead of waiting for the 5-min cron). Missed-only.
+//   - Retry failed now → resets failed→scheduled and fires them immediately
+//     (chains retry-failed + publish-missed). Subject to the worker's
+//     duplicate check + the platform's daily upload cap, so anything still
+//     blocked (revoked auth, cap, duplicate) just fails again.
+//   - Reschedule all → spreads failed + missed across the next free slots
+//     per channel (defers rather than firing now) so a backlog doesn't all
+//     hit the daily cap at once.
 // ---------------------------------------------------------------------------
 
 interface ProblemsBannerProps {
   posts: ScheduledPost[];
   /** Called after a successful retry / reschedule so the calendar can re-fetch. */
   onRetried: () => void;
-  /** Called when the user clicks the inline "View failed only" link. */
+  /** Called when the user clicks the inline "View only" link. */
   onShowFailed: () => void;
 }
 
 export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBannerProps) {
   const { toast } = useToast();
-  const [busy, setBusy] = useState<'reschedule' | 'upload' | null>(null);
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState<'reschedule' | 'upload' | 'retry' | null>(null);
 
   const failed = posts.filter((p) => p.status === 'failed');
   const missed = posts.filter((p) => isMissed(p));
   if (failed.length === 0 && missed.length === 0) return null;
 
   const total = failed.length + missed.length;
+  // Failures that need a channel reconnect (dead/expired OAuth grant) —
+  // retrying these in place is futile until the channel is reconnected.
+  const reconnect = failed.filter(needsYouTubeReconnect);
 
   /**
    * Bulk reschedule — one server-side call that walks every failed +
    * missed post and assigns each the next free slot for its channel
-   * (respecting upload_days + clash-avoid). This is the right action
-   * for a backlog of stuck posts: spreading them across future days
-   * means they don't all retry at once and trip the platform's daily
-   * upload cap. (A naive "retry all" would flip 100+ posts to
-   * scheduled-in-the-past, and the next worker tick would try to
-   * upload all of them and burn through the daily quota — which is
-   * exactly why the old Retry-all button was removed.)
+   * (respecting upload_days + clash-avoid). The right action for a backlog:
+   * spreading them across future days means they don't all retry at once
+   * and trip the platform's daily upload cap.
    */
   const handleRescheduleAll = async () => {
     setBusy('reschedule');
@@ -79,13 +80,11 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
   };
 
   /**
-   * Instant-upload the missed posts. Unlike "Reschedule all" (which
-   * defers everything to future slots), this fires the missed uploads
-   * *now*: the backend enqueues the publish job to run immediately
-   * instead of waiting up to 5 min for the next cron tick. Missed-only
-   * by design — failed posts errored for a reason and stay on the
-   * reschedule/retry path. Outward-facing + hard to reverse (it really
-   * uploads to YouTube/etc.), so we confirm first.
+   * Instant-upload the missed posts. Unlike "Reschedule all" (which defers
+   * to future slots), this fires the missed uploads *now*: the backend
+   * enqueues the publish job to run immediately instead of waiting up to
+   * 5 min for the next cron tick. Missed-only by design. Outward-facing +
+   * hard to reverse (it really uploads), so we confirm first.
    */
   const handleUploadMissed = async () => {
     const ok = window.confirm(
@@ -106,7 +105,7 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
           `Uploading ${res.queued} missed post${res.queued === 1 ? '' : 's'} now`,
           {
             description:
-              "Publishing on the next worker pass (within seconds). Already-uploaded videos are linked, not re-uploaded.",
+              'Publishing on the next worker pass (within seconds). Already-uploaded videos are linked, not re-uploaded.',
           },
         );
       } else {
@@ -118,6 +117,55 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
       onRetried();
     } catch (err) {
       toast.error('Upload failed', { description: String(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /**
+   * Retry the *failed* posts immediately. The deliberate-removed "Retry
+   * all" used to flip 100+ posts to scheduled-in-the-past and let the next
+   * cron tick hammer the daily cap; this is the same idea but explicit and
+   * confirmed. It chains two existing endpoints: retry-failed flips the
+   * rows back to ``scheduled`` (clearing the error) — leaving them
+   * due-in-the-past, i.e. "missed" — and publish-missed then enqueues the
+   * job to run now. The worker's per-upload duplicate check + the daily cap
+   * still apply, so anything genuinely blocked (revoked auth, cap reached,
+   * duplicate) simply fails again rather than double-posting.
+   */
+  const handleRetryFailedNow = async () => {
+    const dead = reconnect.length;
+    const ok = window.confirm(
+      `Retry ${failed.length} failed ${failed.length === 1 ? 'post' : 'posts'} now?\n\n` +
+        (dead > 0
+          ? `Heads up: ${dead} ${dead === 1 ? 'is' : 'are'} blocked by a revoked/expired YouTube sign-in and will fail again until you Reconnect YouTube first.\n\n`
+          : '') +
+        "They re-attempt on the next worker pass (seconds). Each runs the duplicate check and counts toward the platform's daily upload cap — anything still blocked just fails again rather than double-posting.",
+    );
+    if (!ok) return;
+    setBusy('retry');
+    try {
+      // 720h window = the schedule API's max (RetryFailedRequest le=720);
+      // covers any realistic failed backlog.
+      await scheduleApi.retryFailed({ within_hours: 720 });
+      const res = await scheduleApi.publishMissedNow(720);
+      if (res.queued > 0 && res.enqueued) {
+        toast.success(`Retrying ${res.queued} post${res.queued === 1 ? '' : 's'} now`, {
+          description: 'Publishing on the next worker pass (within seconds).',
+        });
+      } else if (res.queued > 0) {
+        toast.warning(`Queued ${res.queued} post${res.queued === 1 ? '' : 's'}`, {
+          description:
+            "Couldn't trigger an immediate pass — they'll upload on the next 5-min cron tick.",
+        });
+      } else {
+        toast.info('Nothing to retry', {
+          description: 'No eligible failed posts in the last 30 days.',
+        });
+      }
+      onRetried();
+    } catch (err) {
+      toast.error('Retry failed', { description: String(err) });
     } finally {
       setBusy(null);
     }
@@ -154,20 +202,22 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
           >
             {summary} · {total === 1 ? 'upload needs attention' : 'uploads need attention'}
           </p>
-          <p className="text-[11px] text-txt-tertiary mt-0.5">
-            Reschedule spreads everything across the next free slots per
-            channel so they don't all hit the platform's daily upload cap
-            at once.{' '}
-            {missed.length > 0 && (
-              <>
-                Upload now fires just the {missed.length} missed{' '}
-                {missed.length === 1 ? 'post' : 'posts'} immediately (failed
-                posts stay on reschedule).{' '}
-              </>
-            )}
-            The worker runs a duplicate check before each upload, so an
-            already-published video is linked, never re-uploaded.
-          </p>
+          {reconnect.length > 0 ? (
+            <p className="text-[11px] text-amber-200/90 mt-0.5">
+              {reconnect.length} of these {reconnect.length === 1 ? 'is' : 'are'} blocked by a
+              revoked or expired YouTube sign-in — retrying won't help until you
+              reconnect the channel. Click <strong>Reconnect YouTube</strong>, then{' '}
+              <strong>Retry failed now</strong>.
+            </p>
+          ) : (
+            <p className="text-[11px] text-txt-tertiary mt-0.5">
+              Upload / Retry now fire immediately (subject to each platform's daily
+              upload cap); Reschedule all spreads everything across the next free
+              slots per channel instead. The worker runs a duplicate check before
+              each upload, so an already-published video is linked, never
+              re-uploaded.
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -179,9 +229,21 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
         >
           View only
         </Button>
-        {missed.length > 0 && (
+        {reconnect.length > 0 && (
           <Button
             variant="primary"
+            size="sm"
+            onClick={() => navigate('/youtube')}
+            disabled={busy !== null}
+            title="Open the YouTube channels page to reconnect the revoked/expired channel"
+          >
+            <Youtube size={13} className="mr-1.5" />
+            Reconnect YouTube
+          </Button>
+        )}
+        {missed.length > 0 && (
+          <Button
+            variant={reconnect.length > 0 ? 'secondary' : 'primary'}
             size="sm"
             onClick={handleUploadMissed}
             loading={busy === 'upload'}
@@ -192,8 +254,21 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
             Upload now ({missed.length})
           </Button>
         )}
+        {failed.length > 0 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleRetryFailedNow}
+            loading={busy === 'retry'}
+            disabled={busy !== null}
+            title="Reset failed posts and re-attempt immediately (subject to the duplicate check + daily upload cap)"
+          >
+            <RotateCw size={13} className="mr-1.5" />
+            Retry failed now ({failed.length})
+          </Button>
+        )}
         <Button
-          variant={missed.length > 0 ? 'secondary' : 'primary'}
+          variant={reconnect.length === 0 && missed.length === 0 ? 'primary' : 'secondary'}
           size="sm"
           onClick={handleRescheduleAll}
           loading={busy === 'reschedule'}

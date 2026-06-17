@@ -54,6 +54,19 @@ export function effectiveStatus(post: ScheduledPost): string {
   return post.status;
 }
 
+/**
+ * A failed post whose error is a dead/expired/revoked YouTube OAuth grant.
+ * The only fix is reconnecting the channel — retrying in place is futile
+ * until then. Detected from the worker's error_message, which carries a
+ * "Reconnect the channel …" hint for both the revoked-token
+ * (invalid_grant) and the undecryptable-token (encryption-key mismatch)
+ * cases.
+ */
+export function needsYouTubeReconnect(post: ScheduledPost): boolean {
+  if (post.status !== 'failed') return false;
+  return /reconnect/i.test(post.error_message ?? '');
+}
+
 // ---------------------------------------------------------------------------
 // Shared constants
 // ---------------------------------------------------------------------------
