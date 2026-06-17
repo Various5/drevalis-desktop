@@ -119,11 +119,19 @@ def _maybe_launch_redis(redis_url: str) -> subprocess.Popen[bytes] | None:
             binary,
             "--port",
             str(port),
+            # Bind to loopback only. The bundled sidecar exists solely for
+            # the local API + worker (which connect via redis_url, i.e.
+            # localhost), so it must never accept connections from the
+            # network. Without an explicit bind Redis listens on all
+            # interfaces; combined with the old "--protected-mode no" that
+            # left an unauthenticated Redis open to the LAN (arq job
+            # injection, pub/sub read/write, CONFIG abuse). Binding 127.0.0.1
+            # keeps protected-mode's default safety net intact too.
+            "--bind",
+            "127.0.0.1",
             "--save",
             "",
             "--appendonly",
-            "no",
-            "--protected-mode",
             "no",
         ],
         creationflags=_windows_no_console_creationflags(),

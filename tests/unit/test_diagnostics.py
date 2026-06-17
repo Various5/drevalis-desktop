@@ -127,6 +127,28 @@ class TestRedactSettings:
         for k in result:
             assert isinstance(k, str)
 
+    def test_redis_url_credentials_redacted_host_preserved(self) -> None:
+        """A password-protected redis_url must not leak its password into
+        the support bundle, but the host should survive for triage."""
+        s = _make_settings()
+        s.model_dump.return_value = {
+            **s.model_dump.return_value,
+            "redis_url": "redis://:sup3rs3cret@cache.internal:6379/0",
+        }
+        result = redact_settings(s)
+        val = str(result["redis_url"])
+        assert "sup3rs3cret" not in val, "redis password leaked"
+        assert "cache.internal" in val, "redis host must be preserved"
+
+    def test_dsn_field_is_fully_redacted(self) -> None:
+        s = _make_settings()
+        s.model_dump.return_value = {
+            **s.model_dump.return_value,
+            "telemetry_dsn": "https://abc123key@errors.drevalis.com/5",
+        }
+        result = redact_settings(s)
+        assert result["telemetry_dsn"] == _REDACTED_MARKER
+
 
 # ---------------------------------------------------------------------------
 # build_bundle — async, needs mocked DB + helpers

@@ -21,6 +21,7 @@ tracks it doesn't recognise. Future revs expand the filtergraph.
 from __future__ import annotations
 
 import asyncio
+import re
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -92,7 +93,12 @@ async def render_from_edit(
             asset_path = clip.get("asset_path")
             if not asset_path:
                 continue
-            src = Path(settings.storage_base_path) / asset_path
+            storage_root = Path(settings.storage_base_path)
+            if _resolve_within(storage_root, asset_path) is None:
+                # Absolute path or ``..`` escape — refuse to feed it to FFmpeg.
+                log.warning("clip_path_rejected", index=i, path=str(asset_path)[:200])
+                continue
+            src = storage_root / asset_path
             if not src.exists():
                 log.warning("clip_source_missing", index=i, path=str(src))
                 continue
@@ -225,11 +231,74 @@ def _escape_drawtext(text: str) -> str:
     return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'").replace("%", "\\%")
 
 
+# Allowlists for values interpolated into FFmpeg filtergraph strings.
+# Overlay fields come straight from the persisted (caller-influenceable)
+# timeline JSON, and the fragments are comma-joined into a single ``-vf`` /
+# ``-filter_complex`` argument — so an unescaped value carrying ``, : ' [ ]``
+# could append arbitrary filters to the graph (e.g. ``drawtext=textfile=``
+# or ``movie=`` to read/exfiltrate local files into the render). We
+# allowlist rather than escape: positions are FFmpeg arithmetic exprs,
+# colors a fixed grammar, dimensions plain bounded ints.
+_POS_EXPR_RE = re.compile(r"^[0-9A-Za-z_+\-*/(). ]{0,128}$")
+_COLOR_RE = re.compile(
+    r"^(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|0x[0-9A-Fa-f]{6,8}|[A-Za-z]+)"
+    r"(@(?:0|1|0?\.[0-9]+|1\.0*))?$"
+)
+
+
+def _resolve_within(base: Path, rel: str) -> Path | None:
+    """Resolve *rel* under *base*, or return ``None`` if it escapes.
+
+    Timeline ``asset_path`` values are caller-supplied; joining an absolute
+    path discards the base and ``..`` walks out of the storage tree, so a
+    crafted value could make FFmpeg read (and bake into the downloadable
+    render) any file the process can reach. Reject absolute paths and any
+    value whose resolved form leaves *base*. Used purely as a containment
+    *guard* — callers keep using the plain ``base / rel`` join for the
+    actual FFmpeg input once this returns non-None.
+    """
+    if not rel or Path(rel).is_absolute():
+        return None
+    candidate = (base / rel).resolve()
+    try:
+        candidate.relative_to(base.resolve())
+    except ValueError:
+        return None
+    return candidate
+
+
+def _safe_pos(value: Any, default: str) -> str:
+    """Allowlist an FFmpeg position expression (overlay x/y); fall back to
+    *default* on anything containing filtergraph metacharacters."""
+    if value is None or value == "":
+        return default
+    s = str(value)
+    return s if _POS_EXPR_RE.fullmatch(s) else default
+
+
+def _safe_dim(value: Any, default: int, *, lo: int = 1, hi: int = 10000) -> int:
+    """Coerce an overlay dimension / font size to a bounded int."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return default
+    return n if lo <= n <= hi else default
+
+
 def _color_to_ffmpeg(color: str | None, default: str = "white") -> str:
-    """Accept '#RRGGBB', 'white', 'rgba(r,g,b,a)'. Pass through to FFmpeg."""
+    """Validate + normalize an FFmpeg color token.
+
+    Accepts ``#RGB`` / ``#RRGGBB`` / ``0xRRGGBB[AA]`` / a named color, each
+    with an optional ``@alpha`` suffix. Maps ``#RRGGBB`` → ``0xRRGGBB``;
+    other accepted forms pass through. Anything else (incl. values carrying
+    filtergraph metacharacters) falls back to *default* rather than being
+    interpolated verbatim.
+    """
     if not color:
         return default
     c = color.strip()
+    if not _COLOR_RE.fullmatch(c):
+        return default
     if c.startswith("#") and len(c) == 7:
         return f"0x{c[1:]}"
     return c
@@ -254,11 +323,12 @@ def _build_overlay_filters(
         start_s = float(o.get("start_s") or 0.0)
         end_s = float(o.get("end_s") or start_s + 1.0)
         enable = f"between(t,{start_s:.3f},{end_s:.3f})"
-        x = o.get("x", "(w-text_w)/2")  # ffmpeg expressions accepted
-        y = o.get("y", "h-200")
+        # Validated FFmpeg position exprs (reject filtergraph metacharacters).
+        x = _safe_pos(o.get("x"), "(w-text_w)/2")
+        y = _safe_pos(o.get("y"), "h-200")
         if kind == "text":
             text = _escape_drawtext(str(o.get("text") or ""))
-            size = int(o.get("font_size") or 56)
+            size = _safe_dim(o.get("font_size"), 56)
             color = _color_to_ffmpeg(o.get("color"), "white")
             box = "1" if o.get("box") else "0"
             box_color = _color_to_ffmpeg(o.get("box_color"), "black@0.6")
@@ -268,8 +338,8 @@ def _build_overlay_filters(
                 f":enable='{enable}'"
             )
         elif kind == "shape" and (o.get("shape") == "rect" or not o.get("shape")):
-            w = o.get("w", 200)
-            h = o.get("h", 60)
+            w = _safe_dim(o.get("w"), 200)
+            h = _safe_dim(o.get("h"), 60)
             color = _color_to_ffmpeg(o.get("color"), "white@0.5")
             fragments.append(
                 f"drawbox=x={x}:y={y}:w={w}:h={h}:color={color}:t=fill:enable='{enable}'"
@@ -278,6 +348,8 @@ def _build_overlay_filters(
             path = o.get("asset_path")
             if not path:
                 continue
+            if _resolve_within(storage_base, path) is None:
+                continue  # path escapes the storage root
             abs_path = storage_base / path
             if not abs_path.exists():
                 continue
@@ -352,13 +424,15 @@ async def _apply_overlays(
         path = o.get("asset_path")
         if not path:
             continue
+        if _resolve_within(storage_base, path) is None:
+            continue  # path escapes the storage root
         abs_path = storage_base / path
         if not abs_path.exists():
             continue
         start_s = float(o.get("start_s") or 0.0)
         end_s = float(o.get("end_s") or start_s + 1.0)
-        x = o.get("x", "(W-w)/2")
-        y = o.get("y", "H/2")
+        x = _safe_pos(o.get("x"), "(W-w)/2")
+        y = _safe_pos(o.get("y"), "H/2")
         pass_out = output_path.with_name(output_path.stem + f"_img{image_overlays.index(o)}.mp4")
         cmd = [
             ffmpeg_path,

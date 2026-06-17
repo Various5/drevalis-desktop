@@ -643,6 +643,84 @@ class ScheduleService:
         )
         return {"rescheduled": rescheduled, "skipped": skipped, "details": details}
 
+    async def publish_missed_now(self, *, within_hours: int = 720) -> dict[str, Any]:
+        """Instantly upload every *missed* post — past-due slots that the
+        worker never picked up (usually because the app was closed when
+        the slot came round).
+
+        "Missed" = ``status='scheduled'`` with ``scheduled_at`` more than
+        15 minutes in the past (same definition the calendar's
+        ``isMissed`` and :meth:`reschedule_failed` use). Crucially, a
+        missed post is **already** in the publish cron's pending queue
+        (``get_pending`` selects ``scheduled`` rows with
+        ``scheduled_at <= now``) — it would publish on its own at the
+        next 5-minute tick. The *only* thing "instant" buys the operator
+        is not waiting up to 5 minutes: we enqueue ``publish_scheduled_
+        posts`` to run **now** instead of on the next cron beat.
+
+        Failed posts are deliberately excluded. They errored for a reason
+        (duplicate-block, no channel, revoked token) and blindly
+        re-running them just re-fails; those stay on the per-post drawer
+        + ``reschedule_failed`` flows.
+
+        We do **not** mutate ``scheduled_at`` (the rows are already due,
+        and moving 100 posts to ``now`` would just cluster their
+        timestamps with no upside). The enqueued job is guarded by the
+        same ``cron_lock`` as the cron tick, so triggering it while a
+        scheduled run is in flight is race-safe: the in-flight run
+        already covers these rows, and our manual run simply no-ops as
+        "not cron owner". Re-clicking is likewise harmless.
+
+        Returns ``{"queued": N, "enqueued": bool, "post_ids": [...]}``.
+        ``enqueued`` is ``False`` when there was nothing to do, or when
+        the arq pool isn't available (e.g. Redis down) — in that case the
+        rows are untouched and the next cron tick still picks them up.
+        """
+        now = datetime.now(UTC)
+        # 15 min matches the calendar's MISSED_GRACE_MINUTES + the
+        # reschedule_failed cutoff — a post is only "missed" once the
+        # 5-minute cron has had a fair chance to claim it.
+        missed_cutoff = now - timedelta(minutes=15)
+        window_cutoff = now - timedelta(hours=within_hours)
+
+        stmt = (
+            select(ScheduledPost)
+            .where(
+                ScheduledPost.status == "scheduled",
+                ScheduledPost.scheduled_at < missed_cutoff,
+                ScheduledPost.scheduled_at >= window_cutoff,
+            )
+            .order_by(ScheduledPost.scheduled_at)
+        )
+        posts = list((await self._db.execute(stmt)).scalars().all())
+        post_ids = [str(p.id) for p in posts]
+
+        enqueued = False
+        if posts:
+            try:
+                from drevalis.core.redis import get_arq_pool
+
+                arq = get_arq_pool()
+                await arq.enqueue_job("publish_scheduled_posts")
+                enqueued = True
+            except Exception as exc:  # noqa: BLE001
+                # Redis/arq unavailable — degrade gracefully. The rows are
+                # still ``scheduled`` + due, so the next cron tick (once
+                # things recover) publishes them. Don't surface this as an
+                # error to the operator beyond the ``enqueued=False`` flag.
+                logger.warning(
+                    "schedule.publish_missed_now.enqueue_failed",
+                    error=str(exc)[:200],
+                )
+
+        logger.info(
+            "schedule.publish_missed_now",
+            queued=len(posts),
+            enqueued=enqueued,
+            within_hours=within_hours,
+        )
+        return {"queued": len(posts), "enqueued": enqueued, "post_ids": post_ids}
+
     async def retry_failed(self, payload: RetryFailedRequest) -> tuple[list[UUID], list[UUID]]:
         now = datetime.now(UTC)
         cutoff = now - timedelta(hours=payload.within_hours)

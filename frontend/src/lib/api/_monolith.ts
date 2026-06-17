@@ -1305,6 +1305,19 @@ export const schedule = {
       `/api/v1/schedule/reschedule-failed?within_hours=${withinHours}`,
       {},
     ),
+
+  // Instantly upload every "missed" post — a slot whose time passed but
+  // the worker never claimed it (status still ``scheduled`` with a
+  // scheduled_at >15 min in the past, usually because the app was closed
+  // at the time). These are already in the publish queue, so this just
+  // enqueues the publish job to run *now* instead of waiting up to 5 min
+  // for the next cron tick. Missed-only by design: failed posts (which
+  // errored for a reason) stay on the reschedule/retry flows.
+  publishMissedNow: (withinHours = 720) =>
+    post<{ queued: number; enqueued: boolean; post_ids: string[] }>(
+      `/api/v1/schedule/publish-missed?within_hours=${withinHours}`,
+      {},
+    ),
 };
 
 // ---------------------------------------------------------------------------

@@ -24,6 +24,7 @@ from drevalis.api.routes.schedule import (
     get_calendar,
     get_diagnostics,
     list_scheduled_posts,
+    publish_missed,
     retry_failed,
     update_scheduled_post,
 )
@@ -252,3 +253,24 @@ class TestRetryFailed:
         out = await retry_failed(RetryFailedRequest(within_hours=48), svc=svc)
         assert out.requeued == [a]
         assert out.skipped == [b]
+
+
+# ── POST /publish-missed ────────────────────────────────────────────
+
+
+class TestPublishMissed:
+    async def test_delegates_and_returns_dict(self) -> None:
+        svc = MagicMock()
+        result = {"queued": 3, "enqueued": True, "post_ids": [str(uuid4())]}
+        svc.publish_missed_now = AsyncMock(return_value=result)
+        out = await publish_missed(within_hours=720, svc=svc)
+        assert out == result
+        svc.publish_missed_now.assert_awaited_once_with(within_hours=720)
+
+    async def test_passes_custom_window(self) -> None:
+        svc = MagicMock()
+        svc.publish_missed_now = AsyncMock(
+            return_value={"queued": 0, "enqueued": False, "post_ids": []}
+        )
+        await publish_missed(within_hours=24, svc=svc)
+        svc.publish_missed_now.assert_awaited_once_with(within_hours=24)

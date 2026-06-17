@@ -25,6 +25,7 @@ import asyncio
 import json
 import os
 import secrets
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import structlog
@@ -44,36 +45,97 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
-async def _validate_ws_token(websocket: WebSocket) -> bool:
-    """Validate WebSocket auth token supplied as a query parameter.
+# WebSocket connections are NOT seen by the HTTP OptionalAPIKeyMiddleware
+# (Starlette BaseHTTPMiddleware only processes http-scope requests), so
+# these handlers must enforce auth + origin themselves.
 
-    Returns True when auth is disabled (API_AUTH_TOKEN not set / empty)
-    or when the caller supplies a matching ``?token=<value>`` query
-    parameter.
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 
-    WebSocket clients cannot set the ``Authorization`` header from a browser,
-    so the token is accepted via query parameter instead.  The comparison uses
-    ``secrets.compare_digest`` to prevent timing-oracle attacks.
+# Origins permitted to open a progress WebSocket. Browsers always send an
+# Origin on the WS handshake, so a malicious page (https://evil.example)
+# is rejected; native clients (no Origin) and the local desktop webview
+# are allowed. We accept ANY loopback port because the packaged app loads
+# the SPA from http://127.0.0.1:<app-port> and dev servers use arbitrary
+# localhost ports — pinning a port list would risk breaking the local UI.
+_ALLOWED_ORIGIN_HOSTS = frozenset(
+    {"127.0.0.1", "::1", "localhost", "tauri.localhost"}
+)
 
-    v0.20.13 — strip whitespace on the configured token before the "is
-    auth configured?" check. On Windows, the installer writes .env with
-    CRLF line endings, so ``API_AUTH_TOKEN=`` (intentionally blank slot)
-    lands in the container as ``"\\r"`` — truthy, forces auth on, and
-    every browser WebSocket gets closed with 4001 → HTTP 403. Same
-    coercion the OptionalAPIKeyMiddleware already does; we now mirror
-    it here.
 
-    CWE-306 (Missing Authentication), OWASP A07:2021 (Identification and
-    Authentication Failures).
+def _ws_is_loopback(websocket: WebSocket) -> bool:
+    """True when the WS peer is the local machine.
+
+    Uses the real socket peer only — never a spoofable ``X-Forwarded-For``.
     """
-    raw_token: str = os.environ.get("API_AUTH_TOKEN", "") or ""
-    configured_token: str = raw_token.strip()
-    if not configured_token:
-        # Auth is disabled — local dev mode (or Windows-CRLF-mangled
-        # blank-slot value; see docstring).
+    client = websocket.client
+    return bool(client and client.host in _LOOPBACK_HOSTS)
+
+
+def _validate_ws_origin(websocket: WebSocket) -> bool:
+    """Reject cross-site WebSocket handshakes (CWE-1385 / CSWSH).
+
+    The FastAPI CORS allowlist does NOT protect WebSockets — browsers
+    don't apply the Same-Origin Policy or preflight to WS handshakes — so
+    without this check any web page the user visits could open
+    ``ws://127.0.0.1:8000/ws/progress/all`` and read generation metadata.
+    A missing Origin (native clients/tooling) or a loopback / Tauri origin
+    is allowed; any other origin is refused.
+    """
+    raw = websocket.headers.get("origin") if hasattr(websocket, "headers") else None
+    if not isinstance(raw, str) or not raw.strip():
+        return True  # no browser Origin → not a cross-site request
+    try:
+        parsed = urlsplit(raw.strip().lower())
+    except ValueError:
+        return False
+    if parsed.scheme == "tauri":
+        return True
+    return (parsed.hostname or "") in _ALLOWED_ORIGIN_HOSTS
+
+
+async def _validate_ws_token(websocket: WebSocket) -> bool:
+    """Validate the WebSocket auth token (supplied as ``?token=<value>``).
+
+    Mirrors ``OptionalAPIKeyMiddleware``: the configured token is the
+    explicit ``API_AUTH_TOKEN`` env var, else the LAN-access token
+    persisted by Settings → LAN API Access. When neither is set (the
+    default desktop/dev posture) auth is disabled and every connection is
+    allowed. The local webview is exempt from the token ONLY under the
+    LAN-access token (loopback peer) — with an explicit ``API_AUTH_TOKEN``
+    the app sits behind a reverse proxy on loopback, so exempting loopback
+    there would bypass auth for every proxied caller.
+
+    Before this, the validator read only ``API_AUTH_TOKEN``; enabling LAN
+    API Access persists a token but never sets that env var, so every
+    ``/ws/progress/*`` stream was left unauthenticated on the LAN.
+
+    WebSocket clients cannot set the ``Authorization`` header from a
+    browser, so the token rides in the query string; the compare uses
+    ``secrets.compare_digest`` to avoid a timing oracle. ``.strip()``
+    coerces the Windows CRLF-mangled blank slot (``API_AUTH_TOKEN=\\r``)
+    to "" so it reads as auth-disabled (the v0.20.13 fix), matching the
+    middleware.
+
+    CWE-306 (Missing Authentication), OWASP A07:2021.
+    """
+    configured: str = (os.environ.get("API_AUTH_TOKEN", "") or "").strip()
+    loopback_exempt = False
+    if not configured:
+        try:
+            from drevalis.core import network_config
+
+            lan_token = network_config.peek_api_token()
+            if lan_token and lan_token.strip():
+                configured = lan_token.strip()
+                loopback_exempt = True
+        except Exception:
+            configured = ""
+    if not configured:
+        return True
+    if loopback_exempt and _ws_is_loopback(websocket):
         return True
     ws_token: str = websocket.query_params.get("token", "").strip()
-    return secrets.compare_digest(ws_token, configured_token)
+    return secrets.compare_digest(ws_token, configured)
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +314,11 @@ async def websocket_progress(websocket: WebSocket, episode_id: str) -> None:
     The connection stays open until the client disconnects or the
     pipeline completes.
     """
-    # S-3: Reject unauthenticated connections before accepting the handshake.
+    # S-3 / CWE-1385: validate Origin (cross-site WS hijack) and the auth
+    # token before accepting the handshake.
+    if not _validate_ws_origin(websocket):
+        await websocket.close(code=4403, reason="Forbidden origin")
+        return
     if not await _validate_ws_token(websocket):
         await websocket.close(code=4001, reason="Unauthorized")
         return
@@ -310,7 +376,11 @@ async def websocket_audiobook_progress(websocket: WebSocket, audiobook_id: str) 
     Subscribes to Redis pub/sub channel ``progress:audiobook:{audiobook_id}``
     and forwards messages to the client.
     """
-    # S-3: Reject unauthenticated connections before accepting the handshake.
+    # S-3 / CWE-1385: validate Origin (cross-site WS hijack) and the auth
+    # token before accepting the handshake.
+    if not _validate_ws_origin(websocket):
+        await websocket.close(code=4403, reason="Forbidden origin")
+        return
     if not await _validate_ws_token(websocket):
         await websocket.close(code=4001, reason="Unauthorized")
         return
@@ -355,7 +425,11 @@ async def websocket_all_progress(websocket: WebSocket) -> None:
     published message to the client.  Useful for dashboards that need to track
     all active generations without knowing episode IDs in advance.
     """
-    # S-3: Reject unauthenticated connections before accepting the handshake.
+    # S-3 / CWE-1385: validate Origin (cross-site WS hijack) and the auth
+    # token before accepting the handshake.
+    if not _validate_ws_origin(websocket):
+        await websocket.close(code=4403, reason="Forbidden origin")
+        return
     if not await _validate_ws_token(websocket):
         await websocket.close(code=4001, reason="Unauthorized")
         return

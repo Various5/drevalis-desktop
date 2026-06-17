@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Clock, CalendarPlus } from 'lucide-react';
+import { AlertTriangle, Clock, CalendarPlus, UploadCloud } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { schedule as scheduleApi } from '@/lib/api';
@@ -41,7 +41,7 @@ interface ProblemsBannerProps {
 
 export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBannerProps) {
   const { toast } = useToast();
-  const [busy, setBusy] = useState<'reschedule' | null>(null);
+  const [busy, setBusy] = useState<'reschedule' | 'upload' | null>(null);
 
   const failed = posts.filter((p) => p.status === 'failed');
   const missed = posts.filter((p) => isMissed(p));
@@ -73,6 +73,51 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
       onRetried();
     } catch (err) {
       toast.error('Reschedule failed', { description: String(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /**
+   * Instant-upload the missed posts. Unlike "Reschedule all" (which
+   * defers everything to future slots), this fires the missed uploads
+   * *now*: the backend enqueues the publish job to run immediately
+   * instead of waiting up to 5 min for the next cron tick. Missed-only
+   * by design — failed posts errored for a reason and stay on the
+   * reschedule/retry path. Outward-facing + hard to reverse (it really
+   * uploads to YouTube/etc.), so we confirm first.
+   */
+  const handleUploadMissed = async () => {
+    const ok = window.confirm(
+      `Upload ${missed.length} missed ${
+        missed.length === 1 ? 'post' : 'posts'
+      } now?\n\nThey'll publish on the next worker pass (seconds, not the 5-min cron). Each upload still runs the duplicate check and counts toward the platform's daily upload cap.`,
+    );
+    if (!ok) return;
+    setBusy('upload');
+    try {
+      const res = await scheduleApi.publishMissedNow();
+      if (res.queued === 0) {
+        toast.info('Nothing to upload', {
+          description: 'No missed posts were found — they may have just published.',
+        });
+      } else if (res.enqueued) {
+        toast.success(
+          `Uploading ${res.queued} missed post${res.queued === 1 ? '' : 's'} now`,
+          {
+            description:
+              "Publishing on the next worker pass (within seconds). Already-uploaded videos are linked, not re-uploaded.",
+          },
+        );
+      } else {
+        toast.warning(`Queued ${res.queued} missed post${res.queued === 1 ? '' : 's'}`, {
+          description:
+            "Couldn't trigger an immediate pass (worker/Redis unavailable) — they'll upload on the next 5-min cron tick.",
+        });
+      }
+      onRetried();
+    } catch (err) {
+      toast.error('Upload failed', { description: String(err) });
     } finally {
       setBusy(null);
     }
@@ -112,10 +157,16 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
           <p className="text-[11px] text-txt-tertiary mt-0.5">
             Reschedule spreads everything across the next free slots per
             channel so they don't all hit the platform's daily upload cap
-            at once. To force a single post up immediately, open it and use
-            "Publish now". The worker runs a duplicate check before each
-            upload, so an already-published video is linked, never
-            re-uploaded.
+            at once.{' '}
+            {missed.length > 0 && (
+              <>
+                Upload now fires just the {missed.length} missed{' '}
+                {missed.length === 1 ? 'post' : 'posts'} immediately (failed
+                posts stay on reschedule).{' '}
+              </>
+            )}
+            The worker runs a duplicate check before each upload, so an
+            already-published video is linked, never re-uploaded.
           </p>
         </div>
       </div>
@@ -128,8 +179,21 @@ export function ProblemsBanner({ posts, onRetried, onShowFailed }: ProblemsBanne
         >
           View only
         </Button>
+        {missed.length > 0 && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleUploadMissed}
+            loading={busy === 'upload'}
+            disabled={busy !== null}
+            title="Upload the missed posts right now (enqueues the publish job immediately instead of waiting for the next 5-min tick)"
+          >
+            <UploadCloud size={13} className="mr-1.5" />
+            Upload now ({missed.length})
+          </Button>
+        )}
         <Button
-          variant="primary"
+          variant={missed.length > 0 ? 'secondary' : 'primary'}
           size="sm"
           onClick={handleRescheduleAll}
           loading={busy === 'reschedule'}

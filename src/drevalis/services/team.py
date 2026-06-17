@@ -147,5 +147,5 @@ async def ensure_owner_from_env(session: AsyncSession) -> User | None:
     session.add(user)
     await session.commit()
     await session.refresh(user)
-    logger.info("team.owner_bootstrapped", email=email)
+    logger.info("team.owner_bootstrapped", user_id=str(user.id), email_masked=email[:3] + "***")
     return user

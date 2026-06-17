@@ -2,19 +2,40 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app import db
 from app.crypto import TIER_MACHINES, mint_jwt
-from app.rate_limit import RateLimiter, rate_limit_ip
+from app.rate_limit import RateLimiter, _client_ip, rate_limit_ip
 
 router = APIRouter(tags=["client"])
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 # 30 requests / IP / minute. Activation is a ~UUID-keyed lookup; real
 # clients heartbeat once per day, so any IP hitting the limit is
 # almost certainly a scanner / brute-forcer.
 _activate_rl = RateLimiter(capacity=30, refill_per_second=30 / 60)
+
+# Per-LICENSE throttle for the seat-management surface (/activations,
+# /deactivate). The per-IP limiter above is bypassable by rotating source
+# IPs; keying on the license key caps total seat-management operations for
+# a single license regardless of origin, blunting roster enumeration and
+# seat-griefing by anyone who learns a license key. Generous for real use
+# (the app lists seats on panel mount and deactivates rarely).
+_seat_rl = RateLimiter(capacity=20, refill_per_second=20 / 60)
+
+
+def _seat_throttle(license_key: str) -> None:
+    """429 when the per-license seat-management budget is exhausted."""
+    if not _seat_rl.take(f"seat:{license_key}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"error": "rate_limited"},
+            headers={"Retry-After": "60"},
+        )
 
 
 class ActivateRequest(BaseModel):
@@ -115,11 +136,21 @@ async def heartbeat(body: HeartbeatRequest) -> JwtResponse:
     status_code=204,
     dependencies=[Depends(rate_limit_ip(_activate_rl, prefix="deactivate"))],
 )
-async def deactivate(body: DeactivateRequest) -> None:
+async def deactivate(body: DeactivateRequest, request: Request) -> None:
+    _seat_throttle(body.license_key)
     row = await db.get_license(body.license_key)
     if row is None:
         raise HTTPException(status_code=404, detail={"error": "license_not_found"})
     await db.delete_activation(body.license_key, body.machine_id)
+    # Audit trail: seat removal is destructive and gated only by knowledge
+    # of the license key, so record who did it. Log a key SUFFIX as a
+    # correlator — never the full key.
+    logger.info(
+        "seat_deactivated",
+        ip=_client_ip(request),
+        license_suffix=body.license_key[-6:],
+        machine_id=body.machine_id,
+    )
 
 
 # ── Seat inspection ─────────────────────────────────────────────────
@@ -128,8 +159,12 @@ async def deactivate(body: DeactivateRequest) -> None:
 # They were missing before v0.20.2 — without them, every mount of the
 # LicenseSection component produced a 404 and the UI retried on each
 # render, flooding the toast stack. The endpoints are authenticated
-# only by the caller's ability to present the license key: the key is
-# already the bearer token on this surface.
+# only by the caller's ability to present the license key (the key is
+# the bearer token on this surface). To blunt abuse by anyone who learns
+# a key, the seat surface is additionally throttled per-license (not just
+# per-IP) and seat removals are audit-logged with the source IP. Full
+# proof-of-possession (a signed license JWT on these calls) is a future
+# coordinated client+server change — deployed clients send no JWT today.
 
 
 class ActivationsListRequest(BaseModel):
@@ -156,6 +191,7 @@ class ActivationsListResponse(BaseModel):
 )
 async def list_seats(body: ActivationsListRequest) -> ActivationsListResponse:
     """Return the every-machine seat roster for a license key."""
+    _seat_throttle(body.license_key)
     row = await db.get_license(body.license_key)
     if row is None:
         raise HTTPException(

@@ -31,6 +31,8 @@ from drevalis.workers.jobs.edit_render import (
     _collect_audio_envelopes,
     _color_to_ffmpeg,
     _escape_drawtext,
+    _resolve_within,
+    _safe_pos,
 )
 
 # ── _escape_drawtext ───────────────────────────────────────────────
@@ -312,3 +314,91 @@ class TestCollectAudioEnvelopes:
         out = _collect_audio_envelopes(tracks)
         assert out == [(0.0, -10.0), (5.0, -3.0)]
         assert all(isinstance(p[0], float) for p in out)
+
+
+# ── Filtergraph / path-traversal hardening (security) ──────────────
+
+
+class TestColorRejectsMetacharacters:
+    def test_three_digit_hex_passes_through(self) -> None:
+        # Pinned: #RGB is accepted (metacharacter-free) and not lost.
+        assert _color_to_ffmpeg("#FFF") == "#FFF"
+
+    def test_injection_color_falls_back_to_default(self) -> None:
+        # A value trying to break out of the filter (comma/colon/quote)
+        # must NOT be interpolated verbatim — it falls back to default.
+        assert _color_to_ffmpeg("white,drawtext=textfile=/etc/passwd") == "white"
+        assert _color_to_ffmpeg("black':x=0,crop=1") == "white"
+
+
+class TestSafePos:
+    def test_arithmetic_expr_allowed(self) -> None:
+        assert _safe_pos("(w-text_w)/2", "d") == "(w-text_w)/2"
+        assert _safe_pos(100, "d") == "100"
+
+    def test_metacharacters_fall_back(self) -> None:
+        assert _safe_pos("0,drawtext=textfile=x", "default") == "default"
+        assert _safe_pos("0:y=0", "default") == "default"
+
+    def test_none_and_empty_use_default(self) -> None:
+        assert _safe_pos(None, "d") == "d"
+        assert _safe_pos("", "d") == "d"
+
+
+class TestResolveWithin:
+    def test_relative_path_allowed(self, tmp_path: Path) -> None:
+        assert _resolve_within(tmp_path, "a/b.png") is not None
+
+    def test_absolute_path_rejected(self, tmp_path: Path) -> None:
+        # tmp_path is absolute, so its sibling is an absolute path outside.
+        outside = str(tmp_path.parent / "outside.txt")
+        assert _resolve_within(tmp_path, outside) is None
+
+    def test_dotdot_escape_rejected(self, tmp_path: Path) -> None:
+        assert _resolve_within(tmp_path, "../../secret.txt") is None
+
+    def test_empty_rejected(self, tmp_path: Path) -> None:
+        assert _resolve_within(tmp_path, "") is None
+
+
+class TestOverlayInjectionHardening:
+    def test_shape_color_injection_neutralized(self, tmp_path: Path) -> None:
+        overlays: list[dict[str, Any]] = [
+            {
+                "kind": "shape",
+                "shape": "rect",
+                "start_s": 0,
+                "end_s": 1,
+                "color": "red,drawtext=textfile=/etc/passwd",
+            }
+        ]
+        fragments, _ = _build_overlay_filters(overlays, tmp_path)
+        assert "drawtext=textfile=" not in fragments[0]
+        assert "color=white@0.5" in fragments[0]  # safe default
+
+    def test_text_x_injection_neutralized(self, tmp_path: Path) -> None:
+        overlays: list[dict[str, Any]] = [
+            {
+                "kind": "text",
+                "text": "hi",
+                "start_s": 0,
+                "end_s": 1,
+                "x": "0,crop=iw/2",
+            }
+        ]
+        fragments, _ = _build_overlay_filters(overlays, tmp_path)
+        assert "crop=" not in fragments[0]
+        assert "x=(w-text_w)/2" in fragments[0]  # falls back to default
+
+    def test_image_path_traversal_skipped(self, tmp_path: Path) -> None:
+        overlays: list[dict[str, Any]] = [
+            {
+                "kind": "image",
+                "asset_path": "../../../../etc/passwd",
+                "start_s": 0,
+                "end_s": 1,
+            }
+        ]
+        fragments, extras = _build_overlay_filters(overlays, tmp_path)
+        assert fragments == []
+        assert extras == []

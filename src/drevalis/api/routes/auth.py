@@ -451,7 +451,7 @@ async def login(
     try:
         await check_login_rate_limit(ip, email_norm)
     except LoginRateLimitedError as exc:
-        logger.warning("auth.login_rate_limited", ip=ip, email=email_norm)
+        logger.warning("auth.login_rate_limited", ip=ip, email_masked=email_norm[:3] + "***")
         # A.2 — fire-and-forget: record rate-limited attempt (no user_id known).
         asyncio.create_task(
             _record_login_event(
@@ -579,7 +579,7 @@ async def login(
         max_age=60 * 60 * 24 * 14,  # 14 days
         path="/",
     )
-    logger.info("auth.login_success", user_id=str(user.id), email=user.email)
+    logger.info("auth.login_success", user_id=str(user.id), role=user.role)
     return {"message": "logged_in", "role": user.role, "display_name": user.display_name or ""}
 
 

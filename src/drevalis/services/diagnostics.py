@@ -45,11 +45,22 @@ _REDACTED_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r".+_token$", re.IGNORECASE),
     re.compile(r".+_password$", re.IGNORECASE),
     re.compile(r"^database_url$", re.IGNORECASE),
+    # A Sentry/GlitchTip DSN embeds an ingest key (``https://<key>@host``);
+    # fully redact any ``*_dsn`` field so it never lands in a bundle the
+    # user is told to email to support.
+    re.compile(r".+_dsn$", re.IGNORECASE),
 )
 
 _REDACTED_MARKER = "***REDACTED***"
 _DB_URL_RE = re.compile(
     r"((?:postgresql|postgres|asyncpg)[^/]*://)[^:@]*:[^@]*@(.*)",
+    re.IGNORECASE,
+)
+# Generic ``scheme://user:pass@host`` matcher — used for redis_url, whose
+# password (``redis://:pw@host``) is a real credential the suffix-based
+# allowlist above does not catch.
+_URL_CRED_RE = re.compile(
+    r"^([a-z][a-z0-9+.\-]*://)[^/@\s]*:[^/@\s]*@(.*)$",
     re.IGNORECASE,
 )
 
@@ -67,16 +78,27 @@ def _redact_db_url(url: str) -> str:
     return _REDACTED_MARKER
 
 
+def _redact_url_credentials(url: str) -> str:
+    """Strip ``user:pass@`` from any URL, preserving scheme + host so
+    support can still see *where* the app points. Returns the URL
+    unchanged when it carries no inline credentials."""
+    m = _URL_CRED_RE.match(url)
+    if m:
+        return f"{m.group(1)}***:***@{m.group(2)}"
+    return url
+
+
 def redact_settings(settings: Settings) -> dict[str, object]:
     """Return a redacted, JSON-safe ``model_dump`` of *settings*.
 
     Rules
     -----
-    * ``database_url``: preserve the host/port/db portion so support can
-      see where the app points; replace user:password with ``***``.
+    * ``database_url`` / ``redis_url``: preserve the host/port/db portion
+      so support can see where the app points; replace any inline
+      user:password with ``***``.
     * Any field whose name matches ``*_KEY``, ``*_SECRET``, ``*_TOKEN``,
-      ``*_PASSWORD``, or ``encryption_key`` exactly: replace with
-      ``"***REDACTED***"``.
+      ``*_PASSWORD``, ``*_DSN``, or ``encryption_key`` exactly: replace
+      with ``"***REDACTED***"``.
     * Pydantic private attributes (``PrivateAttr``) are excluded from
       ``model_dump()`` by default and therefore never appear here.
     """
@@ -95,6 +117,8 @@ def redact_settings(settings: Settings) -> dict[str, object]:
     for name, value in raw.items():
         if name == "database_url":
             result[name] = _redact_db_url(str(value)) if value else value
+        elif name == "redis_url":
+            result[name] = _redact_url_credentials(str(value)) if value else value
         elif _should_redact(name):
             result[name] = _REDACTED_MARKER
         else:

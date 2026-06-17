@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -27,6 +28,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from drevalis.api.websocket import (
     ConnectionManager,
     _listen_redis_pubsub,
+    _validate_ws_origin,
     _validate_ws_token,
     websocket_all_progress,
     websocket_audiobook_progress,
@@ -34,10 +36,30 @@ from drevalis.api.websocket import (
 )
 
 
-def _ws(token: str | None = None) -> Any:
-    """Build a minimal WebSocket double."""
+@pytest.fixture(autouse=True)
+def _no_lan_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default every test to 'no persisted LAN-access token' so the
+    API_AUTH_TOKEN code path is exercised deterministically, independent of
+    the dev machine's network.json. Tests that need a LAN token override
+    this with their own monkeypatch.setattr."""
+    monkeypatch.setattr("drevalis.core.network_config.peek_api_token", lambda: None)
+
+
+def _ws(
+    token: str | None = None,
+    *,
+    origin: str | None = None,
+    client_host: str | None = None,
+) -> Any:
+    """Build a minimal WebSocket double.
+
+    ``origin`` populates the handshake ``Origin`` header; ``client_host``
+    sets the socket peer (for the loopback-exemption path)."""
     ws = MagicMock(spec=WebSocket)
     ws.query_params = {"token": token} if token is not None else {}
+    ws.headers = {"origin": origin} if origin is not None else {}
+    if client_host is not None:
+        ws.client = SimpleNamespace(host=client_host)
     ws.accept = AsyncMock()
     ws.close = AsyncMock()
     ws.send_text = AsyncMock()
@@ -91,6 +113,71 @@ class TestValidateWsToken:
     async def test_missing_query_token_rejected(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("API_AUTH_TOKEN", "tok")
         assert await _validate_ws_token(_ws(token=None)) is False
+
+
+# ── _validate_ws_token: LAN-access token path ─────────────────────
+
+
+class TestValidateWsTokenLan:
+    async def test_lan_token_enforced_for_non_loopback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # No env token, but LAN API Access persisted a token → remote
+        # (non-loopback) callers must present it. Previously the WS
+        # validator ignored the LAN token entirely (the Medium bug).
+        monkeypatch.delenv("API_AUTH_TOKEN", raising=False)
+        monkeypatch.setattr(
+            "drevalis.core.network_config.peek_api_token", lambda: "lan-secret"
+        )
+        ws = _ws(token="lan-secret", client_host="192.168.1.50")
+        assert await _validate_ws_token(ws) is True
+        bad = _ws(token="nope", client_host="192.168.1.50")
+        assert await _validate_ws_token(bad) is False
+
+    async def test_lan_token_loopback_exempt(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # The local webview (loopback peer) connects without the token
+        # even when LAN access is on — mirrors the HTTP middleware.
+        monkeypatch.delenv("API_AUTH_TOKEN", raising=False)
+        monkeypatch.setattr(
+            "drevalis.core.network_config.peek_api_token", lambda: "lan-secret"
+        )
+        ws = _ws(token=None, client_host="127.0.0.1")
+        assert await _validate_ws_token(ws) is True
+
+    async def test_explicit_env_token_not_loopback_exempt(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # With an explicit API_AUTH_TOKEN (team/web mode behind a proxy),
+        # loopback is NOT exempt — a proxied loopback peer must still
+        # present the token.
+        monkeypatch.setenv("API_AUTH_TOKEN", "env-tok")
+        ws = _ws(token=None, client_host="127.0.0.1")
+        assert await _validate_ws_token(ws) is False
+
+
+# ── _validate_ws_origin ────────────────────────────────────────────
+
+
+class TestValidateWsOrigin:
+    def test_missing_origin_allowed(self) -> None:
+        # Native clients / tooling don't send Origin → allowed.
+        assert _validate_ws_origin(_ws()) is True
+
+    def test_loopback_origins_allowed(self) -> None:
+        for o in (
+            "http://127.0.0.1:8000",
+            "http://localhost:5173",
+            "http://localhost:3000",
+        ):
+            assert _validate_ws_origin(_ws(origin=o)) is True, o
+
+    def test_tauri_origins_allowed(self) -> None:
+        assert _validate_ws_origin(_ws(origin="tauri://localhost")) is True
+        assert _validate_ws_origin(_ws(origin="https://tauri.localhost")) is True
+
+    def test_cross_site_origin_rejected(self) -> None:
+        assert _validate_ws_origin(_ws(origin="https://evil.example")) is False
+        assert _validate_ws_origin(_ws(origin="http://attacker.test:8000")) is False
 
 
 # ── ConnectionManager ──────────────────────────────────────────────
@@ -375,6 +462,18 @@ class TestWebsocketProgress:
         kwargs = ws.close.call_args.kwargs
         assert kwargs["code"] == 4001
         # No accept() — handshake refused before that.
+        ws.accept.assert_not_called()
+
+    async def test_cross_site_origin_closed_with_4403(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # A malicious page's WS handshake (off-origin) is refused before
+        # the token check or accept().
+        monkeypatch.delenv("API_AUTH_TOKEN", raising=False)
+        ws = _ws(origin="https://evil.example")
+        await websocket_progress(ws, "00000000-0000-0000-0000-000000000001")
+        ws.close.assert_awaited_once()
+        assert ws.close.call_args.kwargs["code"] == 4403
         ws.accept.assert_not_called()
 
     async def test_invalid_uuid_closed_with_1008(self, monkeypatch: pytest.MonkeyPatch) -> None:

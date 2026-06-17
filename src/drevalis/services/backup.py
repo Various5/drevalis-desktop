@@ -30,7 +30,7 @@ import tempfile
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, time
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING, Any
 
 import sqlalchemy as sa
@@ -56,6 +56,30 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
+def _is_unsafe_stored_path(value: object) -> bool:
+    r"""True when a restored ``file_path`` is absolute or escapes via ``..``.
+
+    A restore ingests an arbitrary (caller-supplied) archive. Legitimate
+    stored media paths are always RELATIVE and contained
+    (``episodes/<id>/...``); an absolute path or one containing ``..`` only
+    appears in a crafted archive trying to make a downstream export/render
+    sink read files outside the storage root. Such rows are dropped before
+    insert. Both POSIX and Windows grammars are checked so ``/etc/passwd``,
+    ``C:\Windows`` and ``../../x`` are caught regardless of host OS.
+    """
+    if not isinstance(value, str) or not value:
+        return False
+    posix = PurePosixPath(value)
+    win = PureWindowsPath(value)
+    return (
+        posix.is_absolute()
+        or win.is_absolute()
+        or ".." in posix.parts
+        or ".." in win.parts
+    )
+
 
 BACKUP_SCHEMA_VERSION = "1"
 
@@ -441,6 +465,29 @@ class BackupService:
                                 for col_name, coerce in coercers.items():
                                     if col_name in r:
                                         r[col_name] = coerce(r[col_name])
+                        # Drop rows whose stored file_path is absolute or
+                        # escapes the storage tree before they enter the DB.
+                        # A crafted archive could otherwise seed traversal
+                        # paths that downstream export/render sinks read
+                        # (CWE-22; defense-in-depth — restore is already a
+                        # trusted, local, destructive operation).
+                        if any(isinstance(r, dict) and "file_path" in r for r in rows):
+                            kept = [
+                                r
+                                for r in rows
+                                if not (
+                                    isinstance(r, dict)
+                                    and _is_unsafe_stored_path(r.get("file_path"))
+                                )
+                            ]
+                            dropped = len(rows) - len(kept)
+                            if dropped:
+                                logger.warning(
+                                    "restore_dropped_unsafe_paths",
+                                    table=table_name,
+                                    count=dropped,
+                                )
+                            rows = kept
                         if rows:
                             await session.execute(model.__table__.insert(), rows)
                         inserted[table_name] = len(rows)

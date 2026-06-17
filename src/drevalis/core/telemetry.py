@@ -101,6 +101,13 @@ def init_telemetry(
         # a desktop app we want explicit opt-in before any user data
         # leaves the machine.
         send_default_pii=False,
+        # Do NOT serialize stack-frame local variables into events.
+        # ``send_default_pii=False`` does NOT cover frame locals, and
+        # several error paths hold plaintext secrets in locals at the
+        # moment of capture (decrypted YouTube OAuth tokens, decrypted
+        # API keys, Fernet keys, the login password). Sending those to
+        # the error backend would be a data-exposure leak.
+        include_local_variables=False,
         # Cheap traces sample for finding slow endpoints later. 0
         # disables tracing entirely; flip up when investigating perf.
         traces_sample_rate=0.0,

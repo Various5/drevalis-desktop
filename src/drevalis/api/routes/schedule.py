@@ -351,3 +351,29 @@ async def reschedule_failed(
     platform's daily upload cap. One request, one transaction.
     """
     return await svc.reschedule_failed(within_hours=within_hours)
+
+
+@router.post(
+    "/publish-missed",
+    status_code=status.HTTP_200_OK,
+    summary="Instantly upload every missed post (past-due, never ran)",
+)
+async def publish_missed(
+    within_hours: int = Query(default=720, ge=1, le=8760),
+    svc: ScheduleService = Depends(_service),
+) -> dict[str, Any]:
+    """Bulk instant-upload for *missed* posts only.
+
+    "Missed" = ``status='scheduled'`` whose ``scheduled_at`` is >15 min
+    in the past — slots the worker never claimed (typically the app was
+    closed at the time). These are already in the publish cron's pending
+    queue, so this endpoint doesn't reschedule or mutate them; it simply
+    enqueues ``publish_scheduled_posts`` to run **now** instead of making
+    the operator wait up to 5 minutes for the next tick.
+
+    Failed posts are intentionally excluded — they errored for a reason
+    and belong on the reschedule / per-post retry flows. Each upload
+    still runs the worker's duplicate check and counts against the
+    platform's daily upload cap.
+    """
+    return await svc.publish_missed_now(within_hours=within_hours)

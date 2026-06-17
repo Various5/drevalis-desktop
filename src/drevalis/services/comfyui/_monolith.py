@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import ipaddress
 import json
 import random
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -21,6 +22,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import httpx
@@ -94,11 +96,41 @@ class GeneratedVideo:
 # ── Low-level client ───────────────────────────────────────────────────────
 
 
+def _assert_safe_base_url(base_url: str) -> None:
+    """Reject obviously-unsafe ComfyUI/RunPod base URLs (SSRF guard).
+
+    The URL is caller-configured and the backend fetches it server-side,
+    so a non-http(s) scheme or a link-local / cloud-metadata target
+    (e.g. ``169.254.169.254``, ``fe80::/10``) is refused. Loopback and
+    RFC1918 private addresses are intentionally ALLOWED — pointing ComfyUI
+    at ``127.0.0.1`` or a LAN/RunPod host is the normal case, so a blanket
+    private-IP denylist would break the feature. Literal-IP hosts are
+    checked here; hostname→metadata resolution (DNS rebinding) is out of
+    scope for this in-constructor guard.
+    """
+    parts = urlsplit(base_url)
+    if parts.scheme not in ("http", "https"):
+        raise ValueError(
+            f"ComfyUI server URL must be http/https (got {parts.scheme!r})"
+        )
+    host = parts.hostname or ""
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return  # hostname (not a literal IP) — allow
+    if ip.is_link_local:
+        raise ValueError(
+            "ComfyUI server URL points at a link-local / cloud-metadata "
+            f"address ({host}); refusing to connect."
+        )
+
+
 class ComfyUIClient:
     """HTTP client for a single ComfyUI server instance."""
 
     def __init__(self, base_url: str, api_key: str | None = None) -> None:
         self.base_url: str = base_url.rstrip("/")
+        _assert_safe_base_url(self.base_url)
 
         headers: dict[str, str] = {}
         if api_key:
