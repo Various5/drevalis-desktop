@@ -29,7 +29,7 @@ dependencies = [
     "openai>=1.58.0",
     "anthropic>=0.87.0",
     "httpx>=0.28.0",
-    "cryptography>=46.0.7",
+    "cryptography>=48.0.1",
     "faster-whisper>=1.1.0",
     # PyAV 11.0.0 ships only an sdist (no wheels). Force >=12 so Windows
     # installs pull a pre-built wheel rather than requiring MSVC at install
