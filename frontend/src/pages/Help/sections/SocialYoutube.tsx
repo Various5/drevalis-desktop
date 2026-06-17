@@ -21,7 +21,7 @@ export function SocialYoutube() {
           <li>Copy the Client ID and Client Secret into your <code className="font-mono text-xs text-accent">.env</code> file as <code className="font-mono text-xs text-accent">YOUTUBE_CLIENT_ID</code> and <code className="font-mono text-xs text-accent">YOUTUBE_CLIENT_SECRET</code></li>
           <li>Restart the backend</li>
         </ol>
-        <p className="mt-3"><strong className="text-txt-primary">Connect:</strong> Go to Settings → YouTube → Connect Account. You'll be redirected to Google's OAuth consent screen. After granting permissions, you're returned to the app and the channel is connected.</p>
+        <p className="mt-3"><strong className="text-txt-primary">Connect:</strong> Go to Channels → YouTube → Connect Account. You'll be redirected to Google's OAuth consent screen. After granting permissions, you're returned to the app and the channel is connected.</p>
       </div>
       <InfoBox>
         OAuth tokens are encrypted at rest using Fernet encryption. They are never stored or logged in plaintext. The app automatically refreshes expired tokens using the refresh token.
@@ -30,7 +30,7 @@ export function SocialYoutube() {
       <SubHeading id="connect-other" title="Connecting TikTok, Instagram, Facebook, and X" />
       <p className="text-sm text-txt-secondary leading-relaxed mb-3">
         TikTok offers a full OAuth flow; Instagram, Facebook, and X (Twitter) use platform-specific
-        API tokens you paste into <strong className="text-txt-primary">Settings → Social Media</strong>.
+        API tokens you paste into <strong className="text-txt-primary">Channels</strong>.
         Once connected, videos can be uploaded directly from the episode export menu.
       </p>
       <ul className="text-sm text-txt-secondary leading-relaxed list-disc pl-5 space-y-1.5 mb-3">

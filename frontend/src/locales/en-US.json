@@ -138,7 +138,7 @@
       },
       "recentYouTube": {
         "heading": "Recent YouTube videos",
-        "empty": "No channel videos synced yet. Connect a YouTube channel in Settings → YouTube and Drevalis will pull what's already on it.",
+        "empty": "No channel videos synced yet. Connect a YouTube channel in Channels → YouTube and Drevalis will pull what's already on it.",
         "shortBadge": "SHORT",
         "uploadedAria": "Uploaded via Drevalis",
         "viewsSuffix": "{{count}} views",

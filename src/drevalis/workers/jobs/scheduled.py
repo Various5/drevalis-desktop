@@ -404,7 +404,7 @@ async def _publish_scheduled_posts_locked(
                     if platform_row is None:
                         raise RuntimeError(
                             f"No active {post.platform} connection. "
-                            f"Reconnect via Settings → Social → {post.platform.title()}."
+                            f"Reconnect via Channels → {post.platform.title()}."
                         )
 
                     if post.content_type != "episode":
@@ -532,7 +532,7 @@ async def _publish_scheduled_posts_locked(
                 # actionable user state, not a backend bug.
                 log.warning(
                     "youtube_tokens_undecryptable",
-                    hint="Settings → YouTube → Disconnect + Reconnect to refresh encryption.",
+                    hint="Channels → YouTube → Disconnect + Reconnect to refresh encryption.",
                 )
                 try:
                     await repo.update(
@@ -540,7 +540,7 @@ async def _publish_scheduled_posts_locked(
                         status="failed",
                         error_message=(
                             "YouTube tokens unreadable on this install (encryption-key "
-                            "mismatch). Reconnect the channel in Settings → YouTube."
+                            "mismatch). Reconnect the channel in Channels → YouTube."
                         ),
                     )
                     await session.commit()

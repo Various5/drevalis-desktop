@@ -90,7 +90,7 @@ export function GettingStarted() {
           'Go to Settings → LLM and pick a provider (LM Studio, Ollama, OpenAI, Anthropic)',
           'Optional: Settings → ComfyUI — point at your ComfyUI server if you want image/video',
           'Optional: Settings → Voice Profiles — Edge TTS ships free voices; ElevenLabs and Piper are configurable',
-          'Optional: Settings → YouTube — connect a Google account for direct uploads',
+          'Optional: Channels → YouTube — connect a Google account for direct uploads',
           'Create your first Series and generate an episode',
         ].map((item, i) => (
           <div key={i} className="flex items-start gap-3 text-sm text-txt-secondary">

@@ -20,7 +20,7 @@ import { isMissed, needsYouTubeReconnect, type ScheduledPost } from './types';
 // Actions (most-relevant first, depending on what's wrong):
 //   - Reconnect YouTube → only shown when a failure is a dead grant. Deep-
 //     links to /youtube (the channel-management page; despite the worker's
-//     "Settings → YouTube" wording, that's where reconnect actually lives).
+//     "Channels → YouTube" wording, that's where reconnect actually lives).
 //   - Upload now → instantly fires the *missed* posts (enqueues the publish
 //     job now instead of waiting for the 5-min cron). Missed-only.
 //   - Retry failed now → resets failed→scheduled and fires them immediately

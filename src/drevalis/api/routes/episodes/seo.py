@@ -746,7 +746,7 @@ async def publish_all(
                 {
                     "platform": "youtube",
                     "reason": "The episode's series has no assigned YouTube channel. "
-                    "Set one in Settings → YouTube or on the series.",
+                    "Set one in Channels → YouTube or on the series.",
                 }
             )
         else:
@@ -804,7 +804,7 @@ async def publish_all(
                 {
                     "platform": plat_name,
                     "reason": f"No active {plat_name} account connected. Connect one in "
-                    f"Settings → Social Platforms ({tier_hint}).",
+                    f"Channels → {plat_name.title()} ({tier_hint}).",
                 }
             )
             continue

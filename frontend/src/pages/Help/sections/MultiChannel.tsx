@@ -16,7 +16,7 @@ export function MultiChannel() {
         Each YouTube channel goes through its own OAuth flow. To connect a second (or third) channel:
       </p>
       <ol className="list-decimal list-inside space-y-2 text-sm text-txt-secondary ml-3 mb-4">
-        <li>Go to Settings → YouTube.</li>
+        <li>Go to Channels → YouTube.</li>
         <li>Click <strong className="text-txt-primary">Connect Another Channel</strong>. You will be redirected to Google's OAuth consent screen.</li>
         <li>Sign in with the Google account that owns the target channel and grant permissions.</li>
         <li>The channel appears in the connected channels list with its channel name, subscriber count, and connection status.</li>

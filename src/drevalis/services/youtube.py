@@ -124,7 +124,7 @@ class YouTubeService:
             # post.
             raise YouTubeTokenDecryptError(
                 "Stored YouTube tokens can't be decrypted — reconnect the "
-                "channel in Settings → YouTube to refresh the encryption."
+                "channel in Channels → YouTube to refresh the encryption."
             ) from exc
 
     def _encrypt(self, plaintext: str) -> tuple[str, int]:
@@ -286,7 +286,7 @@ class YouTubeService:
             if _is_invalid_grant(exc):
                 raise YouTubeTokenExpiredError(
                     f"YouTube token was revoked or expired while {op}. "
-                    "Reconnect the channel via Settings -> YouTube."
+                    "Reconnect the channel via Channels → YouTube."
                 ) from exc
             raise
 
@@ -435,7 +435,7 @@ class YouTubeService:
             if expired:
                 raise YouTubeTokenExpiredError(
                     "YouTube access token has expired and no refresh token is "
-                    "stored. Reconnect the channel via Settings -> YouTube."
+                    "stored. Reconnect the channel via Channels → YouTube."
                 )
             logger.warning("youtube_no_refresh_token")
             return None
@@ -959,7 +959,7 @@ class YouTubeService:
                 ):
                     raise AnalyticsNotAuthorized(
                         "YouTube analytics scope missing — reconnect this "
-                        "channel from Settings → YouTube to grant access. "
+                        "channel from Channels → YouTube to grant access. "
                         "If you've already reconnected, revoke the app at "
                         "myaccount.google.com → Security → Third-party "
                         "access, then reconnect."
@@ -1027,7 +1027,7 @@ class AnalyticsNotAuthorized(Exception):
     """Raised when the channel's OAuth token lacks yt-analytics.readonly.
 
     Callers should translate this into a 403 with a hint to reconnect
-    the channel from Settings → YouTube.
+    the channel from Channels → YouTube.
     """
 
 

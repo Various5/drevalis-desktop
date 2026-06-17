@@ -139,7 +139,7 @@ function PlatformPage() {
         <p className="text-sm text-txt-secondary mb-6">
           {wizardPlatform
             ? `First time? Use the setup wizard to get your ${label} OAuth credentials and connect in one flow.`
-            : `Connect your ${label} account in Settings → Social Media to see uploads, stats, and run cross-platform publishing from here.`}
+            : `Connect your ${label} account in Channels → ${label} to see uploads, stats, and run cross-platform publishing from here.`}
         </p>
         <div className="flex items-center justify-center gap-3">
           {wizardPlatform && (

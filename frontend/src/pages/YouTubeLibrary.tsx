@@ -248,7 +248,7 @@ export default function YouTubeLibrary() {
           <p className="text-sm text-txt-secondary">
             No YouTube channels connected. Connect one in{' '}
             <Link to="/settings?section=youtube" className="text-accent hover:underline">
-              Settings → YouTube
+              Channels → YouTube
             </Link>{' '}
             to populate the library.
           </p>

@@ -138,7 +138,7 @@
       },
       "recentYouTube": {
         "heading": "Letzte YouTube-Videos",
-        "empty": "Noch keine Kanal-Videos synchronisiert. Verbinde einen YouTube-Kanal unter Einstellungen → YouTube, und Drevalis lädt die vorhandenen Videos.",
+        "empty": "Noch keine Kanal-Videos synchronisiert. Verbinde einen YouTube-Kanal unter Kanäle → YouTube, und Drevalis lädt die vorhandenen Videos.",
         "shortBadge": "SHORT",
         "uploadedAria": "Über Drevalis hochgeladen",
         "viewsSuffix": "{{count}} Aufrufe",

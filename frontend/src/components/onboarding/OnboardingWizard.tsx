@@ -745,7 +745,7 @@ function YouTubeStep({
     return (
       <StepDone
         title="YouTube is connected."
-        body="Upload settings per channel live in Settings → YouTube. Studio tier also unlocks TikTok and Instagram."
+        body="Upload settings per channel live in Channels → YouTube. Studio tier also unlocks TikTok and Instagram."
       />
     );
   }
@@ -756,14 +756,14 @@ function YouTubeStep({
         <h3 className="font-semibold text-base mb-1">Connect YouTube (optional)</h3>
         <p className="text-sm text-txt-secondary">
           Auto-uploads finished episodes. You can also export the MP4 and upload by hand. Connect
-          later from Settings → YouTube if you'd rather skip now.
+          later from Channels → YouTube if you'd rather skip now.
         </p>
       </div>
 
       <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 flex gap-3">
         <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={16} />
         <p className="text-xs text-amber-200 leading-relaxed">
-          You'll also need a Google Cloud OAuth client configured in Settings → YouTube first
+          You'll also need a Google Cloud OAuth client configured in Channels → YouTube first
           (one-time setup, ~5 minutes — instructions in the docs).
         </p>
       </div>

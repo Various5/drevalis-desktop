@@ -243,7 +243,7 @@ class ScheduleService:
         if channel is None:
             raise ValidationError(
                 "No YouTube channel is connected. Connect a channel in "
-                "Settings → YouTube before auto-scheduling."
+                "Channels → YouTube before auto-scheduling."
             )
         channel_id = channel.id
 

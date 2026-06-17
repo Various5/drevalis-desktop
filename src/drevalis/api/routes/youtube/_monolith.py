@@ -92,7 +92,7 @@ async def build_youtube_service(settings: Settings, db: AsyncSession) -> YouTube
             detail=(
                 "YouTube integration is not configured. Set "
                 "YOUTUBE_CLIENT_ID + YOUTUBE_CLIENT_SECRET in your .env "
-                "file, OR add them via Settings → Integrations → YouTube "
+                "file, OR add them via Channels → YouTube "
                 "(they'll be Fernet-encrypted at rest)."
             ),
         ) from exc
@@ -131,7 +131,7 @@ def _token_expired_401(exc: Exception, channel_id: object | None = None) -> HTTP
     detail: dict[str, Any] = {
         "error": "youtube_token_expired",
         "reason": str(exc),
-        "hint": "Reconnect this channel via Settings → YouTube.",
+        "hint": "Reconnect this channel via Channels → YouTube.",
     }
     if channel_id is not None:
         detail["channel_id"] = str(channel_id)
@@ -320,7 +320,7 @@ async def oauth_callback(
             body=(
                 f"Your current tier ({exc.tier}) allows up to {exc.limit} "
                 "channels. Upgrade or remove an existing channel in "
-                "Settings → YouTube before connecting another."
+                "Channels → YouTube before connecting another."
             ),
         )
 
@@ -1372,7 +1372,7 @@ async def delete_video(
             detail={
                 "error": "youtube_token_expired",
                 "reason": str(exc),
-                "hint": "Reconnect this channel via Settings -> YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
 
@@ -1496,7 +1496,7 @@ async def upload_episode(
             detail={
                 "error": "youtube_token_expired",
                 "reason": str(exc),
-                "hint": "Reconnect this channel via Settings -> YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
 
@@ -1960,7 +1960,7 @@ async def get_video_analytics(
                 "error": "youtube_token_expired",
                 "reason": str(exc),
                 "channel_id": str(channel.id),
-                "hint": "Reconnect this channel via Settings → YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
 
@@ -1978,7 +1978,7 @@ async def get_video_analytics(
                 "error": "youtube_token_expired",
                 "reason": str(exc),
                 "channel_id": str(channel.id),
-                "hint": "Reconnect this channel via Settings → YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
     except Exception as exc:
@@ -2111,7 +2111,7 @@ async def get_channel_analytics(
                 "error": "youtube_token_expired",
                 "reason": str(exc),
                 "channel_id": str(channel.id),
-                "hint": "Reconnect this channel via Settings → YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
     except Exception as exc:

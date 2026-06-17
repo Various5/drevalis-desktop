@@ -910,7 +910,7 @@ async def upload_audiobook_to_youtube(
                 "error": "youtube_token_expired",
                 "reason": str(exc),
                 "channel_id": str(channel.id),
-                "hint": "Reconnect this channel via Settings → YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
     if updated_tokens:
@@ -962,7 +962,7 @@ async def upload_audiobook_to_youtube(
                 "error": "youtube_token_expired",
                 "reason": str(exc),
                 "channel_id": str(channel.id),
-                "hint": "Reconnect this channel via Settings → YouTube.",
+                "hint": "Reconnect this channel via Channels → YouTube.",
             },
         ) from exc
     except Exception as exc:

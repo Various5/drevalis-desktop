@@ -719,7 +719,7 @@ function PerformanceTab({ channelId }: { channelId: string | undefined }) {
           <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200">
             <strong className="text-amber-100">Reconnect required.</strong>{' '}
             This channel's OAuth token was created before analytics support was
-            added. Disconnect and reconnect it from Settings → YouTube to grant
+            added. Disconnect and reconnect it from Channels → YouTube to grant
             access; existing uploads are unaffected.
           </div>
         )}
@@ -1140,7 +1140,7 @@ function YouTubePage() {
   }, []);
 
   const handleReconnect = useCallback((channelId: string) => {
-    // Mirror Settings → YouTube: signal which channel the wizard should
+    // Mirror Channels → YouTube: signal which channel the wizard should
     // re-authorize, then open it. Re-running OAuth mints a fresh refresh
     // token for the channel, which is the only real recovery for a dead
     // grant (Google "invalid_grant: Token has been expired or revoked").
