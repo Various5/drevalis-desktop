@@ -218,16 +218,16 @@ class ScheduleService:
         if not series:
             raise NotFoundError("Series", series_id)
 
-        # Resolve the target channel with graceful fallback. Order:
-        #   1. explicit ``payload.youtube_channel_id``
+        # Resolve the target channel. Order:
+        #   1. explicit ``payload.youtube_channel_id`` (caller override)
         #   2. the series' assigned ``youtube_channel_id``
-        #   3. any connected channel (active first, else the newest)
-        # Steps 1 and 2 can point at a stale UUID — e.g. after a
-        # backup-restore + reconnect minted fresh channel rows, or the
-        # channel was deleted. Rather than hard-failing with
-        # "YouTubeChannel not found" (the operator's "doesn't matter
-        # which channel" case), we fall back to a real connected
-        # channel and only error when there are genuinely zero channels.
+        # There is deliberately NO "any connected channel" fallback. That
+        # fallback is how an unassigned series got every episode
+        # auto-scheduled onto an arbitrary channel — each scheduled_post
+        # baked the wrong channel and ignored the series, and reassigning
+        # the series afterwards couldn't fix the already-created posts. If
+        # neither an override nor a (valid) series channel resolves, fail
+        # loudly so the operator assigns the right channel first.
         channel = None
         requested_id = payload.youtube_channel_id or getattr(
             series, "youtube_channel_id", None
@@ -236,14 +236,15 @@ class ScheduleService:
             channel = await self._channels.get_by_id(requested_id)
 
         if channel is None:
-            channel = await self._channels.get_active()
-        if channel is None:
-            all_channels = await self._channels.get_all_channels()
-            channel = all_channels[0] if all_channels else None
-        if channel is None:
+            if not await self._channels.get_all_channels():
+                raise ValidationError(
+                    "No YouTube channel is connected. Connect a channel in "
+                    "Channels → YouTube before auto-scheduling."
+                )
             raise ValidationError(
-                "No YouTube channel is connected. Connect a channel in "
-                "Channels → YouTube before auto-scheduling."
+                "This series has no YouTube channel assigned (or it points at "
+                "a channel that no longer exists). Assign a channel to the "
+                "series — or pass an explicit channel — before auto-scheduling."
             )
         channel_id = channel.id
 

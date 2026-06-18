@@ -56,7 +56,11 @@ class YouTubeUploadRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=100)
     description: str = Field(default="", max_length=5000)
     tags: list[str] = Field(default_factory=list, max_length=30)
-    privacy_status: Literal["public", "unlisted", "private"] = "private"
+    # Default to public: this is a publishing tool and the operator's
+    # intent when hitting "upload" is to go live. (Matches scheduled_posts'
+    # server_default="public".) Callers that want a private/unlisted upload
+    # must say so explicitly.
+    privacy_status: Literal["public", "unlisted", "private"] = "public"
     channel_id: UUID | None = Field(
         default=None,
         description="Override channel. If omitted, uses the series' assigned channel.",

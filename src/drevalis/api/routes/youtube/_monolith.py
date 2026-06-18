@@ -1385,6 +1385,28 @@ async def delete_video(
         )
     except YouTubeTokenExpiredError as exc:
         raise _token_expired_401(exc, channel.id) from exc
+
+    # Purge the local rows so the now-deleted video doesn't linger as a
+    # ghost (broken thumbnail/link) in the Uploads tab or the synced
+    # "Channels -> Videos" list. youtube_channel_videos is the sync cache
+    # (the next sync would drop it anyway — do it now for instant UX);
+    # youtube_uploads is the Drevalis-side upload record.
+    from sqlalchemy import delete as _sql_delete
+
+    from drevalis.models.youtube_channel import YouTubeChannelVideo, YouTubeUpload
+
+    await db.execute(
+        _sql_delete(YouTubeUpload).where(
+            YouTubeUpload.youtube_video_id == youtube_video_id,
+            YouTubeUpload.channel_id == channel_id,
+        )
+    )
+    await db.execute(
+        _sql_delete(YouTubeChannelVideo).where(
+            YouTubeChannelVideo.youtube_video_id == youtube_video_id,
+            YouTubeChannelVideo.channel_id == channel_id,
+        )
+    )
     await db.commit()
     return {"message": f"Deleted video {youtube_video_id}"}
 
