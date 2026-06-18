@@ -18,6 +18,28 @@ two pre-1.0 telemetry follow-ups from the Sentry audit.)
 
 ---
 
+## [v1.0.0-rc.9] — 2026-06-18
+
+**YouTube upload fixes: public default, channel routing, ghost cleanup.**
+
+### Fixed
+- **Uploads defaulted to Private.** `YouTubeUploadRequest.privacy_status`
+  defaulted to `private`; any upload that didn't explicitly set a privacy
+  value went up private. Now defaults to **public** (a publishing tool
+  should publish; matches the scheduled-posts default).
+- **Auto-schedule could route a whole series to the wrong channel.**
+  `auto_schedule_series` silently fell back to "any connected channel"
+  when a series had no assigned channel, baking that arbitrary channel
+  into every scheduled post (and reassigning the series afterward can't
+  fix already-created posts — they snapshot the channel at creation). It
+  now errors and asks you to assign the series' channel first.
+- **Deleted videos lingered with broken thumbnails.** `DELETE
+  /youtube/videos/{id}` removed the video from YouTube but left the local
+  upload + synced-video rows, so the deleted video stayed in the Uploads
+  tab and Channels → Videos list. It now purges both.
+
+---
+
 ## [v1.0.0-rc.8] — 2026-06-17
 
 **Copy fix: point channel reconnect/connect hints at the Channels hub.**
