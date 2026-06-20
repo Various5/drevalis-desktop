@@ -16,7 +16,7 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30.0",
     "pydantic>=2.10.0",
-    "pydantic-settings>=2.7.0",
+    "pydantic-settings>=2.14.2",
     "redis>=5.2.0",
     "arq>=0.26.1",
     # Desktop port: SQLite async driver (replaces asyncpg in single-user mode).
