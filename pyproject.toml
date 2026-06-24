@@ -40,7 +40,7 @@ dependencies = [
     "alembic>=1.14.0",
     "edge-tts>=6.1.0",
     # 0.0.27 patches CVE-2026-42561 (DoS via crafted multipart payload).
-    "python-multipart>=0.0.27",
+    "python-multipart>=0.0.31",
     "google-api-python-client>=2.100.0",
     "google-auth-oauthlib>=1.2.0",
     "google-auth>=2.25.0",
